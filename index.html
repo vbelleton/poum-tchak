@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)">
 <title>Poum Tchak</title>
+<meta name="description" content="Pupitre de batterie : onomatopées, solfège rythmique, écoute du tempo au micro.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23141922'/%3E%3Ccircle cx='24' cy='24' r='14' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Ccircle cx='24' cy='24' r='4' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -15,8 +17,8 @@
    Une couleur par fût, partout : icône, ligne de la grille, mot. */
 :root{
   --bg:#ECEFF3; --surface:#FFFFFF; --cell-a:#E3E7ED; --cell-b:#D8DDE5;
-  --ink:#141922; --ink-inv:#FFFFFF; --muted:#566074; --line:#CBD2DC;
-  --c-poum:#2F4BD0; --c-tchak:#D4432B; --c-doum:#168A6C; --c-toum:#8742B8;
+  --ink:#141922; --ink-inv:#FFFFFF; --muted:#566074; --line:#CBD2DC; --edge:#7F899B; --err:#B3321C;
+  --c-poum:#2F4BD0; --c-tchak:#D4432B; --c-doum:#117A5E; --c-toum:#8742B8;
   --c-tss:#97640A; --c-tchaa:#5E7A0A; --c-psch:#B02468;
   --f-display:'Bricolage Grotesque','Arial Narrow',system-ui,sans-serif;
   --f-body:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -26,7 +28,7 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
-    --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442;
+    --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70;
     --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
     --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
     color-scheme:dark;
@@ -34,13 +36,16 @@
 }
 :root[data-theme="dark"]{
   --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
-  --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442;
+  --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70;
   --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
   --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
-html{background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);scroll-padding-top:170px;scroll-padding-bottom:100px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:8px;top:-80px;z-index:20;background:var(--ink);color:var(--ink-inv);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none}
+.skip:focus{top:calc(8px + env(safe-area-inset-top,0px))}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-bottom:110px;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 *{box-sizing:border-box}
@@ -59,9 +64,9 @@ button{font:inherit;color:inherit}
 .wsub{font:500 11px/1.2 var(--f-mono);color:var(--muted);min-height:14px;margin-top:3px}
 .tempo-read{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
 .kit{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
-.ic{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
+.ic{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
 .ico{width:100%;max-width:34px;height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.ic .w{font:700 12px/1.1 var(--f-body);color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ic .w{font:700 12px/1.1 var(--f-body);color:var(--ink);max-width:100%;overflow-wrap:anywhere}
 .ic .n{font:500 10px/1.1 var(--f-mono);color:var(--muted)}
 .ic.on{transform:scale(1.07);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
 
@@ -74,16 +79,16 @@ h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 .hint{color:var(--muted);font-size:14px;margin:0 0 10px;max-width:62ch}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
 .ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:9px;overflow:hidden;background:var(--surface)}
 .seg button{appearance:none;border:0;background:transparent;font-weight:600;font-size:13px;padding:8px 12px;min-height:38px;cursor:pointer;touch-action:manipulation}
-.seg button+button{border-left:1px solid var(--line)}
+.seg button+button{border-left:1px solid var(--edge)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--ink-inv)}
 .seg button:disabled{opacity:.4;cursor:default}
 .seg.small button{min-height:32px;padding:5px 10px;font-size:12px}
 .rng{display:flex;align-items:center;gap:8px;font:500 12px var(--f-mono);color:var(--muted);flex:1 1 180px;min-width:0}
 .rng input{flex:1;min-width:0;accent-color:var(--ink)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.chip{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;min-height:36px;font-weight:600;font-size:13px;cursor:pointer;touch-action:manipulation}
+.chip{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:999px;padding:6px 13px;min-height:36px;font-weight:600;font-size:13px;cursor:pointer;touch-action:manipulation}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
 
 /* Grille */
@@ -93,9 +98,9 @@ h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 .ch.b{color:var(--ink);font-weight:600}
 .ch.now{border-bottom-color:var(--ink);color:var(--ink)}
 .rl{font:700 12px/1 var(--f-body);color:var(--c);display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.cell{appearance:none;border:0;border-radius:6px;min-height:32px;background:var(--cell-a);padding:0;cursor:pointer;touch-action:manipulation}
+.cell{appearance:none;border:0;border-radius:6px;min-height:32px;background:var(--cell-a);box-shadow:inset 0 0 0 1px var(--edge);padding:0;cursor:pointer;touch-action:manipulation}
 .cell.g1{background:var(--cell-b)}
-.cell.on{background:var(--c)}
+.cell.on{background:var(--c);box-shadow:none}
 .cell.now{outline:2px solid var(--ink);outline-offset:-2px}
 
 /* Lecture */
@@ -113,16 +118,16 @@ h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 
 /* Formulaires */
 label.f{display:block;font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
-textarea,input[type=text],select{width:100%;font:500 16px/1.4 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+textarea,input[type=text],select{width:100%;font:500 16px/1.4 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--edge);border-radius:9px;padding:9px 10px}
 textarea{resize:vertical;min-height:64px}
 .row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
 .row>*{min-width:0}
 .btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--ink-inv);border-radius:9px;padding:9px 14px;min-height:42px;font-weight:600;font-size:14px;cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--edge)}
 .btn:disabled{opacity:.4;cursor:default}
-.btn.live[aria-pressed="true"]{background:var(--c-tchak);border-color:var(--c-tchak);color:#fff}
+.btn.live[aria-pressed="true"]{background:var(--err);border-color:var(--err);color:var(--ink-inv)}
 .msg{min-height:1.4em;margin:8px 0 0;font-size:14px;color:var(--muted)}
-.msg.err{color:var(--c-tchak)}
+.msg.err{color:var(--err)}
 .file{position:relative;cursor:pointer}
 .file input{position:absolute;opacity:0;width:1px;height:1px}
 .file:focus-within{outline:2px solid var(--ink);outline-offset:2px}
@@ -144,11 +149,18 @@ textarea{resize:vertical;min-height:64px}
 .src{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
 .src li{display:inline-flex;gap:6px;align-items:baseline;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
 .src b{font:600 12px var(--f-mono);color:var(--ink)}
+details.ref>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;cursor:pointer;list-style:none;min-height:34px;padding:2px 0;touch-action:manipulation}
+details.ref>summary::-webkit-details-marker{display:none}
+details.ref>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;align-self:center;flex:none}
+details.ref[open]>summary::before{transform:rotate(45deg)}
+.rc{margin-left:auto;font:500 12px var(--f-mono);color:var(--muted)}
+.chk{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px}
+.chk input{width:22px;height:22px;accent-color:var(--ink);flex:none}
 .ents{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
 .ent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 38px 38px;gap:6px;align-items:center;margin-top:6px}
 .ent .el{grid-column:1/-1;font:600 11px var(--f-mono);color:var(--muted);margin-top:4px}
 .ent input{font-size:15px;padding:7px 9px;min-width:0}
-.ib{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:8px;width:38px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;touch-action:manipulation}
+.ib{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:8px;width:38px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;touch-action:manipulation}
 .ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .ib[aria-pressed="true"]{color:var(--ink)}
 .ib[aria-pressed="true"] svg{fill:currentColor}
@@ -161,7 +173,7 @@ textarea{resize:vertical;min-height:64px}
 /* Barre du bas */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .dock-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px}
-.tog,.tapb,.bpm button{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;min-height:46px;font-weight:600;font-size:14px;cursor:pointer;touch-action:manipulation}
+.tog,.tapb,.bpm button{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;min-height:46px;font-weight:600;font-size:14px;cursor:pointer;touch-action:manipulation}
 .tog{display:inline-flex;align-items:center;gap:7px;padding:0 12px}
 .tog::before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid var(--muted);background:transparent}
 .tog[aria-pressed="true"]{border-color:var(--ink)}
@@ -173,11 +185,30 @@ textarea{resize:vertical;min-height:64px}
 .tapb.hit{background:var(--cell-b)}
 .play{appearance:none;border:0;background:var(--ink);color:var(--ink-inv);border-radius:12px;min-height:46px;padding:0 16px;font-weight:700;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;touch-action:manipulation}
 .play svg{width:16px;height:16px;fill:currentColor}
-@media (max-width:380px){.tog{padding:0 9px}.tapb{padding:0 9px}.play{padding:0 12px}.bpm button{width:34px}.bpm output{min-width:38px}}
+@media (max-width:400px){
+  .dock-in{gap:6px}
+  .tog,.tapb{padding:0 10px}
+  .bpm button{width:34px}
+  .bpm output{min-width:38px}
+  .play{padding:0;width:46px;justify-content:center}
+  .play span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
+@media (max-width:360px){
+  .kit{gap:4px}
+  .ic{padding:5px 1px 4px}
+  .ic .w{font-size:10.5px;letter-spacing:-.01em}
+  .ic .n{font-size:9.5px}
+  .tog,.tapb{padding:0 8px}
+  .bpm button{width:32px}
+  .bpm output{min-width:36px;font-size:16px}
+}
+@media (max-height:520px){.stage{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
+<noscript><p style="padding:16px">Poum Tchak a besoin de JavaScript pour fonctionner. Active-le dans ton navigateur.</p></noscript>
+<a class="skip" href="#main">Aller au contenu</a>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
@@ -193,6 +224,7 @@ textarea{resize:vertical;min-height:64px}
 
 <header class="stage">
   <div class="in">
+    <h1 class="sr">Poum Tchak, pupitre de batterie</h1>
     <div class="top">
       <div class="wordbox"><div class="word" id="word">poum tchak</div><div class="wsub" id="wsub"></div></div>
       <div class="tempo-read" id="tempoRead"></div>
@@ -201,7 +233,7 @@ textarea{resize:vertical;min-height:64px}
   </div>
 </header>
 
-<main class="in wrap">
+<main class="in wrap" id="main" tabindex="-1">
   <section aria-labelledby="h-play">
     <h2 id="h-play">À jouer</h2>
     <div class="ctrl">
@@ -235,7 +267,8 @@ textarea{resize:vertical;min-height:64px}
       <button type="button" class="btn live" id="liveBtn" aria-pressed="false">Écouter en direct</button>
       <label class="btn ghost file"><input type="file" id="file" accept="audio/*"><span>Charger un morceau</span></label>
     </div>
-    <div class="lv" id="lv" hidden>
+    <label class="chk" id="followRow" hidden><input type="checkbox" id="follow" checked><span>Régler le tempo automatiquement sur ce que j'entends</span></label>
+    <div class="lv" id="lv" hidden aria-hidden="true">
       <span>poum<b><i id="lvLow" style="--c:var(--c-poum)"></i></b></span>
       <span>tchak<b><i id="lvMid" style="--c:var(--c-tchak)"></i></b></span>
       <span>tss<b><i id="lvHigh" style="--c:var(--c-tss)"></i></b></span>
@@ -246,6 +279,8 @@ textarea{resize:vertical;min-height:64px}
       <div class="sub" id="resSub"></div>
       <div class="btns">
         <button type="button" class="btn" id="songPlay">Écouter l'extrait</button>
+        <button type="button" class="btn ghost" id="octDown">Tempo ÷ 2</button>
+        <button type="button" class="btn ghost" id="octUp">Tempo × 2</button>
         <button type="button" class="btn ghost" id="keepTempo">Garder le tempo</button>
         <button type="button" class="btn" id="applyRhythm">Appliquer le rythme</button>
       </div>
@@ -269,30 +304,34 @@ textarea{resize:vertical;min-height:64px}
 
   <section aria-labelledby="h-dict">
     <h2 id="h-dict">Dictionnaire</h2>
-    <p class="hint">Chaque fût a un mot principal (l'étoile) et des synonymes reconnus à la saisie. Change les mots, ajoute les tiens, note leur source. Tout est gardé sur cet appareil.</p>
-    <p class="msg" id="dmsg" role="status"></p>
+    <p class="hint">Chaque fût a un mot principal (l'étoile) et des synonymes reconnus à la saisie. Ouvre un fût pour changer ses mots, ajouter les tiens et noter leur source. Tout est gardé sur cet appareil.</p>
+    <p class="sr" id="dmsg" role="status"></p>
     <div class="refs" id="dictDrums"></div>
 
     <h3>Frappes simultanées</h3>
     <p class="hint">Plusieurs fûts frappés ensemble peuvent avoir un mot à eux. Sans mot, la frappe s'écrit avec « + ».</p>
-    <div class="refs"><div class="ref">
-      <div class="ents" id="dictCombos" style="border-top:0;margin-top:0"></div>
+    <div class="refs"><details class="ref" id="combosDet">
+      <summary data-k="combos"><span class="rw">Mots fondus</span><span class="rn">frappes simultanées</span><span class="rc" id="comboCount"></span></summary>
+      <div class="ents" id="dictCombos"></div>
       <div class="pick" id="comboPick" role="group" aria-label="Fûts de la nouvelle frappe"></div>
       <div class="addrow">
         <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot pour la frappe simultanée">
-        <input type="text" id="comboSrc" placeholder="Source" maxlength="60" autocomplete="off" aria-label="Source du mot">
-        <button type="button" class="btn" id="comboAdd">Ajouter</button>
+        <input type="text" id="comboSrc" placeholder="Source" maxlength="60" autocomplete="off" aria-label="Source du nouveau mot">
+        <button type="button" class="btn" id="comboAdd" aria-label="Ajouter le mot aux fûts choisis">Ajouter</button>
       </div>
-    </div></div>
+      <p class="msg dm" data-k="combos"></p>
+    </details></div>
 
     <h3>Mon dictionnaire</h3>
     <p class="hint">Exporte-le pour le partager, par exemple avec ton prof, ou colle un dictionnaire reçu pour le charger.</p>
-    <textarea id="dictJson" rows="4" spellcheck="false" aria-label="Dictionnaire au format JSON" autocapitalize="none" autocomplete="off"></textarea>
+    <label class="f" for="dictJson">Dictionnaire au format JSON</label>
+    <textarea id="dictJson" rows="4" spellcheck="false" autocapitalize="none" autocomplete="off"></textarea>
     <div class="row" style="margin-top:8px">
       <button type="button" class="btn ghost" id="dictExport">Exporter</button>
       <button type="button" class="btn ghost" id="dictImport">Charger ce texte</button>
       <button type="button" class="btn ghost" id="dictReset">Remettre l'original</button>
     </div>
+    <p class="msg dm" data-k="tools"></p>
 
     <h3>Solfège rythmique</h3>
     <div class="refs">
@@ -319,8 +358,8 @@ textarea{resize:vertical;min-height:64px}
       <output id="bpmOut" aria-live="off">100</output>
       <button type="button" id="bpmUp" aria-label="Accélérer d'un battement par minute">+</button>
     </div>
-    <button type="button" class="tapb" id="tap">Tap</button>
-    <button type="button" class="play" id="play" aria-pressed="false"></button>
+    <button type="button" class="tapb" id="tap" aria-label="Tap, tempo">Tap</button>
+    <button type="button" class="play" id="play"></button>
   </div>
 </nav>
 
@@ -690,16 +729,16 @@ const icEls={};
 DRUMS.forEach(d=>{
   const b=el('button','ic');b.type='button';
   b.style.setProperty('--c','var(--c-'+d.id+')');
-  b.innerHTML='<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+d.id+'"/></svg><span class="w"></span><span class="n">'+d.note+'</span>';
+  b.innerHTML='<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+d.id+'"/></svg><span class="w"></span> <span class="n">'+d.note+'</span>';
   b.addEventListener('pointerdown',e=>{e.preventDefault();hit(d.id);});
-  b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();hit(d.id);}});
+  b.addEventListener('click',e=>{if(e.detail===0)hit(d.id);});
   kitEl.appendChild(b);icEls[d.id]=b;
 });
 function refreshLabels(){
   DRUMS.forEach(d=>{
     const b=icEls[d.id];
     b.querySelector('.w').textContent=W(d.id);
-    b.setAttribute('aria-label',d.name+', '+W(d.id)+', '+d.note);
+    b.setAttribute('aria-label',W(d.id)+' '+d.note+', '+d.name);
   });
 }
 let wordTimer=null;
@@ -906,7 +945,7 @@ function tapTempo(){
   const b=$('#tap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),90);
 }
 $('#tap').addEventListener('pointerdown',e=>{e.preventDefault();tapTempo();});
-$('#tap').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tapTempo();}});
+$('#tap').addEventListener('click',e=>{if(e.detail===0)tapTempo();});
 
 const PLAY_ICON='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg><span>Jouer</span>';
 const STOP_ICON='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/></svg><span>Stop</span>';
@@ -921,16 +960,21 @@ function updateControls(){
   [...patHost.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.pattern)));
   $('#clic').setAttribute('aria-pressed',String(state.click));
   const pb=$('#play');
-  pb.setAttribute('aria-pressed',String(state.playing));
   pb.innerHTML=state.playing?STOP_ICON:PLAY_ICON;
-  $('#tempoRead').textContent=state.bpm+' BPM · '+m.label+(state.swing?' · ternaire':'');
+  refreshTempoRead();
   save();
+}
+function refreshTempoRead(){
+  const m=M();
+  let t=state.bpm+' BPM · '+m.label+(state.swing?' · ternaire':'');
+  if(state.live&&res&&res.from==='live'&&res.bpm!=null&&res.clarity>=0.12)t='écoute ≈ '+Math.round(effBpm(res))+' BPM';
+  $('#tempoRead').textContent=t;
 }
 function renderAll(){refreshLabels();renderGrid();refreshText();updateControls();}
 
 /* ---------- Traduire ---------- */
 const msgEl=$('#msg');
-function msg(text,err){msgEl.textContent=text;msgEl.className='msg'+(err?' err':'');}
+function msg(text,err){msgEl.textContent=(err?'Erreur : ':'')+text;msgEl.className='msg'+(err?' err':'');}
 function fillDrumSelect(){
   const sel=$('#solfDrum');const cur=sel.value||'poum';sel.innerHTML='';
   DRUMS.forEach(d=>{const o=el('option',null,W(d.id)+' · '+d.name);o.value=d.id;sel.appendChild(o);});
@@ -951,9 +995,25 @@ $('#applySolf').addEventListener('click',()=>{
 });
 
 /* ---------- Dictionnaire éditable ---------- */
-const dmsgEl=$('#dmsg');
-function dmsg(text,err){dmsgEl.textContent=text;dmsgEl.className='msg'+(err?' err':'');}
-function commit(){saveStore();refreshLabels();fillDrumSelect();renderGrid();refreshText();renderDict();}
+let lastD=null,refocus=null;
+const openDet=new Set();
+function dmsg(text,err,key){
+  const t=(err?'Erreur : ':'')+text;
+  lastD={text:t,err:!!err,key};
+  const live=$('#dmsg');live.textContent='';
+  setTimeout(()=>{live.textContent=t;},40);
+  const box=document.querySelector('.dm[data-k="'+key+'"]');
+  if(box){box.textContent=t;box.className='msg dm'+(err?' err':'');}
+}
+function commit(){saveStore();refreshLabels();fillDrumSelect();renderGrid();refreshText();renderDict();renderPick();restoreFocus();}
+function restoreFocus(){
+  const r=refocus;refocus=null;if(!r)return;
+  let t=null;
+  if(r.e)t=[...document.querySelectorAll('#dictDrums input,#dictDrums button,#dictCombos input,#dictCombos button')].find(n=>n._e===r.e&&n.dataset.role===r.role);
+  else if(r.k)t=document.querySelector('summary[data-k="'+r.k+'"]');
+  else if(r.add)t=document.querySelector('input[data-add="'+r.add+'"]');
+  if(t)t.focus();
+}
 const SVG_STAR='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.9 4.2 4.6.5-3.4 3.1 1 4.5L8 11.4 3.9 13.8l1-4.5L1.5 6.2l4.6-.5z"/></svg>';
 const SVG_X='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>';
 function iconBtn(svg,label){const b=el('button','ib');b.type='button';b.innerHTML=svg;b.setAttribute('aria-label',label);return b;}
@@ -961,31 +1021,34 @@ function textInput(value,placeholder,label,max){
   const i=el('input');i.type='text';i.value=value;i.placeholder=placeholder;i.maxLength=max;
   i.setAttribute('aria-label',label);i.autocomplete='off';i.autocapitalize='none';i.spellcheck=false;return i;
 }
+const drumNames=ids=>ids.map(id=>DRUMS.find(d=>d.id===id).name).join(' + ');
+const kOf=e=>e.ids.length===1?e.ids[0]:'combos';
 function entryRow(e,i,showIds){
   const row=el('div','ent');
-  if(showIds)row.appendChild(el('div','el',keyOf(e.ids).split('+').map(W).join(' + ')));
-  const key=keyOf(e.ids);
+  const key=keyOf(e.ids),k=kOf(e);
+  if(showIds)row.appendChild(el('div','el',key.split('+').map(W).join(' + ')));
   const first=dict.findIndex(x=>keyOf(x.ids)===key);
   const isPrimary=first===i;
-  const w=textInput(e.w,'Mot','Mot',12);
-  const s=textInput(e.src,'Source','Source du mot',60);
-  const star=iconBtn(SVG_STAR,isPrimary?'Mot principal':'Choisir comme mot principal');
+  const w=textInput(e.w,'Mot','Mot pour '+drumNames(e.ids)+', actuellement « '+e.w+' »',12);
+  const s=textInput(e.src,'Source','Source de « '+e.w+' »',60);
+  const star=iconBtn(SVG_STAR,'Définir « '+e.w+' » comme mot principal');
   star.setAttribute('aria-pressed',String(isPrimary));
-  const del=iconBtn(SVG_X,'Retirer ce mot');
+  const del=iconBtn(SVG_X,'Retirer « '+e.w+' »');
+  [[w,'w'],[s,'s'],[star,'star'],[del,'del']].forEach(([n,role])=>{n._e=e;n.dataset.role=role;});
   w.addEventListener('change',()=>{
     const err=checkWord(dict,w.value,e.ids,i);
-    if(err){dmsg(err,true);w.value=e.w;return;}
-    e.w=w.value.trim().toLowerCase();dmsg('Mot enregistré.');commit();
+    if(err){dmsg(err,true,k);w.value=e.w;return;}
+    e.w=w.value.trim().toLowerCase();refocus={e,role:'w'};dmsg('Mot enregistré : « '+e.w+' ».',false,k);commit();
   });
-  s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Source enregistrée.');});
+  s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Source enregistrée.',false,k);});
   star.addEventListener('click',()=>{
     if(isPrimary)return;
-    dict.splice(i,1);dict.splice(first,0,e);dmsg('« '+e.w+' » est le mot principal.');commit();
+    dict.splice(i,1);dict.splice(first,0,e);refocus={e,role:'star'};dmsg('« '+e.w+' » est le mot principal.',false,k);commit();
   });
   del.addEventListener('click',()=>{
     const siblings=dict.filter(x=>keyOf(x.ids)===key).length;
-    if(e.ids.length===1&&siblings===1){dmsg('Chaque fût garde au moins un mot.',true);return;}
-    dict.splice(i,1);dmsg('« '+e.w+' » retiré.');commit();
+    if(e.ids.length===1&&siblings===1){dmsg('Chaque fût garde au moins un mot.',true,k);return;}
+    dict.splice(i,1);refocus={k};dmsg('« '+e.w+' » retiré.',false,k);commit();
   });
   row.append(w,s,star,del);
   return row;
@@ -1001,37 +1064,47 @@ const REF={
 };
 function addSingle(id,wIn,sIn){
   const err=checkWord(dict,wIn.value,[id],-1);
-  if(err){dmsg(err,true);return;}
-  dict.push({w:wIn.value.trim().toLowerCase(),ids:[id],src:sIn.value.trim()});
-  dmsg('« '+wIn.value.trim().toLowerCase()+' » ajouté.');commit();
+  if(err){dmsg(err,true,id);return;}
+  const word=wIn.value.trim().toLowerCase();
+  dict.push({w:word,ids:[id],src:sIn.value.trim()});
+  refocus={add:id};dmsg('« '+word+' » ajouté.',false,id);commit();
 }
 function renderDict(){
   const host=$('#dictDrums');host.innerHTML='';
   DRUMS.forEach(d=>{
     const r=REF[d.id];
-    const card=el('article','ref');card.style.setProperty('--c','var(--c-'+d.id+')');
-    const h=el('header');h.append(el('span','rw',W(d.id)),el('span','rn',d.name+' · '+d.note));
-    card.appendChild(h);card.appendChild(el('p',null,r.txt));
+    const det=el('details','ref');det.style.setProperty('--c','var(--c-'+d.id+')');
+    det.open=openDet.has(d.id);
+    det.addEventListener('toggle',()=>{if(det.open)openDet.add(d.id);else openDet.delete(d.id);});
+    const count=dict.filter(e=>keyOf(e.ids)===d.id).length;
+    const sum=el('summary');sum.dataset.k=d.id;
+    sum.append(el('span','rw',W(d.id)),el('span','rn',d.name+' · '+d.note),el('span','rc',count+(count>1?' mots':' mot')));
+    det.appendChild(sum);det.appendChild(el('p',null,r.txt));
     const ul=el('ul','src');
     r.src.forEach(pair=>{const li=el('li');li.append(el('span',null,pair[0]),el('b',null,pair[1]));ul.appendChild(li);});
-    card.appendChild(ul);
+    det.appendChild(ul);
     const list=el('div','ents');
     dict.forEach((e,i)=>{if(keyOf(e.ids)===d.id)list.appendChild(entryRow(e,i,false));});
-    card.appendChild(list);
+    det.appendChild(list);
     const add=el('div','addrow');
-    const wi=textInput('','Nouveau mot','Nouveau mot pour '+d.name,12);
-    const si=textInput('','Source','Source du mot',60);
+    const wi=textInput('','Nouveau mot','Nouveau mot pour '+d.name,12);wi.dataset.add=d.id;
+    const si=textInput('','Source','Source du nouveau mot pour '+d.name,60);
     const ab=el('button','btn','Ajouter');ab.type='button';
+    ab.setAttribute('aria-label','Ajouter le mot à '+d.name);
     ab.addEventListener('click',()=>addSingle(d.id,wi,si));
     wi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addSingle(d.id,wi,si);}});
-    add.append(wi,si,ab);card.appendChild(add);
-    host.appendChild(card);
+    add.append(wi,si,ab);det.appendChild(add);
+    const box=el('p','msg dm');box.dataset.k=d.id;
+    if(lastD&&lastD.key===d.id){box.textContent=lastD.text;if(lastD.err)box.classList.add('err');}
+    det.appendChild(box);
+    host.appendChild(det);
   });
   const ch=$('#dictCombos');ch.innerHTML='';
   const combos=dict.map((e,i)=>({e,i})).filter(x=>x.e.ids.length>1);
   combos.sort((a,b)=>IDS.indexOf(a.e.ids[0])-IDS.indexOf(b.e.ids[0])||a.e.ids.length-b.e.ids.length);
   combos.forEach(x=>ch.appendChild(entryRow(x.e,x.i,true)));
   if(!combos.length)ch.appendChild(el('p','hint','Aucune frappe simultanée nommée pour l\'instant.'));
+  $('#comboCount').textContent=combos.length+(combos.length>1?' mots':' mot');
 }
 const comboSel=new Set();
 const pickHost=$('#comboPick');
@@ -1040,65 +1113,77 @@ function renderPick(){
   DRUMS.forEach(d=>{
     const b=el('button','chip',W(d.id));b.type='button';
     b.setAttribute('aria-pressed',String(comboSel.has(d.id)));
-    b.addEventListener('click',()=>{comboSel.has(d.id)?comboSel.delete(d.id):comboSel.add(d.id);renderPick();});
+    b.addEventListener('click',()=>{if(comboSel.has(d.id))comboSel.delete(d.id);else comboSel.add(d.id);renderPick();
+      const again=[...pickHost.children][DRUMS.indexOf(d)];if(again)again.focus();});
     pickHost.appendChild(b);
   });
 }
 $('#comboAdd').addEventListener('click',()=>{
   const ids=IDS.filter(id=>comboSel.has(id));
-  if(ids.length<2){dmsg('Choisis au moins deux fûts.',true);return;}
+  if(ids.length<2){dmsg('Choisis au moins deux fûts.',true,'combos');return;}
   const wi=$('#comboWord'),si=$('#comboSrc');
   const err=checkWord(dict,wi.value,ids,-1);
-  if(err){dmsg(err,true);return;}
+  if(err){dmsg(err,true,'combos');return;}
   const word=wi.value.trim().toLowerCase();
   dict.push({w:word,ids,src:si.value.trim()});
   wi.value='';si.value='';comboSel.clear();
-  dmsg('« '+word+' » ajouté pour '+ids.map(W).join(' + ')+'.');commit();renderPick();
+  dmsg('« '+word+' » ajouté pour '+ids.map(W).join(' + ')+'.',false,'combos');commit();
 });
 $('#dictExport').addEventListener('click',()=>{
   const txt=JSON.stringify({app:'poum-tchak',entries:dict},null,1);
   $('#dictJson').value=txt;
   if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(()=>dmsg('Dictionnaire copié.'),()=>dmsg('Dictionnaire affiché, copie-le depuis la zone de texte.'));
-  }else dmsg('Dictionnaire affiché, copie-le depuis la zone de texte.');
+    navigator.clipboard.writeText(txt).then(()=>dmsg('Dictionnaire copié.',false,'tools'),()=>dmsg('Dictionnaire affiché, copie-le depuis la zone de texte.',false,'tools'));
+  }else dmsg('Dictionnaire affiché, copie-le depuis la zone de texte.',false,'tools');
 });
 $('#dictImport').addEventListener('click',()=>{
   let raw=null;
-  try{raw=JSON.parse($('#dictJson').value);}catch(e){dmsg('Ce texte n\'est pas un dictionnaire valide.',true);return;}
+  try{raw=JSON.parse($('#dictJson').value);}catch(e){dmsg('Ce texte n\'est pas un dictionnaire valide.',true,'tools');return;}
   const d=sanitizeDict(raw);
-  if(!d){dmsg('Aucun mot lisible dans ce texte.',true);return;}
-  dict=d;dmsg('Dictionnaire chargé : '+d.length+' mots.');commit();renderPick();
+  if(!d){dmsg('Aucun mot lisible dans ce texte.',true,'tools');return;}
+  dict=d;dmsg('Dictionnaire chargé : '+d.length+' mots.',false,'tools');commit();
 });
 let resetArmed=false;
 $('#dictReset').addEventListener('click',()=>{
   const b=$('#dictReset');
   if(!resetArmed){resetArmed=true;b.textContent='Confirmer : tout remettre';setTimeout(()=>{resetArmed=false;b.textContent='Remettre l\'original';},4000);return;}
   resetArmed=false;b.textContent='Remettre l\'original';
-  dict=defaultEntries();dmsg('Dictionnaire d\'origine rétabli.');commit();renderPick();
+  dict=defaultEntries();dmsg('Dictionnaire d\'origine rétabli.',false,'tools');commit();
 });
 
 /* ---------- Écouter : résultat commun ---------- */
-let res=null;
+let res=null,octave=1;
+const effBpm=r=>r.bpm*octave;
 const listenMsg=$('#listenMsg');
-function setListen(text,err){listenMsg.textContent=text;listenMsg.className='msg'+(err?' err':'');}
+function setListen(text,err){listenMsg.textContent=text&&err?'Erreur : '+text:text;listenMsg.className='msg'+(err?' err':'');}
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 function showResult(){
   const r=$('#result');r.hidden=false;
   const has=res.bpm!=null;
-  $('#resBpm').textContent=has?'≈ '+Math.round(res.bpm)+' BPM':'Tempo introuvable';
+  $('#resBpm').textContent=has?'≈ '+Math.round(effBpm(res))+' BPM':'Tempo introuvable';
+  $('#octDown').disabled=!has;$('#octUp').disabled=!has;
   const q=!has?'Aucun pouls net':res.clarity>=0.25?'Pouls net':res.clarity>=0.12?'Pouls peu net, tempo approximatif':'Aucun pouls net';
   $('#resSub').textContent=res.from==='live'?q+' · en direct, mis à jour toutes les 2 secondes':q+' · extrait de '+fmt(res.startS)+' à '+fmt(res.startS+res.dur)+' · '+res.name;
   $('#keepTempo').disabled=!has||res.clarity<0.12;
   $('#applyRhythm').disabled=!res.grid;
   $('#songPlay').hidden=res.from!=='file';
+  refreshTempoRead();
 }
-$('#keepTempo').addEventListener('click',()=>{if(res&&res.bpm!=null){setBpm(res.bpm);setListen('Tempo réglé sur '+state.bpm+' BPM.');}});
+function shiftOctave(up){
+  if(!res||res.bpm==null)return;
+  octave=Math.max(0.25,Math.min(4,octave*(up?2:0.5)));
+  showResult();
+  if(state.live&&$('#follow').checked&&res.clarity>=0.25)setBpm(effBpm(res));
+}
+$('#octDown').addEventListener('click',()=>shiftOctave(false));
+$('#octUp').addEventListener('click',()=>shiftOctave(true));
+$('#keepTempo').addEventListener('click',()=>{if(res&&res.bpm!=null){setBpm(effBpm(res));setListen('Tempo réglé sur '+state.bpm+' BPM.');}});
 $('#applyRhythm').addEventListener('click',()=>{
   if(!res||!res.grid)return;
   stop();state.meter='44';state.swing=false;
   const g={};DRUMS.forEach(d=>{g[d.id]=res.grid[d.id].slice();});
   state.grid=g;state.pattern=null;
-  setBpm(res.bpm);renderAll();
+  setBpm(effBpm(res));renderAll();
   setListen('Rythme appliqué sur 16 pas, à '+state.bpm+' BPM. C\'est une lecture approchée : corrige dans la grille.');
 });
 
@@ -1119,7 +1204,7 @@ async function bandEnvelope(seg,chain,sr){
 }
 async function analyze(file){
   stop();stopSong();stopLive();
-  $('#result').hidden=true;song=null;res=null;
+  $('#result').hidden=true;song=null;res=null;octave=1;
   setListen('Analyse en cours…');
   let ac;
   try{ac=ensureAudio();}catch(e){setListen('Le son n\'est pas disponible sur cet appareil.',true);return;}
@@ -1212,6 +1297,7 @@ function updateLiveButton(){
   b.setAttribute('aria-pressed',String(state.live));
   b.textContent=state.live?'Arrêter l\'écoute':'Écouter en direct';
   $('#lv').hidden=!state.live;
+  $('#followRow').hidden=!state.live;
 }
 async function startLive(){
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
@@ -1246,7 +1332,7 @@ async function startLive(){
   live.timer=setInterval(liveAnalyze,2000);
   live.raf=requestAnimationFrame(liveLevels);
   state.live=true;updateLiveButton();
-  res=null;$('#result').hidden=true;
+  res=null;octave=1;$('#result').hidden=true;
   setListen('Écoute en cours. Joue ou lance de la musique près du micro, il faut environ 6 secondes pour estimer le tempo.');
 }
 function flushGroup(){
@@ -1313,9 +1399,11 @@ function liveAnalyze(){
   }
   res={from:'live',bpm,clarity,grid};
   showResult();setListen('');
+  if(bpm!=null&&clarity>=0.25&&$('#follow').checked)setBpm(effBpm(res));
 }
 function stopLive(){
   const L=live;if(!L)return;
+  res=res&&res.from==='live'?null:res;if(!res)$('#result').hidden=true;
   L.on=false;flushGroup();
   clearInterval(L.timer);cancelAnimationFrame(L.raf);
   try{L.proc.onaudioprocess=null;L.proc.disconnect();L.merger.disconnect();L.mono.disconnect();L.src.disconnect();L.mute.disconnect();L.nodes.forEach(n=>n.disconnect());}catch(e){}
