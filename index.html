@@ -1,0 +1,1341 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)">
+<title>Poum Tchak</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700..800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Concept : un pupitre de batterie. En haut, la batterie qui s'allume à chaque frappe.
+   En dessous, la mesure à jouer, lisible en mots (poum, tchak) et en solfège rythmique.
+   Une couleur par fût, partout : icône, ligne de la grille, mot. */
+:root{
+  --bg:#ECEFF3; --surface:#FFFFFF; --cell-a:#E3E7ED; --cell-b:#D8DDE5;
+  --ink:#141922; --ink-inv:#FFFFFF; --muted:#566074; --line:#CBD2DC;
+  --c-poum:#2F4BD0; --c-tchak:#D4432B; --c-doum:#168A6C; --c-toum:#8742B8;
+  --c-tss:#97640A; --c-tchaa:#5E7A0A; --c-psch:#B02468;
+  --f-display:'Bricolage Grotesque','Arial Narrow',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
+    --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442;
+    --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
+    --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
+  --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442;
+  --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
+  --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html{background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-bottom:110px;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+*{box-sizing:border-box}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button{font:inherit;color:inherit}
+
+.in{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Scène */
+.stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.stage .in{padding-block:10px 12px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:40px}
+.wordbox{min-width:0}
+.word{font:800 clamp(28px,8.5vw,40px)/1 var(--f-display);letter-spacing:-.01em;color:var(--muted);transition:color .12s,transform .12s;transform-origin:left center;min-width:0;overflow-wrap:anywhere}
+.word.hot{color:var(--ink);transform:scale(1.04)}
+.wsub{font:500 11px/1.2 var(--f-mono);color:var(--muted);min-height:14px;margin-top:3px}
+.tempo-read{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
+.kit{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
+.ic{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
+.ico{width:100%;max-width:34px;height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ic .w{font:700 12px/1.1 var(--f-body);color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ic .n{font:500 10px/1.1 var(--f-mono);color:var(--muted)}
+.ic.on{transform:scale(1.07);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
+
+/* Sections */
+.wrap{padding-block:16px 8px}
+section{margin-top:24px}
+section:first-child{margin-top:0}
+h2{font:600 12px/1.2 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
+.hint{color:var(--muted);font-size:14px;margin:0 0 10px;max-width:62ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg button{appearance:none;border:0;background:transparent;font-weight:600;font-size:13px;padding:8px 12px;min-height:38px;cursor:pointer;touch-action:manipulation}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ink-inv)}
+.seg button:disabled{opacity:.4;cursor:default}
+.seg.small button{min-height:32px;padding:5px 10px;font-size:12px}
+.rng{display:flex;align-items:center;gap:8px;font:500 12px var(--f-mono);color:var(--muted);flex:1 1 180px;min-width:0}
+.rng input{flex:1;min-width:0;accent-color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;min-height:36px;font-weight:600;font-size:13px;cursor:pointer;touch-action:manipulation}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
+
+/* Grille */
+.bar{display:grid;grid-template-columns:50px repeat(var(--cols),minmax(0,1fr));gap:4px;margin-top:12px}
+.bar:first-child{margin-top:0}
+.ch{font:500 11px/1 var(--f-mono);color:var(--muted);text-align:center;padding:2px 0 5px;border-bottom:2px solid transparent}
+.ch.b{color:var(--ink);font-weight:600}
+.ch.now{border-bottom-color:var(--ink);color:var(--ink)}
+.rl{font:700 12px/1 var(--f-body);color:var(--c);display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cell{appearance:none;border:0;border-radius:6px;min-height:32px;background:var(--cell-a);padding:0;cursor:pointer;touch-action:manipulation}
+.cell.g1{background:var(--cell-b)}
+.cell.on{background:var(--c)}
+.cell.now{outline:2px solid var(--ink);outline-offset:-2px}
+
+/* Lecture */
+.read{margin-top:14px;display:grid;gap:8px}
+.rlab{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rlab-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.phrase{display:flex;flex-wrap:wrap;gap:8px 12px}
+.pg,.sg{display:inline-flex;align-items:baseline;gap:6px;padding:4px 8px;border-radius:8px;background:var(--cell-a);max-width:100%}
+.pn{font:600 10px var(--f-mono);color:var(--muted)}
+.tk{font:500 12.5px var(--f-mono);padding:1px 3px;border-radius:4px}
+.tk.rest{color:var(--muted)}
+.tk.now{background:var(--ink);color:var(--ink-inv)}
+.sw{font:600 14px var(--f-mono)}
+.sg.fb .sw{color:var(--muted);font-weight:500}
+
+/* Formulaires */
+label.f{display:block;font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+textarea,input[type=text],select{width:100%;font:500 16px/1.4 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+textarea{resize:vertical;min-height:64px}
+.row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.row>*{min-width:0}
+.btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--ink-inv);border-radius:9px;padding:9px 14px;min-height:42px;font-weight:600;font-size:14px;cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.live[aria-pressed="true"]{background:var(--c-tchak);border-color:var(--c-tchak);color:#fff}
+.msg{min-height:1.4em;margin:8px 0 0;font-size:14px;color:var(--muted)}
+.msg.err{color:var(--c-tchak)}
+.file{position:relative;cursor:pointer}
+.file input{position:absolute;opacity:0;width:1px;height:1px}
+.file:focus-within{outline:2px solid var(--ink);outline-offset:2px}
+.big{font:800 30px/1.1 var(--f-display);letter-spacing:-.01em}
+.sub{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.lv span{font:600 11px var(--f-mono);color:var(--muted)}
+.lv b{display:block;height:8px;border-radius:4px;background:var(--cell-a);margin-top:4px;overflow:hidden}
+.lv i{display:block;height:100%;width:0;background:var(--c)}
+
+/* Dictionnaire */
+.refs{display:grid;gap:8px}
+.ref{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.ref header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.rw{font:800 20px/1 var(--f-display);color:var(--c,var(--ink))}
+.rn{font:500 12px var(--f-mono);color:var(--muted)}
+.ref p{margin:6px 0 8px;font-size:14px}
+.src{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:0;padding:0}
+.src li{display:inline-flex;gap:6px;align-items:baseline;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+.src b{font:600 12px var(--f-mono);color:var(--ink)}
+.ents{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
+.ent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 38px 38px;gap:6px;align-items:center;margin-top:6px}
+.ent .el{grid-column:1/-1;font:600 11px var(--f-mono);color:var(--muted);margin-top:4px}
+.ent input{font-size:15px;padding:7px 9px;min-width:0}
+.ib{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:8px;width:38px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;touch-action:manipulation}
+.ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ib[aria-pressed="true"]{color:var(--ink)}
+.ib[aria-pressed="true"] svg{fill:currentColor}
+.addrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) auto;gap:6px;margin-top:10px;align-items:center}
+.addrow input{font-size:15px;padding:7px 9px;min-width:0}
+.addrow .btn{min-height:38px;padding:6px 12px}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pick .chip{min-height:34px;padding:4px 11px}
+
+/* Barre du bas */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dock-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px}
+.tog,.tapb,.bpm button{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;min-height:46px;font-weight:600;font-size:14px;cursor:pointer;touch-action:manipulation}
+.tog{display:inline-flex;align-items:center;gap:7px;padding:0 12px}
+.tog::before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid var(--muted);background:transparent}
+.tog[aria-pressed="true"]{border-color:var(--ink)}
+.tog[aria-pressed="true"]::before{background:var(--ink);border-color:var(--ink)}
+.bpm{display:flex;align-items:center;gap:2px;margin-left:auto}
+.bpm button{width:38px;padding:0;font-size:18px}
+.bpm output{min-width:44px;text-align:center;font:600 18px var(--f-mono)}
+.tapb{padding:0 12px}
+.tapb.hit{background:var(--cell-b)}
+.play{appearance:none;border:0;background:var(--ink);color:var(--ink-inv);border-radius:12px;min-height:46px;padding:0 16px;font-weight:700;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;touch-action:manipulation}
+.play svg{width:16px;height:16px;fill:currentColor}
+@media (max-width:380px){.tog{padding:0 9px}.tapb{padding:0 9px}.play{padding:0 12px}.bpm button{width:34px}.bpm output{min-width:38px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-poum" viewBox="0 0 48 48"><circle cx="24" cy="23" r="17"/><circle cx="24" cy="23" r="10"/><circle cx="24" cy="23" r="2.4" style="fill:currentColor"/><path d="M13 38l-4 7M35 38l4 7"/></symbol>
+    <symbol id="i-tchak" viewBox="0 0 48 48"><ellipse cx="24" cy="27" rx="16" ry="5"/><path d="M8 27v10c0 2.8 7 5 16 5s16-2.2 16-5V27"/><path d="M11 9l13 14M37 9L24 23"/></symbol>
+    <symbol id="i-doum" viewBox="0 0 48 48"><ellipse cx="24" cy="15" rx="12" ry="4"/><path d="M12 15v12c0 2.2 5.4 4 12 4s12-1.8 12-4V15"/><path d="M24 31v10M15 45h18"/></symbol>
+    <symbol id="i-toum" viewBox="0 0 48 48"><ellipse cx="24" cy="16" rx="17" ry="5"/><path d="M7 16v14c0 2.8 7.6 5 17 5s17-2.2 17-5V16"/><path d="M10 34l-3 10M38 34l3 10M24 36v8"/></symbol>
+    <symbol id="i-tss" viewBox="0 0 48 48"><ellipse cx="24" cy="15" rx="17" ry="3.6"/><ellipse cx="24" cy="20" rx="17" ry="3.6"/><path d="M24 24v18M14 45l10-3 10 3"/></symbol>
+    <symbol id="i-tchaa" viewBox="0 0 48 48"><ellipse cx="24" cy="9" rx="17" ry="3.6" transform="rotate(-6 24 9)"/><ellipse cx="24" cy="21" rx="17" ry="3.6"/><path d="M24 25v17M14 45l10-3 10 3"/><path d="M5 14l-3-1M43 14l3-1"/></symbol>
+    <symbol id="i-psch" viewBox="0 0 48 48"><ellipse cx="24" cy="16" rx="20" ry="5" transform="rotate(-10 24 16)"/><circle cx="24" cy="16" r="2" style="fill:currentColor"/><path d="M24 21v21M14 45l10-4 10 4"/><path d="M6 6l4 3M42 4l-4 4M24 3v4"/></symbol>
+  </defs>
+</svg>
+
+<header class="stage">
+  <div class="in">
+    <div class="top">
+      <div class="wordbox"><div class="word" id="word">poum tchak</div><div class="wsub" id="wsub"></div></div>
+      <div class="tempo-read" id="tempoRead"></div>
+    </div>
+    <div class="kit" id="kit" role="group" aria-label="La batterie : touche un fût pour l'entendre"></div>
+  </div>
+</header>
+
+<main class="in wrap">
+  <section aria-labelledby="h-play">
+    <h2 id="h-play">À jouer</h2>
+    <div class="ctrl">
+      <div class="seg" id="meterSeg" role="group" aria-label="Mesure"></div>
+      <div class="seg" id="swingSeg" role="group" aria-label="Balancement">
+        <button type="button" data-v="0">Droit</button>
+        <button type="button" data-v="1">Ternaire</button>
+      </div>
+      <label class="rng" for="bpmRange"><span>Tempo</span><input type="range" id="bpmRange" min="40" max="220" value="100"></label>
+    </div>
+    <div class="chips" id="patterns" role="group" aria-label="Modèles de rythme"></div>
+    <div class="card"><div id="grid"></div></div>
+    <div class="read">
+      <div class="rlab">Onomatopées</div>
+      <div class="phrase" id="phrase"></div>
+      <div class="rlab-row">
+        <div class="rlab">Solfège rythmique</div>
+        <div class="seg small" id="solfSeg" role="group" aria-label="Système de solfège rythmique">
+          <button type="button" data-v="kodaly">Kodály</button>
+          <button type="button" data-v="takadimi">Takadimi</button>
+        </div>
+      </div>
+      <div class="phrase" id="solf"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-listen">
+    <h2 id="h-listen">Écouter</h2>
+    <p class="hint">Le micro capte la batterie ou la musique autour de toi. Les graves deviennent des poum, les médiums des tchak, les aigus des tss. Tu peux aussi charger un fichier audio (45 secondes analysées au plus).</p>
+    <div class="row">
+      <button type="button" class="btn live" id="liveBtn" aria-pressed="false">Écouter en direct</button>
+      <label class="btn ghost file"><input type="file" id="file" accept="audio/*"><span>Charger un morceau</span></label>
+    </div>
+    <div class="lv" id="lv" hidden>
+      <span>poum<b><i id="lvLow" style="--c:var(--c-poum)"></i></b></span>
+      <span>tchak<b><i id="lvMid" style="--c:var(--c-tchak)"></i></b></span>
+      <span>tss<b><i id="lvHigh" style="--c:var(--c-tss)"></i></b></span>
+    </div>
+    <p class="msg" id="listenMsg" role="status"></p>
+    <div class="card" id="result" hidden>
+      <div class="big" id="resBpm"></div>
+      <div class="sub" id="resSub"></div>
+      <div class="btns">
+        <button type="button" class="btn" id="songPlay">Écouter l'extrait</button>
+        <button type="button" class="btn ghost" id="keepTempo">Garder le tempo</button>
+        <button type="button" class="btn" id="applyRhythm">Appliquer le rythme</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-trad">
+    <h2 id="h-trad">Traduire</h2>
+    <p class="hint">Écris un rythme en mots ou en solfège, la grille se remplit. Les mots viennent du dictionnaire plus bas, « + » reste accepté et « . » est un silence.</p>
+    <label class="f" for="txtPhrase">Onomatopées, un mot par pas</label>
+    <textarea id="txtPhrase" rows="3" autocapitalize="none" autocomplete="off" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn" id="applyPhrase">Mettre dans la grille</button></div>
+    <label class="f" for="txtSolf">Solfège rythmique, un mot par temps</label>
+    <input type="text" id="txtSolf" autocapitalize="none" autocomplete="off" spellcheck="false">
+    <div class="row" style="margin-top:8px">
+      <select id="solfDrum" aria-label="Fût qui joue ce rythme" style="flex:1 1 150px;width:auto"></select>
+      <button type="button" class="btn" id="applySolf">Jouer ce rythme</button>
+    </div>
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <section aria-labelledby="h-dict">
+    <h2 id="h-dict">Dictionnaire</h2>
+    <p class="hint">Chaque fût a un mot principal (l'étoile) et des synonymes reconnus à la saisie. Change les mots, ajoute les tiens, note leur source. Tout est gardé sur cet appareil.</p>
+    <p class="msg" id="dmsg" role="status"></p>
+    <div class="refs" id="dictDrums"></div>
+
+    <h3>Frappes simultanées</h3>
+    <p class="hint">Plusieurs fûts frappés ensemble peuvent avoir un mot à eux. Sans mot, la frappe s'écrit avec « + ».</p>
+    <div class="refs"><div class="ref">
+      <div class="ents" id="dictCombos" style="border-top:0;margin-top:0"></div>
+      <div class="pick" id="comboPick" role="group" aria-label="Fûts de la nouvelle frappe"></div>
+      <div class="addrow">
+        <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot pour la frappe simultanée">
+        <input type="text" id="comboSrc" placeholder="Source" maxlength="60" autocomplete="off" aria-label="Source du mot">
+        <button type="button" class="btn" id="comboAdd">Ajouter</button>
+      </div>
+    </div></div>
+
+    <h3>Mon dictionnaire</h3>
+    <p class="hint">Exporte-le pour le partager, par exemple avec ton prof, ou colle un dictionnaire reçu pour le charger.</p>
+    <textarea id="dictJson" rows="4" spellcheck="false" aria-label="Dictionnaire au format JSON" autocapitalize="none" autocomplete="off"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button type="button" class="btn ghost" id="dictExport">Exporter</button>
+      <button type="button" class="btn ghost" id="dictImport">Charger ce texte</button>
+      <button type="button" class="btn ghost" id="dictReset">Remettre l'original</button>
+    </div>
+
+    <h3>Solfège rythmique</h3>
+    <div class="refs">
+      <article class="ref"><header><span class="rw">Kodály</span><span class="rn">noms de durées</span></header>
+        <p>ta, ti-ti, tiri-tiri : une syllabe par durée de note. Tim-ri (croche pointée, double) et ti-rim (l'inverse) prolongent le système dans l'appli.</p>
+        <ul class="src"><li>Solfège rythmique<b>ta / ti-ti</b></li><li>Usage français<b>tiri-tiri</b></li></ul></article>
+      <article class="ref"><header><span class="rw">Takadimi</span><span class="rn">noms de positions</span></header>
+        <p>ta ka di mi : une syllabe par place dans le temps, donc exacte pour n'importe quel rythme. En ternaire : ta ki da. Sert de repli quand un temps n'a pas de nom Kodály.</p>
+        <ul class="src"><li>Hoffman, Pelto, White<b>1996</b></li></ul></article>
+      <article class="ref"><header><span class="rw">Konnakol</span><span class="rn">rythme récité</span></header>
+        <p>Les mêmes syllabes, ta ka di mi, servent à réciter les rythmes dans la musique carnatique d'Inde du Sud.</p>
+        <ul class="src"><li>Inde du Sud<b>ta ka di mi</b></li></ul></article>
+      <article class="ref"><header><span class="rw">do ré mi…</span><span class="rn">une note par fût</span></header>
+        <p>poum do, tchak ré, doum mi, toum fa, tss sol, tchaa la, psch si. Un mémo pour retenir les sept fûts, sans rapport avec leur hauteur réelle.</p></article>
+    </div>
+  </section>
+</main>
+
+<nav class="dock" aria-label="Transport">
+  <div class="dock-in">
+    <button type="button" class="tog" id="clic" aria-pressed="true">Clic</button>
+    <div class="bpm">
+      <button type="button" id="bpmDown" aria-label="Ralentir d'un battement par minute">−</button>
+      <output id="bpmOut" aria-live="off">100</output>
+      <button type="button" id="bpmUp" aria-label="Accélérer d'un battement par minute">+</button>
+    </div>
+    <button type="button" class="tapb" id="tap">Tap</button>
+    <button type="button" class="play" id="play" aria-pressed="false"></button>
+  </div>
+</nav>
+
+<script>
+(function(){
+'use strict';
+
+//#pure-start
+const DRUMS=[
+  {id:'poum', note:'do', name:'Grosse caisse'},
+  {id:'tchak',note:'ré', name:'Caisse claire'},
+  {id:'doum', note:'mi', name:'Tom médium'},
+  {id:'toum', note:'fa', name:'Tom basse'},
+  {id:'tss',  note:'sol',name:'Charleston fermé'},
+  {id:'tchaa',note:'la', name:'Charleston ouvert'},
+  {id:'psch', note:'si', name:'Crash'}
+];
+const IDS=DRUMS.map(d=>d.id);
+const ROWS=['psch','tchaa','tss','tchak','doum','toum','poum'];
+const METERS={
+  '44':{label:'4/4',steps:16,perBeat:4,beats:4,line:8,count:['1','e','&','a']},
+  '34':{label:'3/4',steps:12,perBeat:4,beats:3,line:8,count:['1','e','&','a']},
+  '68':{label:'6/8',steps:6, perBeat:3,beats:2,line:6,count:['1','la','li']}
+};
+const REST=new Set(['.','-','_','z','·','silence']);
+const WORD_RE=/^[a-zà-ÿœ'’]+$/i;
+
+/* Dictionnaire : une liste d'entrées {w, ids, src}. Pour un même groupe de fûts,
+   la première entrée est le mot principal, les suivantes sont des synonymes. */
+const COMBOS_DEFAULT={
+  'poum+tchak':'pak','poum+doum':'vroum','poum+toum':'groum','poum+tss':'pouts','poum+tchaa':'pchaa','poum+psch':'pouch',
+  'tchak+doum':'tchoum','tchak+toum':'tchroum','tchak+tss':'tchats','tchak+tchaa':'tchaak','tchak+psch':'pschak',
+  'doum+toum':'droum','doum+tss':'douts','doum+tchaa':'dchaa','doum+psch':'douch',
+  'toum+tss':'touts','toum+tchaa':'tchaou','toum+psch':'touch',
+  'tss+tchaa':'tsch','tss+psch':'psts','tchaa+psch':'pschaa',
+  'poum+tchak+tss':'patch','poum+tchak+tchaa':'patchaa','poum+tchak+psch':'pouf','tchak+tss+psch':'pschats'
+};
+function defaultEntries(){
+  const s=(w,id,src)=>({w,ids:[id],src});
+  return [
+    s('poum','poum','Usage français'),s('boum','poum','Beatbox (B)'),s('pum','poum',''),
+    s('tchak','tchak','Usage français'),s('tchac','tchak','Autre graphie'),s('tak','tchak','Darbouka'),s('tek','tchak','Darbouka'),
+    s('doum','doum','Darbouka (dum)'),s('dum','doum','Darbouka'),
+    s('toum','toum','Cours de batterie'),s('tom','toum','Tombak'),
+    s('tss','tss','Beatbox'),s('ts','tss','Beatbox'),
+    s('tchaa','tchaa','Dérivé de tchak'),s('tcha','tchaa','Autre graphie'),s('tsss','tchaa','Beatbox'),
+    s('psch','psch','Beatbox (psh)'),s('psh','psch','Beatbox'),s('crash','psch','Nom de la cymbale'),
+    ...Object.entries(COMBOS_DEFAULT).map(([k,v])=>({w:v,ids:k.split('+'),src:'Appli'}))
+  ];
+}
+const keyOf=ids=>IDS.filter(id=>ids.includes(id)).join('+');
+function primaryWord(dict,key){const e=dict.find(x=>keyOf(x.ids)===key);return e?e.w:null;}
+function singleWord(dict,id){return primaryWord(dict,id)||id;}
+function comboWord(dict,ids){
+  const key=keyOf(ids);
+  if(!key)return '';
+  const p=primaryWord(dict,key);
+  if(p)return p;
+  return key.split('+').map(i=>singleWord(dict,i)).join('+');
+}
+function wordIndex(dict){
+  const idx=new Map();
+  dict.forEach(e=>{if(!idx.has(e.w))idx.set(e.w,keyOf(e.ids).split('+'));});
+  IDS.forEach(id=>{if(!idx.has(id))idx.set(id,[id]);});
+  return idx;
+}
+function checkWord(dict,w,ids,ignore){
+  const low=String(w).trim().toLowerCase();
+  if(!low)return 'Écris un mot.';
+  if(low.length>12)return 'Douze lettres au plus.';
+  if(!WORD_RE.test(low)||REST.has(low))return 'Lettres seulement, sans espace, sans « + ».';
+  const i=dict.findIndex((e,j)=>j!==ignore&&e.w===low);
+  if(i>=0){
+    return keyOf(dict[i].ids)===keyOf(ids)?'Ce mot est déjà dans le dictionnaire.':'« '+low+' » est déjà utilisé pour '+keyOf(dict[i].ids).split('+').map(x=>singleWord(dict,x)).join(' + ')+'.';
+  }
+  return null;
+}
+function sanitizeDict(raw){
+  if(!raw||!Array.isArray(raw.entries))return null;
+  const out=[];const seen=new Set();
+  raw.entries.forEach(e=>{
+    if(!e||typeof e.w!=='string'||!Array.isArray(e.ids))return;
+    const w=e.w.trim().toLowerCase();
+    if(!WORD_RE.test(w)||w.length>12||REST.has(w)||seen.has(w))return;
+    const ids=IDS.filter(id=>e.ids.includes(id));
+    if(!ids.length)return;
+    seen.add(w);
+    out.push({w,ids,src:typeof e.src==='string'?e.src.trim().slice(0,60):''});
+  });
+  return out.length?out:null;
+}
+
+function emptyGrid(m){const g={};DRUMS.forEach(d=>{g[d.id]=new Array(m.steps).fill(false);});return g;}
+function parsePhrase(text,m,dict){
+  const idx=wordIndex(dict);
+  const toks=text.trim().split(/[\s|]+/).filter(Boolean);
+  const grid=emptyGrid(m);const bad=[];let extra=0;
+  toks.forEach((tk,i)=>{
+    if(i>=m.steps){extra++;return;}
+    const low=tk.toLowerCase();
+    if(REST.has(low))return;
+    const whole=idx.get(low);
+    if(whole){whole.forEach(id=>{grid[id][i]=true;});return;}
+    low.split('+').forEach(w=>{
+      const ids=idx.get(w);
+      if(ids)ids.forEach(id=>{grid[id][i]=true;});
+      else bad.push(w);
+    });
+  });
+  return {grid,bad,extra,count:toks.length};
+}
+function phraseTokens(g,m,dict){
+  const out=[];
+  for(let s=0;s<m.steps;s++){
+    const ids=IDS.filter(id=>g[id][s]);
+    out.push(ids.length?comboWord(dict,ids):'.');
+  }
+  return out;
+}
+const KOD={
+  4:{'1000':'ta','1010':'ti-ti','1111':'tiri-tiri','1011':'ti-tiri','1110':'tiri-ti','1001':'tim-ri','1100':'ti-rim','0000':'·'},
+  3:{'100':'ta','111':'ti-ti-ti','101':'ta-ti','110':'ti-ta','000':'·'}
+};
+const TAK={4:['ta','ka','di','mi'],3:['ta','ki','da']};
+const KOD_INV={};
+Object.keys(KOD).forEach(pb=>{
+  KOD_INV[pb]={};
+  Object.entries(KOD[pb]).forEach(([bits,name])=>{KOD_INV[pb][name.replace(/-/g,'')]=bits;});
+});
+function beatBits(g,m,b){
+  let bits='';
+  for(let k=0;k<m.perBeat;k++){
+    const s=b*m.perBeat+k;
+    bits+=(s<m.steps&&IDS.some(id=>g[id][s]))?'1':'0';
+  }
+  return bits;
+}
+function takLabel(bits,m){
+  const syl=TAK[m.perBeat];const out=[];
+  for(let k=0;k<bits.length;k++)if(bits[k]==='1')out.push(syl[k]);
+  return out.length?out.join('-'):'·';
+}
+function beatLabels(g,m,mode){
+  const out=[];
+  for(let b=0;b<m.beats;b++){
+    const bits=beatBits(g,m,b);
+    if(mode==='kodaly'&&KOD[m.perBeat][bits])out.push({t:KOD[m.perBeat][bits],fb:false});
+    else out.push({t:takLabel(bits,m),fb:mode==='kodaly'});
+  }
+  return out;
+}
+function parseSolfege(text,m){
+  const toks=text.trim().split(/\s+/).filter(Boolean);
+  const bits=[];const bad=[];
+  toks.forEach(tk=>{
+    const low=tk.toLowerCase();
+    if(REST.has(low)){bits.push('0'.repeat(m.perBeat));return;}
+    const k=KOD_INV[m.perBeat][low.replace(/-/g,'')];
+    if(k){bits.push(k);return;}
+    const syl=TAK[m.perBeat];const parts=low.split('-');
+    if(parts.every(p=>syl.includes(p))){
+      let b='';
+      for(let i=0;i<m.perBeat;i++)b+=parts.includes(syl[i])?'1':'0';
+      bits.push(b);return;
+    }
+    bad.push(tk);
+  });
+  return {bits,bad};
+}
+function applySolfegeToDrum(g,m,id,bits){
+  g[id]=new Array(m.steps).fill(false);
+  bits.forEach((b,beat)=>{
+    if(beat>=m.beats)return;
+    for(let k=0;k<m.perBeat;k++){
+      if(b[k]==='1'){const s=beat*m.perBeat+k;if(s<m.steps)g[id][s]=true;}
+    }
+  });
+}
+function mk(m,spec){
+  const g=emptyGrid(m);
+  Object.entries(spec).forEach(([id,steps])=>steps.forEach(s=>{if(s<m.steps)g[id][s]=true;}));
+  return g;
+}
+const EVEN16=[0,2,4,6,8,10,12,14];
+const PATTERNS=[
+  {id:'rock',   label:'Rock',   meter:'44',swing:false,spec:{poum:[0,8],tchak:[4,12],tss:EVEN16}},
+  {id:'funk',   label:'Funk',   meter:'44',swing:false,spec:{poum:[0,3,6,10],tchak:[4,12],tss:[0,2,4,6,8,10,12],tchaa:[14]}},
+  {id:'disco',  label:'Disco',  meter:'44',swing:false,spec:{poum:[0,4,8,12],tchak:[4,12],tchaa:[2,6,10,14]}},
+  {id:'bossa',  label:'Bossa',  meter:'44',swing:false,spec:{poum:[0,6,8,14],tchak:[0,3,6,10,12],tss:EVEN16}},
+  {id:'shuffle',label:'Shuffle',meter:'44',swing:true, spec:{poum:[0,8],tchak:[4,12],tss:EVEN16}},
+  {id:'valse',  label:'Valse',  meter:'34',swing:false,spec:{poum:[0],tchak:[4,8],tss:[0,2,4,6,8,10]}},
+  {id:'68',     label:'6/8',    meter:'68',swing:false,spec:{poum:[0],tchak:[3],tss:[0,1,2,3,4,5]}}
+];
+function stepOffset(step,m,bpm,swing){
+  const bd=60/bpm;
+  const beat=Math.floor(step/m.perBeat),w=step%m.perBeat;
+  let f=w/m.perBeat;
+  if(swing&&m.perBeat===4)f=[0,1/3,2/3,5/6][w];
+  return (beat+f)*bd;
+}
+
+/* Analyse du son : fonctions communes au fichier et au micro. */
+function flux(e){
+  const n=e.length;const d=new Float32Array(n);let prev=0,mx=0;
+  for(let i=0;i<n;i++){const c=Math.log1p(100*e[i]);d[i]=Math.max(0,c-prev);prev=c;if(d[i]>mx)mx=d[i];}
+  if(mx>0)for(let i=0;i<n;i++)d[i]/=mx;
+  return d;
+}
+function pickOnsets(d,gap){
+  const n=d.length;const pre=new Float64Array(n+1);
+  for(let i=0;i<n;i++)pre[i+1]=pre[i]+d[i];
+  let gmax=0;for(let i=0;i<n;i++)if(d[i]>gmax)gmax=d[i];
+  const W=40;const out=[];let last=-99;
+  for(let i=1;i<n-1;i++){
+    const a=Math.max(0,i-W),b=Math.min(n,i+W+1);
+    const mean=(pre[b]-pre[a])/(b-a);
+    const thr=mean*2.2+gmax*0.12;
+    if(d[i]>thr&&d[i]>=d[i-1]&&d[i]>d[i+1]&&i-last>=gap){out.push(i);last=i;}
+  }
+  return out;
+}
+function estimateTempo(tot,hopS){
+  const n=tot.length;
+  let mean=0;for(let i=0;i<n;i++)mean+=tot[i];mean/=n;
+  const x=new Float32Array(n);let r0=0;
+  for(let i=0;i<n;i++){x[i]=tot[i]-mean;r0+=x[i]*x[i];}
+  if(r0<=0)return null;
+  const minLag=Math.floor(60/200/hopS),maxLag=Math.ceil(60/55/hopS);
+  const top=2*maxLag+1;const ac=new Float64Array(top+2);
+  for(let L=minLag-1;L<=top;L++){let s=0;for(let i=0;i+L<n;i++)s+=x[i]*x[i+L];ac[L]=s/r0;}
+  let best=-1,bestScore=-1;
+  for(let L=minLag;L<=maxLag;L++){
+    const bpm=60/(L*hopS);
+    const w=Math.exp(-0.5*Math.pow(Math.log2(bpm/110)/0.9,2));
+    const sc=(ac[L]+0.5*ac[2*L])*w;
+    if(sc>bestScore&&ac[L]>=ac[L-1]&&ac[L]>=ac[L+1]){bestScore=sc;best=L;}
+  }
+  if(best<0)return null;
+  const y0=ac[best-1],y1=ac[best],y2=ac[best+1];const den=y0-2*y1+y2;
+  const lag=best+(den!==0?0.5*(y0-y2)/den:0);
+  return {lag,bpm:60/(lag*hopS),clarity:ac[best]};
+}
+function near(arr,t){const r=Math.round(t);return Math.max(arr[r-1]||0,arr[r]||0,arr[r+1]||0);}
+function findPhase(tot,low,P){
+  let bestPh=0,bestSc=-1;
+  for(let ph=0;ph<P;ph+=0.5){let sc=0;for(let t=ph;t<tot.length;t+=P)sc+=near(tot,t);if(sc>bestSc){bestSc=sc;bestPh=ph;}}
+  let bestB=0,bestL=-1;
+  for(let b=0;b<4;b++){let sc=0;for(let t=bestPh+b*P;t<low.length;t+=4*P)sc+=near(low,t);if(sc>bestL){bestL=sc;bestB=b;}}
+  return bestPh+bestB*P;
+}
+function extractRhythm(ons,P,phase,nHops){
+  const stepP=P/4;const bars=Math.floor((nHops-phase)/(4*P));
+  if(bars<2)return null;
+  const keys=['low','mid','high'];
+  const flag={};keys.forEach(k=>{flag[k]=new Uint8Array(nHops+8);ons[k].forEach(i=>{if(i>=0&&i<nHops)flag[k][i]=1;});});
+  const counts={low:new Array(16).fill(0),mid:new Array(16).fill(0),high:new Array(16).fill(0)};
+  const tol=Math.max(1,Math.round(stepP*0.35));
+  for(let bar=0;bar<bars;bar++)for(let s=0;s<16;s++){
+    const c=Math.round(phase+(bar*16+s)*stepP);
+    keys.forEach(k=>{for(let j=-tol;j<=tol;j++){if(flag[k][c+j]){counts[k][s]++;break;}}});
+  }
+  const g=emptyGrid(METERS['44']);
+  for(let s=0;s<16;s++){
+    if(counts.low[s]/bars>=0.55)g.poum[s]=true;
+    if(counts.mid[s]/bars>=0.6)g.tchak[s]=true;
+    if(counts.high[s]/bars>=0.6)g.tss[s]=true;
+  }
+  return g;
+}
+//#pure-end
+
+const $=(s,r=document)=>r.querySelector(s);
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
+const M=()=>METERS[state.meter];
+const STORE_KEY='poumtchak.v2';
+let dict=defaultEntries();
+const W=id=>singleWord(dict,id);
+const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',grid:null,pattern:null,playing:false,song:false,live:false};
+state.grid=emptyGrid(METERS['44']);
+
+/* ---------- Mémoire locale ---------- */
+let saveTimer=null;
+function saveStore(){
+  try{
+    const g={};DRUMS.forEach(d=>{g[d.id]=state.grid[d.id].map(v=>v?1:0).join('');});
+    localStorage.setItem(STORE_KEY,JSON.stringify({entries:dict,bpm:state.bpm,meter:state.meter,swing:state.swing,click:state.click,solf:state.solf,pattern:state.pattern,grid:g}));
+  }catch(e){}
+}
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(saveStore,250);}
+function loadStore(){
+  let s=null;
+  try{s=JSON.parse(localStorage.getItem(STORE_KEY)||'null');}catch(e){}
+  if(!s||typeof s!=='object')return false;
+  const d=sanitizeDict(s);
+  if(d)dict=d;
+  if(typeof s.bpm==='number')state.bpm=Math.max(40,Math.min(220,Math.round(s.bpm)));
+  if(METERS[s.meter])state.meter=s.meter;
+  state.swing=!!s.swing&&METERS[state.meter].perBeat===4;
+  state.click=s.click!==false;
+  if(s.solf==='kodaly'||s.solf==='takadimi')state.solf=s.solf;
+  state.pattern=PATTERNS.some(p=>p.id===s.pattern)?s.pattern:null;
+  const m=METERS[state.meter];const g=emptyGrid(m);let ok=!!s.grid;
+  if(ok)DRUMS.forEach(dr=>{
+    const str=s.grid[dr.id];
+    if(typeof str!=='string'||str.length!==m.steps){ok=false;return;}
+    for(let i=0;i<m.steps;i++)g[dr.id][i]=str[i]==='1';
+  });
+  if(ok)state.grid=g;
+  return ok;
+}
+
+/* ---------- Son ---------- */
+let ctx=null,master=null,noiseBuf=null;
+function ensureAudio(){
+  if(ctx){if(ctx.state==='suspended')ctx.resume();return ctx;}
+  const AC=window.AudioContext||window.webkitAudioContext;
+  ctx=new AC();
+  const comp=ctx.createDynamicsCompressor();
+  master=ctx.createGain();master.gain.value=0.7;
+  master.connect(comp);comp.connect(ctx.destination);
+  noiseBuf=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);
+  const d=noiseBuf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  if(ctx.state==='suspended')ctx.resume();
+  return ctx;
+}
+function envl(g,t,peak,decay){
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(peak,t+0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+decay);
+}
+function tone(t,f0,f1,dur,peak,type){
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type||'sine';
+  o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(f1,t+Math.min(dur*0.4,0.15));
+  envl(g,t,peak,dur);
+  o.connect(g);g.connect(master);
+  o.start(t);o.stop(t+dur+0.05);
+}
+function noise(t,dur,peak,opt){
+  opt=opt||{};
+  const s=ctx.createBufferSource();s.buffer=noiseBuf;s.loop=true;
+  let node=s;
+  if(opt.hp){const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=opt.hp;node.connect(f);node=f;}
+  if(opt.bp){const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=opt.bp;f.Q.value=opt.q||1;node.connect(f);node=f;}
+  const g=ctx.createGain();envl(g,t,peak,dur);
+  node.connect(g);g.connect(master);
+  s.start(t,Math.random()*0.5);s.stop(t+dur+0.05);
+}
+function voice(id,t){
+  switch(id){
+    case 'poum':  tone(t,150,46,0.5,1.0);noise(t,0.025,0.3,{bp:2800,q:0.8});break;
+    case 'toum':  tone(t,118,60,0.6,0.9);noise(t,0.03,0.15,{bp:700,q:0.8});break;
+    case 'doum':  tone(t,196,104,0.45,0.85);noise(t,0.03,0.15,{bp:1100,q:0.8});break;
+    case 'tchak': noise(t,0.2,0.75,{bp:2300,q:0.6});noise(t,0.07,0.4,{hp:5000});tone(t,235,160,0.12,0.5,'triangle');break;
+    case 'tss':   noise(t,0.06,0.4,{hp:8000});break;
+    case 'tchaa': noise(t,0.45,0.36,{hp:6500});break;
+    case 'psch':  noise(t,1.2,0.42,{hp:4200});noise(t,0.35,0.25,{bp:9000,q:0.5});break;
+  }
+}
+function clickSound(t,accent){tone(t,accent?1900:1300,accent?1900:1300,0.05,0.4,'sine');}
+
+/* ---------- Scène ---------- */
+const kitEl=$('#kit'),wordEl=$('#word'),wsubEl=$('#wsub');
+const icEls={};
+DRUMS.forEach(d=>{
+  const b=el('button','ic');b.type='button';
+  b.style.setProperty('--c','var(--c-'+d.id+')');
+  b.innerHTML='<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+d.id+'"/></svg><span class="w"></span><span class="n">'+d.note+'</span>';
+  b.addEventListener('pointerdown',e=>{e.preventDefault();hit(d.id);});
+  b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();hit(d.id);}});
+  kitEl.appendChild(b);icEls[d.id]=b;
+});
+function refreshLabels(){
+  DRUMS.forEach(d=>{
+    const b=icEls[d.id];
+    b.querySelector('.w').textContent=W(d.id);
+    b.setAttribute('aria-label',d.name+', '+W(d.id)+', '+d.note);
+  });
+}
+let wordTimer=null;
+function lightIcons(ids){
+  ids.forEach(id=>{
+    const e=icEls[id];if(!e)return;
+    e.classList.add('on');
+    clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),180);
+  });
+}
+function showWord(ids){
+  const key=keyOf(ids);
+  if(!key)return;
+  const list=key.split('+');
+  wordEl.textContent=comboWord(dict,list);
+  wsubEl.textContent=list.length>1?list.map(W).join(' + '):'';
+  wordEl.classList.add('hot');
+  clearTimeout(wordTimer);wordTimer=setTimeout(()=>wordEl.classList.remove('hot'),420);
+}
+function flash(ids){lightIcons(ids);showWord(ids);}
+/* Plusieurs fûts touchés en même temps (moins de 60 ms d'écart) forment une seule frappe. */
+let pend=[],pendTimer=null;
+function hit(id){
+  ensureAudio();voice(id,ctx.currentTime);lightIcons([id]);
+  if(!pend.includes(id))pend.push(id);
+  clearTimeout(pendTimer);
+  pendTimer=setTimeout(()=>{showWord(pend);pend=[];},60);
+}
+
+/* ---------- Lecture en cours ---------- */
+let cellsByStep=[],headByStep=[],tokByStep=[],lastNow=-1;
+function setNow(step){
+  if(lastNow>=0){
+    (cellsByStep[lastNow]||[]).forEach(c=>c.classList.remove('now'));
+    if(headByStep[lastNow])headByStep[lastNow].classList.remove('now');
+    if(tokByStep[lastNow])tokByStep[lastNow].classList.remove('now');
+  }
+  lastNow=step;
+  if(step>=0){
+    (cellsByStep[step]||[]).forEach(c=>c.classList.add('now'));
+    if(headByStep[step])headByStep[step].classList.add('now');
+    if(tokByStep[step])tokByStep[step].classList.add('now');
+  }
+}
+
+/* ---------- Moteur de tempo ---------- */
+let timer=null,rafId=0,nextTime=0,sched=0;
+const queue=[];
+function scheduleStep(step,t){
+  const m=M();const ids=[];
+  DRUMS.forEach(d=>{if(state.grid[d.id][step]){ids.push(d.id);voice(d.id,t);}});
+  if(state.click&&step%m.perBeat===0)clickSound(t,step===0);
+  queue.push({t,step,ids});
+}
+function tick(){
+  const m=M();
+  while(nextTime<ctx.currentTime+0.12){
+    if(sched>=m.steps)sched=0;
+    scheduleStep(sched,nextTime);
+    const nxt=(sched+1)%m.steps;
+    const end=nxt===0?m.beats*60/state.bpm:stepOffset(nxt,m,state.bpm,state.swing);
+    nextTime+=end-stepOffset(sched,m,state.bpm,state.swing);
+    sched=nxt;
+  }
+}
+function frame(){
+  const now=ctx.currentTime;
+  while(queue.length&&queue[0].t<=now){
+    const e=queue.shift();setNow(e.step);flash(e.ids);
+  }
+  rafId=requestAnimationFrame(frame);
+}
+function play(){
+  stopSong();stopLive();ensureAudio();
+  state.playing=true;sched=0;nextTime=ctx.currentTime+0.08;queue.length=0;
+  timer=setInterval(tick,25);tick();
+  rafId=requestAnimationFrame(frame);
+  updateControls();
+}
+function stop(){
+  if(!state.playing)return;
+  state.playing=false;clearInterval(timer);cancelAnimationFrame(rafId);
+  queue.length=0;setNow(-1);updateControls();
+}
+
+/* ---------- Grille et textes ---------- */
+function renderGrid(){
+  const m=M();const host=$('#grid');
+  host.innerHTML='';lastNow=-1;
+  cellsByStep=Array.from({length:m.steps},()=>[]);headByStep=[];
+  for(let start=0;start<m.steps;start+=m.line){
+    const n=Math.min(m.line,m.steps-start);
+    const bar=el('div','bar');bar.style.setProperty('--cols',m.line);
+    bar.appendChild(el('div','corner'));
+    for(let i=0;i<n;i++){
+      const s=start+i;const first=s%m.perBeat===0;
+      const h=el('div','ch'+(first?' b':''),first?String(Math.floor(s/m.perBeat)+1):m.count[s%m.perBeat]);
+      headByStep[s]=h;bar.appendChild(h);
+    }
+    for(let i=n;i<m.line;i++)bar.appendChild(el('div','fill'));
+    ROWS.forEach(id=>{
+      const rl=el('div','rl',W(id));rl.style.setProperty('--c','var(--c-'+id+')');
+      bar.appendChild(rl);
+      for(let i=0;i<n;i++){
+        const s=start+i;
+        const c=el('button','cell g'+(Math.floor(s/m.perBeat)%2));c.type='button';
+        c.style.setProperty('--c','var(--c-'+id+')');
+        c.dataset.id=id;c.dataset.s=String(s);
+        const on=state.grid[id][s];
+        if(on)c.classList.add('on');
+        c.setAttribute('aria-pressed',String(on));
+        c.setAttribute('aria-label',W(id)+', temps '+(Math.floor(s/m.perBeat)+1)+' '+m.count[s%m.perBeat]);
+        cellsByStep[s].push(c);bar.appendChild(c);
+      }
+      for(let i=n;i<m.line;i++)bar.appendChild(el('div','fill'));
+    });
+    host.appendChild(bar);
+  }
+}
+$('#grid').addEventListener('click',e=>{
+  const c=e.target.closest('.cell');if(!c)return;
+  const id=c.dataset.id,s=+c.dataset.s;
+  const v=!state.grid[id][s];state.grid[id][s]=v;
+  c.classList.toggle('on',v);c.setAttribute('aria-pressed',String(v));
+  if(v){ensureAudio();voice(id,ctx.currentTime);flash([id]);}
+  state.pattern=null;refreshText();updateControls();
+});
+function refreshText(){
+  const m=M();const toks=phraseTokens(state.grid,m,dict);
+  const host=$('#phrase');host.innerHTML='';tokByStep=[];
+  for(let b=0;b<m.beats;b++){
+    const grp=el('span','pg');grp.appendChild(el('span','pn',String(b+1)));
+    for(let k=0;k<m.perBeat;k++){
+      const s=b*m.perBeat+k;if(s>=m.steps)break;
+      const t=el('span','tk'+(toks[s]==='.'?' rest':''),toks[s]);
+      tokByStep[s]=t;grp.appendChild(t);
+    }
+    host.appendChild(grp);
+  }
+  const labs=beatLabels(state.grid,m,state.solf);
+  const sh=$('#solf');sh.innerHTML='';
+  labs.forEach((l,b)=>{
+    const c=el('span','sg'+(l.fb?' fb':''));
+    c.append(el('span','pn',String(b+1)),el('span','sw',l.t));
+    sh.appendChild(c);
+  });
+  if(document.activeElement!==$('#txtPhrase'))$('#txtPhrase').value=toks.join(' ');
+  if(document.activeElement!==$('#txtSolf'))$('#txtSolf').value=labs.map(l=>l.t).join(' ');
+}
+
+/* ---------- Commandes ---------- */
+const meterSeg=$('#meterSeg');
+Object.entries(METERS).forEach(([k,m])=>{
+  const b=el('button',null,m.label);b.type='button';b.dataset.v=k;
+  b.addEventListener('click',()=>setMeter(k));meterSeg.appendChild(b);
+});
+const patHost=$('#patterns');
+PATTERNS.forEach(p=>{
+  const b=el('button','chip',p.label);b.type='button';b.dataset.v=p.id;
+  b.addEventListener('click',()=>applyPattern(p));patHost.appendChild(b);
+});
+{
+  const b=el('button','chip','Vider');b.type='button';b.dataset.v='clear';
+  b.addEventListener('click',()=>{state.grid=emptyGrid(M());state.pattern=null;renderAll();});
+  patHost.appendChild(b);
+}
+$('#swingSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.disabled)return;
+  state.swing=b.dataset.v==='1';state.pattern=null;updateControls();
+});
+$('#solfSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  state.solf=b.dataset.v;refreshText();updateControls();
+});
+function setMeter(k){
+  state.meter=k;if(k==='68')state.swing=false;
+  state.grid=emptyGrid(M());state.pattern=null;renderAll();
+}
+function applyPattern(p){
+  state.meter=p.meter;state.swing=p.swing;
+  state.grid=mk(M(),p.spec);state.pattern=p.id;renderAll();
+}
+function setBpm(v){
+  state.bpm=Math.max(40,Math.min(220,Math.round(v)));
+  $('#bpmOut').textContent=String(state.bpm);
+  $('#bpmRange').value=String(state.bpm);
+  updateControls();
+}
+$('#bpmRange').addEventListener('input',e=>setBpm(+e.target.value));
+$('#bpmDown').addEventListener('click',()=>setBpm(state.bpm-1));
+$('#bpmUp').addEventListener('click',()=>setBpm(state.bpm+1));
+$('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
+$('#play').addEventListener('click',()=>{state.playing?stop():play();});
+
+const taps=[];
+function tapTempo(){
+  const now=performance.now();
+  if(taps.length&&now-taps[taps.length-1]>2000)taps.length=0;
+  taps.push(now);if(taps.length>6)taps.shift();
+  if(taps.length>=2){
+    let sum=0;for(let i=1;i<taps.length;i++)sum+=taps[i]-taps[i-1];
+    setBpm(60000/(sum/(taps.length-1)));
+  }
+  const b=$('#tap');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),90);
+}
+$('#tap').addEventListener('pointerdown',e=>{e.preventDefault();tapTempo();});
+$('#tap').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tapTempo();}});
+
+const PLAY_ICON='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 1.5v13l11-6.5z"/></svg><span>Jouer</span>';
+const STOP_ICON='<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/></svg><span>Stop</span>';
+function updateControls(){
+  const m=M();
+  [...meterSeg.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.meter)));
+  [...$('#swingSeg').children].forEach(b=>{
+    b.setAttribute('aria-pressed',String((b.dataset.v==='1')===state.swing));
+    b.disabled=m.perBeat!==4;
+  });
+  [...$('#solfSeg').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.solf)));
+  [...patHost.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.pattern)));
+  $('#clic').setAttribute('aria-pressed',String(state.click));
+  const pb=$('#play');
+  pb.setAttribute('aria-pressed',String(state.playing));
+  pb.innerHTML=state.playing?STOP_ICON:PLAY_ICON;
+  $('#tempoRead').textContent=state.bpm+' BPM · '+m.label+(state.swing?' · ternaire':'');
+  save();
+}
+function renderAll(){refreshLabels();renderGrid();refreshText();updateControls();}
+
+/* ---------- Traduire ---------- */
+const msgEl=$('#msg');
+function msg(text,err){msgEl.textContent=text;msgEl.className='msg'+(err?' err':'');}
+function fillDrumSelect(){
+  const sel=$('#solfDrum');const cur=sel.value||'poum';sel.innerHTML='';
+  DRUMS.forEach(d=>{const o=el('option',null,W(d.id)+' · '+d.name);o.value=d.id;sel.appendChild(o);});
+  sel.value=cur;
+}
+$('#applyPhrase').addEventListener('click',()=>{
+  const m=M();const r=parsePhrase($('#txtPhrase').value,m,dict);
+  if(r.bad.length){msg('Mot inconnu : « '+[...new Set(r.bad)].join(' », « ')+' ». Ajoute-le au dictionnaire, rien n\'a été changé.',true);return;}
+  state.grid=r.grid;state.pattern=null;renderAll();
+  msg(r.extra?'Appliqué. '+r.extra+' mot(s) en trop ignoré(s), la mesure compte '+m.steps+' pas.':'Appliqué sur '+m.steps+' pas.');
+});
+$('#applySolf').addEventListener('click',()=>{
+  const m=M();const r=parseSolfege($('#txtSolf').value,m);
+  if(r.bad.length){msg('Solfège inconnu : « '+r.bad.join(' », « ')+' ». Rien n\'a été changé.',true);return;}
+  const id=$('#solfDrum').value;
+  applySolfegeToDrum(state.grid,m,id,r.bits);state.pattern=null;renderAll();
+  msg(W(id)+' joue maintenant ce rythme sur '+Math.min(r.bits.length,m.beats)+' temps.');
+});
+
+/* ---------- Dictionnaire éditable ---------- */
+const dmsgEl=$('#dmsg');
+function dmsg(text,err){dmsgEl.textContent=text;dmsgEl.className='msg'+(err?' err':'');}
+function commit(){saveStore();refreshLabels();fillDrumSelect();renderGrid();refreshText();renderDict();}
+const SVG_STAR='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.9 4.2 4.6.5-3.4 3.1 1 4.5L8 11.4 3.9 13.8l1-4.5L1.5 6.2l4.6-.5z"/></svg>';
+const SVG_X='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>';
+function iconBtn(svg,label){const b=el('button','ib');b.type='button';b.innerHTML=svg;b.setAttribute('aria-label',label);return b;}
+function textInput(value,placeholder,label,max){
+  const i=el('input');i.type='text';i.value=value;i.placeholder=placeholder;i.maxLength=max;
+  i.setAttribute('aria-label',label);i.autocomplete='off';i.autocapitalize='none';i.spellcheck=false;return i;
+}
+function entryRow(e,i,showIds){
+  const row=el('div','ent');
+  if(showIds)row.appendChild(el('div','el',keyOf(e.ids).split('+').map(W).join(' + ')));
+  const key=keyOf(e.ids);
+  const first=dict.findIndex(x=>keyOf(x.ids)===key);
+  const isPrimary=first===i;
+  const w=textInput(e.w,'Mot','Mot',12);
+  const s=textInput(e.src,'Source','Source du mot',60);
+  const star=iconBtn(SVG_STAR,isPrimary?'Mot principal':'Choisir comme mot principal');
+  star.setAttribute('aria-pressed',String(isPrimary));
+  const del=iconBtn(SVG_X,'Retirer ce mot');
+  w.addEventListener('change',()=>{
+    const err=checkWord(dict,w.value,e.ids,i);
+    if(err){dmsg(err,true);w.value=e.w;return;}
+    e.w=w.value.trim().toLowerCase();dmsg('Mot enregistré.');commit();
+  });
+  s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Source enregistrée.');});
+  star.addEventListener('click',()=>{
+    if(isPrimary)return;
+    dict.splice(i,1);dict.splice(first,0,e);dmsg('« '+e.w+' » est le mot principal.');commit();
+  });
+  del.addEventListener('click',()=>{
+    const siblings=dict.filter(x=>keyOf(x.ids)===key).length;
+    if(e.ids.length===1&&siblings===1){dmsg('Chaque fût garde au moins un mot.',true);return;}
+    dict.splice(i,1);dmsg('« '+e.w+' » retiré.');commit();
+  });
+  row.append(w,s,star,del);
+  return row;
+}
+const REF={
+  poum:{txt:'Coup grave et plein, le temps fort de « poum-tchak ».',src:[['Usage français','poum-tchak'],['Darbouka','dum'],['Tombak','tom'],['Taiko','don'],['Beatbox','B']]},
+  tchak:{txt:'Coup sec et brillant, le contretemps de « poum-tchak ».',src:[['Usage français','poum-tchak'],['Darbouka','tek'],['Tombak','bak'],['Beatbox','Pf']]},
+  doum:{txt:'Même famille grave que poum, joué au centre de la peau. Attribué ici au tom médium.',src:[['Darbouka','dum'],['Taiko','don']]},
+  toum:{txt:'Mot venu de ton cours. Son rond et grave, attribué ici au tom basse (à ajuster).',src:[['Tombak','tom'],['Cours de batterie','toum']]},
+  tss:{txt:'Bruit court et aigu du charleston fermé.',src:[['Beatbox','ts / tss']]},
+  tchaa:{txt:'Un tss qui dure : le charleston ouvert.',src:[['Beatbox','tsss']]},
+  psch:{txt:'Souffle large qui s\'éteint : la crash.',src:[['Beatbox','psh / kssh']]}
+};
+function addSingle(id,wIn,sIn){
+  const err=checkWord(dict,wIn.value,[id],-1);
+  if(err){dmsg(err,true);return;}
+  dict.push({w:wIn.value.trim().toLowerCase(),ids:[id],src:sIn.value.trim()});
+  dmsg('« '+wIn.value.trim().toLowerCase()+' » ajouté.');commit();
+}
+function renderDict(){
+  const host=$('#dictDrums');host.innerHTML='';
+  DRUMS.forEach(d=>{
+    const r=REF[d.id];
+    const card=el('article','ref');card.style.setProperty('--c','var(--c-'+d.id+')');
+    const h=el('header');h.append(el('span','rw',W(d.id)),el('span','rn',d.name+' · '+d.note));
+    card.appendChild(h);card.appendChild(el('p',null,r.txt));
+    const ul=el('ul','src');
+    r.src.forEach(pair=>{const li=el('li');li.append(el('span',null,pair[0]),el('b',null,pair[1]));ul.appendChild(li);});
+    card.appendChild(ul);
+    const list=el('div','ents');
+    dict.forEach((e,i)=>{if(keyOf(e.ids)===d.id)list.appendChild(entryRow(e,i,false));});
+    card.appendChild(list);
+    const add=el('div','addrow');
+    const wi=textInput('','Nouveau mot','Nouveau mot pour '+d.name,12);
+    const si=textInput('','Source','Source du mot',60);
+    const ab=el('button','btn','Ajouter');ab.type='button';
+    ab.addEventListener('click',()=>addSingle(d.id,wi,si));
+    wi.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addSingle(d.id,wi,si);}});
+    add.append(wi,si,ab);card.appendChild(add);
+    host.appendChild(card);
+  });
+  const ch=$('#dictCombos');ch.innerHTML='';
+  const combos=dict.map((e,i)=>({e,i})).filter(x=>x.e.ids.length>1);
+  combos.sort((a,b)=>IDS.indexOf(a.e.ids[0])-IDS.indexOf(b.e.ids[0])||a.e.ids.length-b.e.ids.length);
+  combos.forEach(x=>ch.appendChild(entryRow(x.e,x.i,true)));
+  if(!combos.length)ch.appendChild(el('p','hint','Aucune frappe simultanée nommée pour l\'instant.'));
+}
+const comboSel=new Set();
+const pickHost=$('#comboPick');
+function renderPick(){
+  pickHost.innerHTML='';
+  DRUMS.forEach(d=>{
+    const b=el('button','chip',W(d.id));b.type='button';
+    b.setAttribute('aria-pressed',String(comboSel.has(d.id)));
+    b.addEventListener('click',()=>{comboSel.has(d.id)?comboSel.delete(d.id):comboSel.add(d.id);renderPick();});
+    pickHost.appendChild(b);
+  });
+}
+$('#comboAdd').addEventListener('click',()=>{
+  const ids=IDS.filter(id=>comboSel.has(id));
+  if(ids.length<2){dmsg('Choisis au moins deux fûts.',true);return;}
+  const wi=$('#comboWord'),si=$('#comboSrc');
+  const err=checkWord(dict,wi.value,ids,-1);
+  if(err){dmsg(err,true);return;}
+  const word=wi.value.trim().toLowerCase();
+  dict.push({w:word,ids,src:si.value.trim()});
+  wi.value='';si.value='';comboSel.clear();
+  dmsg('« '+word+' » ajouté pour '+ids.map(W).join(' + ')+'.');commit();renderPick();
+});
+$('#dictExport').addEventListener('click',()=>{
+  const txt=JSON.stringify({app:'poum-tchak',entries:dict},null,1);
+  $('#dictJson').value=txt;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>dmsg('Dictionnaire copié.'),()=>dmsg('Dictionnaire affiché, copie-le depuis la zone de texte.'));
+  }else dmsg('Dictionnaire affiché, copie-le depuis la zone de texte.');
+});
+$('#dictImport').addEventListener('click',()=>{
+  let raw=null;
+  try{raw=JSON.parse($('#dictJson').value);}catch(e){dmsg('Ce texte n\'est pas un dictionnaire valide.',true);return;}
+  const d=sanitizeDict(raw);
+  if(!d){dmsg('Aucun mot lisible dans ce texte.',true);return;}
+  dict=d;dmsg('Dictionnaire chargé : '+d.length+' mots.');commit();renderPick();
+});
+let resetArmed=false;
+$('#dictReset').addEventListener('click',()=>{
+  const b=$('#dictReset');
+  if(!resetArmed){resetArmed=true;b.textContent='Confirmer : tout remettre';setTimeout(()=>{resetArmed=false;b.textContent='Remettre l\'original';},4000);return;}
+  resetArmed=false;b.textContent='Remettre l\'original';
+  dict=defaultEntries();dmsg('Dictionnaire d\'origine rétabli.');commit();renderPick();
+});
+
+/* ---------- Écouter : résultat commun ---------- */
+let res=null;
+const listenMsg=$('#listenMsg');
+function setListen(text,err){listenMsg.textContent=text;listenMsg.className='msg'+(err?' err':'');}
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function showResult(){
+  const r=$('#result');r.hidden=false;
+  const has=res.bpm!=null;
+  $('#resBpm').textContent=has?'≈ '+Math.round(res.bpm)+' BPM':'Tempo introuvable';
+  const q=!has?'Aucun pouls net':res.clarity>=0.25?'Pouls net':res.clarity>=0.12?'Pouls peu net, tempo approximatif':'Aucun pouls net';
+  $('#resSub').textContent=res.from==='live'?q+' · en direct, mis à jour toutes les 2 secondes':q+' · extrait de '+fmt(res.startS)+' à '+fmt(res.startS+res.dur)+' · '+res.name;
+  $('#keepTempo').disabled=!has||res.clarity<0.12;
+  $('#applyRhythm').disabled=!res.grid;
+  $('#songPlay').hidden=res.from!=='file';
+}
+$('#keepTempo').addEventListener('click',()=>{if(res&&res.bpm!=null){setBpm(res.bpm);setListen('Tempo réglé sur '+state.bpm+' BPM.');}});
+$('#applyRhythm').addEventListener('click',()=>{
+  if(!res||!res.grid)return;
+  stop();state.meter='44';state.swing=false;
+  const g={};DRUMS.forEach(d=>{g[d.id]=res.grid[d.id].slice();});
+  state.grid=g;state.pattern=null;
+  setBpm(res.bpm);renderAll();
+  setListen('Rythme appliqué sur 16 pas, à '+state.bpm+' BPM. C\'est une lecture approchée : corrige dans la grille.');
+});
+
+/* ---------- Écouter un fichier ---------- */
+let song=null;
+async function bandEnvelope(seg,chain,sr){
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  const oc=new OAC(1,seg.length,sr);
+  const s=oc.createBufferSource();s.buffer=seg;
+  let node=s;
+  chain.forEach(([type,f,q])=>{const b=oc.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;node.connect(b);node=b;});
+  node.connect(oc.destination);s.start();
+  const r=await oc.startRendering();
+  const d=r.getChannelData(0);const hop=512;const n=Math.floor(d.length/hop);
+  const e=new Float32Array(n);
+  for(let i=0;i<n;i++){let sum=0;for(let j=0;j<hop;j++){const v=d[i*hop+j];sum+=v*v;}e[i]=Math.sqrt(sum/hop);}
+  return e;
+}
+async function analyze(file){
+  stop();stopSong();stopLive();
+  $('#result').hidden=true;song=null;res=null;
+  setListen('Analyse en cours…');
+  let ac;
+  try{ac=ensureAudio();}catch(e){setListen('Le son n\'est pas disponible sur cet appareil.',true);return;}
+  let buf;
+  try{buf=await ac.decodeAudioData(await file.arrayBuffer());}
+  catch(e){setListen('Ce fichier ne peut pas être lu. Essaie un mp3, wav ou m4a.',true);return;}
+  try{
+    const sr=buf.sampleRate;
+    const startS=Math.min(2,buf.duration*0.05);
+    const dur=Math.min(45,buf.duration-startS);
+    if(dur<6){setListen('Le morceau est trop court pour trouver un pouls.',true);return;}
+    const len=Math.floor(dur*sr),off=Math.floor(startS*sr);
+    const seg=ac.createBuffer(1,len,sr);const out=seg.getChannelData(0);
+    for(let c=0;c<buf.numberOfChannels;c++){
+      const ch=buf.getChannelData(c);
+      for(let i=0;i<len;i++)out[i]+=ch[off+i]/buf.numberOfChannels;
+    }
+    const env={
+      low:await bandEnvelope(seg,[['lowpass',140,0.7]],sr),
+      mid:await bandEnvelope(seg,[['highpass',250,0.7],['lowpass',4000,0.7]],sr),
+      high:await bandEnvelope(seg,[['highpass',7000,0.7]],sr)
+    };
+    const fl={low:flux(env.low),mid:flux(env.mid),high:flux(env.high)};
+    const ons={low:pickOnsets(fl.low,5),mid:pickOnsets(fl.mid,5),high:pickOnsets(fl.high,4)};
+    const n=fl.low.length;const tot=new Float32Array(n);
+    for(let i=0;i<n;i++)tot[i]=fl.low[i]+0.8*fl.mid[i]+0.4*fl.high[i];
+    const hopS=512/sr;
+    const tempo=estimateTempo(tot,hopS);
+    let grid=null,bpm=null,clarity=0;
+    if(tempo){
+      bpm=tempo.bpm;clarity=tempo.clarity;
+      if(clarity>=0.12){
+        const phase=findPhase(tot,fl.low,tempo.lag);
+        grid=extractRhythm(ons,tempo.lag,phase,n);
+      }
+    }
+    const names={low:'poum',mid:'tchak',high:'tss'};
+    const raw=[];
+    ['low','mid','high'].forEach(k=>ons[k].forEach(i=>raw.push({t:i*hopS,id:names[k]})));
+    raw.sort((a,b)=>a.t-b.t);
+    const events=[];
+    raw.forEach(e=>{
+      const g=events[events.length-1];
+      if(g&&e.t-g.t<=0.05){if(!g.ids.includes(e.id))g.ids.push(e.id);}
+      else events.push({t:e.t,ids:[e.id]});
+    });
+    song={buf,startS,dur,events,src:null,t0:0,i:0,raf:0};
+    res={from:'file',name:file.name,startS,dur,bpm,clarity,grid};
+    showResult();updateSongButton();
+    setListen('');
+  }catch(e){setListen('L\'analyse a échoué. Essaie un autre fichier.',true);}
+}
+function updateSongButton(){$('#songPlay').textContent=state.song?'Arrêter l\'extrait':'Écouter l\'extrait';}
+function playSong(){
+  if(!song)return;
+  stop();stopSong();stopLive();ensureAudio();
+  const src=ctx.createBufferSource();src.buffer=song.buf;src.connect(ctx.destination);
+  song.t0=ctx.currentTime+0.05;song.i=0;song.src=src;
+  src.start(song.t0,song.startS,song.dur);
+  src.onended=()=>{if(song&&song.src===src)stopSong();};
+  state.song=true;updateSongButton();
+  song.raf=requestAnimationFrame(songFrame);
+}
+function songFrame(){
+  if(!song||!state.song)return;
+  const t=ctx.currentTime-song.t0;
+  while(song.i<song.events.length&&song.events[song.i].t<=t){flash(song.events[song.i].ids);song.i++;}
+  song.raf=requestAnimationFrame(songFrame);
+}
+function stopSong(){
+  if(!state.song)return;
+  state.song=false;
+  if(song){try{song.src.stop();}catch(e){}cancelAnimationFrame(song.raf);song.src=null;}
+  updateSongButton();
+}
+$('#file').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(f)analyze(f);
+  e.target.value='';
+});
+$('#songPlay').addEventListener('click',()=>{state.song?stopSong():playSong();});
+
+/* ---------- Écouter en direct (micro) ---------- */
+const HOP=512;
+let live=null;
+const BAND_IDS=['poum','tchak','tss'];
+const BAND_KEYS=['low','mid','high'];
+function updateLiveButton(){
+  const b=$('#liveBtn');
+  b.setAttribute('aria-pressed',String(state.live));
+  b.textContent=state.live?'Arrêter l\'écoute':'Écouter en direct';
+  $('#lv').hidden=!state.live;
+}
+async function startLive(){
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
+    setListen('Le micro n\'est pas disponible ici. Ouvre la page en https dans un navigateur récent.',true);return;
+  }
+  stop();stopSong();ensureAudio();
+  let stream;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  }catch(e){
+    setListen('Micro refusé ou introuvable. Autorise-le dans le navigateur puis réessaie.',true);return;
+  }
+  const src=ctx.createMediaStreamSource(stream);
+  const mono=ctx.createGain();mono.channelCount=1;mono.channelCountMode='explicit';
+  src.connect(mono);
+  const merger=ctx.createChannelMerger(3);
+  const chains=[[['lowpass',140]],[['highpass',250],['lowpass',4000]],[['highpass',7000]]];
+  const nodes=[];
+  chains.forEach((chain,k)=>{
+    let node=mono;
+    chain.forEach(([type,f])=>{const b=ctx.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=0.7;node.connect(b);node=b;nodes.push(b);});
+    node.connect(merger,0,k);
+  });
+  const proc=ctx.createScriptProcessor(HOP,3,1);
+  proc.channelCount=3;proc.channelCountMode='explicit';proc.channelInterpretation='discrete';
+  const mute=ctx.createGain();mute.gain.value=0;
+  merger.connect(proc);proc.connect(mute);mute.connect(ctx.destination);
+  live={on:true,stream,src,mono,merger,proc,mute,nodes,n:0,base:0,
+    prev:[0,0,0],d1:[0,0,0],d2:[0,0,0],m:[0,0,0],last:[-99,-99,-99],
+    tot:[],low:[],ev:[[],[],[]],grp:null,lv:[0,0,0],timer:0,raf:0};
+  proc.onaudioprocess=liveProcess;
+  live.timer=setInterval(liveAnalyze,2000);
+  live.raf=requestAnimationFrame(liveLevels);
+  state.live=true;updateLiveButton();
+  res=null;$('#result').hidden=true;
+  setListen('Écoute en cours. Joue ou lance de la musique près du micro, il faut environ 6 secondes pour estimer le tempo.');
+}
+function flushGroup(){
+  const L=live;if(!L||!L.grp)return;
+  flash(L.grp.ids);L.grp=null;
+}
+function liveProcess(e){
+  const L=live;if(!L||!L.on)return;
+  const n=L.n++;
+  const w=[1,0.8,0.4];
+  let totF=0,lowF=0;
+  for(let k=0;k<3;k++){
+    const x=e.inputBuffer.getChannelData(k);
+    let sum=0;for(let i=0;i<x.length;i++)sum+=x[i]*x[i];
+    const rms=Math.sqrt(sum/x.length);
+    L.lv[k]=Math.min(1,Math.log1p(100*rms)/3);
+    const c=Math.log1p(100*rms);
+    const d=Math.max(0,c-L.prev[k]);L.prev[k]=c;
+    const cand=L.d1[k];
+    const thr=Math.max(0.12,L.m[k]*2.2);
+    if(cand>thr&&cand>=L.d2[k]&&cand>d&&(n-1)-L.last[k]>=(k===2?4:5)){
+      L.last[k]=n-1;L.ev[k].push(n-1);
+      if(!L.grp||(n-1)-L.grp.h0>5){flushGroup();L.grp={h0:n-1,ids:[]};}
+      if(!L.grp.ids.includes(BAND_IDS[k]))L.grp.ids.push(BAND_IDS[k]);
+    }
+    L.m[k]=0.97*L.m[k]+0.03*d;
+    L.d2[k]=L.d1[k];L.d1[k]=d;
+    totF+=w[k]*d;if(k===0)lowF=d;
+  }
+  L.tot.push(totF);L.low.push(lowF);
+  if(L.grp&&n-L.grp.h0>5)flushGroup();
+  if(L.tot.length>3000){
+    L.tot.splice(0,1500);L.low.splice(0,1500);L.base+=1500;
+    for(let k=0;k<3;k++)L.ev[k]=L.ev[k].filter(h=>h>=L.base);
+  }
+}
+function liveLevels(){
+  const L=live;if(!L||!L.on)return;
+  $('#lvLow').style.width=Math.round(L.lv[0]*100)+'%';
+  $('#lvMid').style.width=Math.round(L.lv[1]*100)+'%';
+  $('#lvHigh').style.width=Math.round(L.lv[2]*100)+'%';
+  L.raf=requestAnimationFrame(liveLevels);
+}
+function liveAnalyze(){
+  const L=live;if(!L||!L.on)return;
+  const have=L.tot.length,need=500;
+  const hopS=HOP/ctx.sampleRate;
+  if(have<need){
+    setListen('Écoute en cours, encore '+Math.ceil((need-have)*hopS)+' s pour estimer le tempo.');
+    return;
+  }
+  const Wn=Math.min(have,1300),off=have-Wn,absStart=L.base+off;
+  const tot=Float32Array.from(L.tot.slice(off)),low=Float32Array.from(L.low.slice(off));
+  const tempo=estimateTempo(tot,hopS);
+  let bpm=null,clarity=0,grid=null;
+  if(tempo){
+    bpm=tempo.bpm;clarity=tempo.clarity;
+    if(clarity>=0.12){
+      const ons={low:[],mid:[],high:[]};
+      BAND_KEYS.forEach((k,ki)=>L.ev[ki].forEach(h=>{const r=h-absStart;if(r>=0&&r<Wn)ons[k].push(r);}));
+      const phase=findPhase(tot,low,tempo.lag);
+      grid=extractRhythm(ons,tempo.lag,phase,Wn);
+    }
+  }
+  res={from:'live',bpm,clarity,grid};
+  showResult();setListen('');
+}
+function stopLive(){
+  const L=live;if(!L)return;
+  L.on=false;flushGroup();
+  clearInterval(L.timer);cancelAnimationFrame(L.raf);
+  try{L.proc.onaudioprocess=null;L.proc.disconnect();L.merger.disconnect();L.mono.disconnect();L.src.disconnect();L.mute.disconnect();L.nodes.forEach(n=>n.disconnect());}catch(e){}
+  L.stream.getTracks().forEach(t=>t.stop());
+  live=null;state.live=false;updateLiveButton();
+}
+$('#liveBtn').addEventListener('click',()=>{
+  if(state.live){stopLive();setListen('Écoute arrêtée.');}
+  else startLive();
+});
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();stopSong();stopLive();}});
+
+/* ---------- Démarrage ---------- */
+const restored=loadStore();
+fillDrumSelect();renderPick();renderDict();
+setBpm(state.bpm);
+if(restored)renderAll();else applyPattern(PATTERNS[0]);
+updateLiveButton();
+})();
+</script>
+</body>
+</html>
