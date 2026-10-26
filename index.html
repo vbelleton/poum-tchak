@@ -254,9 +254,20 @@ details.ref[open]>summary::before{transform:rotate(45deg)}
         <div class="seg small" id="solfSeg" role="group" aria-label="Système de solfège rythmique">
           <button type="button" data-v="kodaly">Kodály</button>
           <button type="button" data-v="takadimi">Takadimi</button>
+          <button type="button" data-v="konnakol">Konnakol</button>
         </div>
       </div>
       <div class="phrase" id="solf"></div>
+      <div class="rlab-row" style="margin-top:14px">
+        <div class="rlab" id="h-drill">Parle-le avant de le jouer</div>
+        <div class="seg small" id="drillSeg" role="group" aria-labelledby="h-drill">
+          <button type="button" data-v="listen">1 Écouter</button>
+          <button type="button" data-v="speak">2 Parler</button>
+          <button type="button" data-v="tap">3 Taper</button>
+        </div>
+      </div>
+      <p class="hint" id="drillTxt">Écoute la mesure, dis-la à voix haute avec le clic, puis joue-la : le micro la compare.</p>
+      <p class="msg" id="drillMsg" role="status"></p>
     </div>
   </section>
 
@@ -342,8 +353,8 @@ details.ref[open]>summary::before{transform:rotate(45deg)}
         <p>ta ka di mi : une syllabe par place dans le temps, donc exacte pour n'importe quel rythme. En ternaire : ta ki da. Sert de repli quand un temps n'a pas de nom Kodály.</p>
         <ul class="src"><li>Hoffman, Pelto, White<b>1996</b></li></ul></article>
       <article class="ref"><header><span class="rw">Konnakol</span><span class="rn">rythme récité</span></header>
-        <p>Les mêmes syllabes, ta ka di mi, servent à réciter les rythmes dans la musique carnatique d'Inde du Sud.</p>
-        <ul class="src"><li>Inde du Sud<b>ta ka di mi</b></li></ul></article>
+        <p>Rythme récité à pulsation constante, en musique carnatique d'Inde du Sud : ta (1), ta ka (2), ta ki ta (3), ta ka di mi (4). Dans l'appli, chaque temps garde toutes ses syllabes et un tiret remplace celles qui sont muettes.</p>
+        <ul class="src"><li>Inde du Sud<b>ta ka di mi</b></li><li>Batterie<b>ta ki ta</b></li></ul></article>
       <article class="ref"><header><span class="rw">do ré mi…</span><span class="rn">une note par fût</span></header>
         <p>poum do, tchak ré, doum mi, toum fa, tss sol, tchaa la, psch si. Un mémo pour retenir les sept fûts, sans rapport avec leur hauteur réelle.</p></article>
     </div>
@@ -484,6 +495,7 @@ const KOD={
   3:{'100':'ta','111':'ti-ti-ti','101':'ta-ti','110':'ti-ta','000':'·'}
 };
 const TAK={4:['ta','ka','di','mi'],3:['ta','ki','da']};
+const KON={4:['ta','ka','di','mi'],3:['ta','ki','ta']};
 const KOD_INV={};
 Object.keys(KOD).forEach(pb=>{
   KOD_INV[pb]={};
@@ -502,10 +514,16 @@ function takLabel(bits,m){
   for(let k=0;k<bits.length;k++)if(bits[k]==='1')out.push(syl[k]);
   return out.length?out.join('-'):'·';
 }
+function konLabel(bits,m){
+  const syl=KON[m.perBeat];let out=[];
+  for(let k=0;k<bits.length;k++)out.push(bits[k]==='1'?syl[k]:'–');
+  return out.join(' ');
+}
 function beatLabels(g,m,mode){
   const out=[];
   for(let b=0;b<m.beats;b++){
     const bits=beatBits(g,m,b);
+    if(mode==='konnakol'){out.push({t:konLabel(bits,m),fb:false,tk:takLabel(bits,m)});continue;}
     if(mode==='kodaly'&&KOD[m.perBeat][bits])out.push({t:KOD[m.perBeat][bits],fb:false});
     else out.push({t:takLabel(bits,m),fb:mode==='kodaly'});
   }
@@ -637,7 +655,7 @@ const M=()=>METERS[state.meter];
 const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
-const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',grid:null,pattern:null,playing:false,song:false,live:false};
+const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',grid:null,pattern:null,playing:false,song:false,live:false,mute:false};
 state.grid=emptyGrid(METERS['44']);
 
 /* ---------- Mémoire locale ---------- */
@@ -659,7 +677,7 @@ function loadStore(){
   if(METERS[s.meter])state.meter=s.meter;
   state.swing=!!s.swing&&METERS[state.meter].perBeat===4;
   state.click=s.click!==false;
-  if(s.solf==='kodaly'||s.solf==='takadimi')state.solf=s.solf;
+  if(s.solf==='kodaly'||s.solf==='takadimi'||s.solf==='konnakol')state.solf=s.solf;
   state.pattern=PATTERNS.some(p=>p.id===s.pattern)?s.pattern:null;
   const m=METERS[state.meter];const g=emptyGrid(m);let ok=!!s.grid;
   if(ok)DRUMS.forEach(dr=>{
@@ -789,8 +807,8 @@ let timer=null,rafId=0,nextTime=0,sched=0;
 const queue=[];
 function scheduleStep(step,t){
   const m=M();const ids=[];
-  DRUMS.forEach(d=>{if(state.grid[d.id][step]){ids.push(d.id);voice(d.id,t);}});
-  if(state.click&&step%m.perBeat===0)clickSound(t,step===0);
+  if(!state.mute)DRUMS.forEach(d=>{if(state.grid[d.id][step]){ids.push(d.id);voice(d.id,t);}});
+  if((state.click||state.mute)&&step%m.perBeat===0)clickSound(t,step===0);
   queue.push({t,step,ids});
 }
 function tick(){
@@ -886,8 +904,52 @@ function refreshText(){
     sh.appendChild(c);
   });
   if(document.activeElement!==$('#txtPhrase'))$('#txtPhrase').value=toks.join(' ');
-  if(document.activeElement!==$('#txtSolf'))$('#txtSolf').value=labs.map(l=>l.t).join(' ');
+  if(document.activeElement!==$('#txtSolf'))$('#txtSolf').value=labs.map(l=>l.tk||l.t).join(' ');
 }
+
+/* ---------- Parle-le : écouter, parler, taper ---------- */
+let drill=null;
+const DRILL_TXT={
+  listen:'Écoute la mesure en suivant les syllabes.',
+  speak:'Les sons sont coupés, le clic reste. Dis les syllabes à voix haute, une par pas, avec le clic.',
+  tap:'Joue la mesure sur tes pads ou ta batterie. Le micro la compare à la grille (4/4, au moins 6 secondes).'
+};
+function updateDrillUI(){
+  if(!state.playing&&!state.live){drill=null;state.mute=false;}
+  [...$('#drillSeg').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===drill)));
+  $('#drillTxt').textContent=drill?DRILL_TXT[drill]:'Écoute la mesure, dis-la à voix haute avec le clic, puis joue-la : le micro la compare.';
+}
+function band(g,ids,s){return ids.some(id=>g[id][s]);}
+function scoreTap(g){
+  const m=METERS['44'];
+  if(state.meter!=='44'){$('#drillMsg').textContent='La comparaison ne marche qu\'en 4/4.';return;}
+  if(!g){$('#drillMsg').textContent='Écoute en cours, joue la mesure en boucle.';return;}
+  const B=[['poum','doum','toum'],['tchak'],['tss','tchaa','psch']],D=[['poum'],['tchak'],['tss']];
+  let ok=0,miss=0,extra=0;
+  for(let s=0;s<m.steps;s++)for(let k=0;k<3;k++){
+    const want=band(state.grid,B[k],s),got=band(g,D[k],s);
+    if(want&&got)ok++;else if(want)miss++;else if(got)extra++;
+  }
+  const tot=ok+miss+extra;
+  const pct=tot?Math.round(100*ok/tot):0;
+  $('#drillMsg').textContent=pct+' % de coups justes : '+ok+' bons, '+miss+' manqués, '+extra+' en trop. Seuls poum, tchak et tss sont écoutés.';
+}
+$('#drillSeg').addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const v=b.dataset.v;
+  if(drill===v){if(state.live)stopLive();stop();updateDrillUI();$('#drillMsg').textContent='';return;}
+  $('#drillMsg').textContent='';
+  if(v==='tap'){
+    stop();
+    await startLive();
+    if(state.live){drill='tap';$('#follow').checked=false;}
+    updateDrillUI();return;
+  }
+  stopLive();
+  play();
+  state.mute=(v==='speak');
+  drill=v;updateDrillUI();
+});
 
 /* ---------- Commandes ---------- */
 const meterSeg=$('#meterSeg');
@@ -931,7 +993,7 @@ $('#bpmRange').addEventListener('input',e=>setBpm(+e.target.value));
 $('#bpmDown').addEventListener('click',()=>setBpm(state.bpm-1));
 $('#bpmUp').addEventListener('click',()=>setBpm(state.bpm+1));
 $('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
-$('#play').addEventListener('click',()=>{state.playing?stop():play();});
+$('#play').addEventListener('click',()=>{state.playing?stop():play();state.mute=false;if(drill){drill=null;}updateDrillUI();});
 
 const taps=[];
 function tapTempo(){
@@ -962,6 +1024,7 @@ function updateControls(){
   const pb=$('#play');
   pb.innerHTML=state.playing?STOP_ICON:PLAY_ICON;
   refreshTempoRead();
+  updateDrillUI();
   save();
 }
 function refreshTempoRead(){
@@ -1298,6 +1361,7 @@ function updateLiveButton(){
   b.textContent=state.live?'Arrêter l\'écoute':'Écouter en direct';
   $('#lv').hidden=!state.live;
   $('#followRow').hidden=!state.live;
+  updateDrillUI();
 }
 async function startLive(){
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
@@ -1399,6 +1463,7 @@ function liveAnalyze(){
   }
   res={from:'live',bpm,clarity,grid};
   showResult();setListen('');
+  if(drill==='tap')scoreTap(grid);
   if(bpm!=null&&clarity>=0.25&&$('#follow').checked)setBpm(effBpm(res));
 }
 function stopLive(){
