@@ -158,7 +158,7 @@ details.ref[open]>summary::before{transform:rotate(45deg)}
 .chk input{width:22px;height:22px;accent-color:var(--ink);flex:none}
 .ents{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
 .ent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 38px 38px;gap:6px;align-items:center;margin-top:6px}
-.ent .el{grid-column:1/-1;font:600 11px var(--f-mono);color:var(--muted);margin-top:4px}
+.ent .el{grid-column:1/-1;font:600 12px/1.3 var(--f-mono);color:var(--muted);margin-top:6px}
 .ent input{font-size:15px;padding:7px 9px;min-width:0}
 .ib{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:8px;width:38px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;touch-action:manipulation}
 .ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
@@ -320,7 +320,7 @@ details.ref[open]>summary::before{transform:rotate(45deg)}
     <div class="refs" id="dictDrums"></div>
 
     <h3>Frappes simultanées</h3>
-    <p class="hint">Plusieurs fûts frappés ensemble peuvent avoir un mot à eux. Sans mot, la frappe s'écrit avec « + ».</p>
+    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot, comme « pak » pour grosse caisse + caisse claire. Chaque ligne indique les fûts qu'elle remplace. Sans mot, la frappe s'écrit avec « + ».</p>
     <div class="refs"><details class="ref" id="combosDet">
       <summary data-k="combos"><span class="rw">Mots fondus</span><span class="rn">frappes simultanées</span><span class="rc" id="comboCount"></span></summary>
       <div class="ents" id="dictCombos"></div>
@@ -1089,7 +1089,7 @@ const kOf=e=>e.ids.length===1?e.ids[0]:'combos';
 function entryRow(e,i,showIds){
   const row=el('div','ent');
   const key=keyOf(e.ids),k=kOf(e);
-  if(showIds)row.appendChild(el('div','el',key.split('+').map(W).join(' + ')));
+  if(showIds)row.appendChild(el('div','el',key.split('+').map(W).join(' + ')+' = '+drumNames(e.ids).toLowerCase()));
   const first=dict.findIndex(x=>keyOf(x.ids)===key);
   const isPrimary=first===i;
   const w=textInput(e.w,'Mot','Mot pour '+drumNames(e.ids)+', actuellement « '+e.w+' »',12);
