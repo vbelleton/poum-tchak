@@ -349,6 +349,12 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <span>tss<b><i id="lvHigh" style="--c:var(--c-tss)"></i></b></span>
     </div>
     <p class="msg" id="listenMsg" role="status"></p>
+    <h3>Calibrer sur ta batterie</h3>
+    <p class="hint">Sans calibration, l'appli range ce qu'elle entend en trois familles : graves, médiums, aigus. Apprends-lui le son de tes fûts et elle les reconnaîtra un par un, toms et cymbales compris. Choisis un fût, frappe-le trois fois, assez fort et bien séparément, puis passe au suivant. Deux fûts suffisent pour commencer.</p>
+    <p class="hint">Une fois calibrée, l'appli nomme un seul fût par frappe : si tu joues grosse caisse et charleston ensemble, elle retient le plus fort. Deux fûts qui sonnent pareil, comme la grosse caisse et le tom basse, peuvent encore être confondus : elle te prévient quand c'est le cas.</p>
+    <div class="chips" id="calPick" role="group" aria-label="Fûts à apprendre"></div>
+    <div class="row"><button type="button" class="btn ghost" id="calForget">Tout oublier</button></div>
+    <p class="msg" id="calMsg" role="status"></p>
     <div class="card" id="result" hidden>
       <div class="big" id="resBpm"></div>
       <div class="sub" id="resSub"></div>
@@ -724,24 +730,105 @@ function findPhase(tot,low,P){
   for(let b=0;b<4;b++){let sc=0;for(let t=bestPh+b*P;t<low.length;t+=4*P)sc+=near(low,t);if(sc>bestL){bestL=sc;bestB=b;}}
   return bestPh+bestB*P;
 }
-function extractRhythm(ons,P,phase,nHops){
+function extractGrid(onsById,P,phase,nHops){
   const stepP=P/4;const bars=Math.floor((nHops-phase)/(4*P));
   if(bars<2)return null;
-  const keys=['low','mid','high'];
-  const flag={};keys.forEach(k=>{flag[k]=new Uint8Array(nHops+8);ons[k].forEach(i=>{if(i>=0&&i<nHops)flag[k][i]=1;});});
-  const counts={low:new Array(16).fill(0),mid:new Array(16).fill(0),high:new Array(16).fill(0)};
   const tol=Math.max(1,Math.round(stepP*0.35));
-  for(let bar=0;bar<bars;bar++)for(let s=0;s<16;s++){
-    const c=Math.round(phase+(bar*16+s)*stepP);
-    keys.forEach(k=>{for(let j=-tol;j<=tol;j++){if(flag[k][c+j]){counts[k][s]++;break;}}});
-  }
   const g=emptyGrid(METERS['44']);
-  for(let s=0;s<16;s++){
-    if(counts.low[s]/bars>=0.55)g.poum[s]=2;
-    if(counts.mid[s]/bars>=0.6)g.tchak[s]=2;
-    if(counts.high[s]/bars>=0.6)g.tss[s]=2;
-  }
+  IDS.forEach(id=>{
+    const list=onsById[id];
+    if(!list||!list.length)return;
+    const flag=new Uint8Array(nHops+8);
+    list.forEach(i=>{if(i>=0&&i<nHops)flag[i]=1;});
+    const need=id==='poum'?0.55:0.6;
+    for(let s=0;s<16;s++){
+      let c=0;
+      for(let bar=0;bar<bars;bar++){
+        const cc=Math.round(phase+(bar*16+s)*stepP);
+        for(let j=-tol;j<=tol;j++)if(flag[cc+j]){c++;break;}
+      }
+      if(c/bars>=need)g[id][s]=2;
+    }
+  });
   return g;
+}
+function extractRhythm(ons,P,phase,nHops){
+  return extractGrid({poum:ons.low,tchak:ons.mid,tss:ons.high},P,phase,nHops);
+}
+
+/* Calibration : chaque frappe est décrite par la forme de son spectre,
+   en 16 bandes logarithmiques, sans tenir compte du volume. */
+const NB=24,F0=40,F1=16000;
+function bandEdges(sr,bins){
+  const edges=[];const ny=sr/2;
+  for(let i=0;i<NB;i++){
+    const a=F0*Math.pow(F1/F0,i/NB),b=F0*Math.pow(F1/F0,(i+1)/NB);
+    edges.push([Math.min(bins-1,Math.max(0,Math.round(a/ny*bins))),Math.min(bins,Math.max(1,Math.round(b/ny*bins)))]);
+  }
+  return edges;
+}
+function bandCenters(){
+  const c=[];
+  for(let i=0;i<NB;i++)c.push(F0*Math.pow(F1/F0,(i+0.5)/NB));
+  return c;
+}
+function normVec(v){
+  let m=0;for(let i=0;i<v.length;i++)m+=v[i];m/=v.length;
+  let n=0;for(let i=0;i<v.length;i++){v[i]-=m;n+=v[i]*v[i];}
+  n=Math.sqrt(n)||1;
+  for(let i=0;i<v.length;i++)v[i]/=n;
+  return v;
+}
+function bandRaw(f,edges){
+  const v=new Float32Array(NB);
+  for(let i=0;i<NB;i++){
+    const a=edges[i][0],b=edges[i][1];let s=0,c=0;
+    for(let j=a;j<b;j++){const x=f[j];s+=(x<-110||!isFinite(x))?-110:x;c++;}
+    v[i]=c?s/c:-110;
+  }
+  return v;
+}
+/* La signature d'une frappe, c'est la montée du spectre au moment de l'attaque :
+   on compare les trois instants qui suivent le coup à celui d'avant, bande par
+   bande, et on garde la plus forte montée. Le fond sonore disparaît. */
+const RING=16;
+function attackVec(ring,h,lastHop){
+  const prev=ring[(h-1+RING)%RING];
+  if(!prev)return null;
+  const d=new Float32Array(NB);
+  for(let j=0;j<3&&h+j<=lastHop;j++){
+    const cur=ring[(h+j)%RING];
+    if(!cur)break;
+    for(let i=0;i<NB;i++){const x=cur[i]-prev[i];if(x>d[i])d[i]=x;}
+  }
+  let mx=0;
+  for(let i=0;i<NB;i++)if(d[i]>mx)mx=d[i];
+  if(mx<1)return null;
+  return normVec(d);
+}
+const cosSim=(a,b)=>{let s=0;for(let i=0;i<a.length&&i<b.length;i++)s+=a[i]*b[i];return s;};
+function bandOf(v){
+  const c=bandCenters();
+  const grp=[0,0,0],cnt=[0,0,0];
+  for(let i=0;i<NB;i++){
+    const k=c[i]<160?0:c[i]<6000?1:2;
+    grp[k]+=v[i];cnt[k]++;
+  }
+  let best=0;
+  for(let k=1;k<3;k++)if(grp[k]/(cnt[k]||1)>grp[best]/(cnt[best]||1))best=k;
+  return best;
+}
+function sanitizeCal(o){
+  if(!o||typeof o!=='object')return {};
+  const out={};
+  IDS.forEach(id=>{
+    const t=o[id];
+    if(!t||!Array.isArray(t.v)||t.v.length!==NB)return;
+    if(!t.v.every(x=>typeof x==='number'&&isFinite(x)))return;
+    if(![0,1,2].includes(t.band))return;
+    out[id]={v:t.v.slice(),band:t.band};
+  });
+  return out;
 }
 function packGrid(g,m){return IDS.map(id=>g[id].slice(0,m.steps).map(v=>v|0).join('')).join(';');}
 function unpackGrid(str,m){
@@ -795,7 +882,7 @@ function saveStore(){
     const m=M();
     localStorage.setItem(STORE_KEY,JSON.stringify({v:3,entries:dict,bpm:state.bpm,meter:state.meter,swing:state.swing,
       click:state.click,solf:state.solf,pattern:state.pattern,brush:state.brush,ramp:state.ramp,sil:state.sil,
-      grooves,bars:state.bars.map(g=>packGrid(g,m))}));
+      grooves,cal,bars:state.bars.map(g=>packGrid(g,m))}));
   }catch(e){}
 }
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(saveStore,250);}
@@ -822,6 +909,7 @@ function loadStore(){
     if([2,4,8].includes(s.sil.every))state.sil.every=s.sil.every;
   }
   if(Array.isArray(s.grooves))grooves=sanitizeGrooves(s.grooves);
+  cal=sanitizeCal(s.cal);calRecalc();
   const m=METERS[state.meter];const old=s.v!==3;
   let bars=null;
   if(Array.isArray(s.bars)){
@@ -1164,15 +1252,23 @@ function scoreTap(g){
   const m=METERS['44'];
   if(state.meter!=='44'){$('#drillMsg').textContent='La comparaison ne marche qu\'en 4/4.';return;}
   if(!g){$('#drillMsg').textContent='Écoute en cours, joue la mesure en boucle.';return;}
-  const B=[['poum','doum','toum'],['tchak'],['tss','tchaa','psch']],D=[['poum'],['tchak'],['tss']];
-  let ok=0,miss=0,extra=0;
-  for(let s=0;s<m.steps;s++)for(let k=0;k<3;k++){
-    const want=band(G(),B[k],s),got=band(g,D[k],s);
-    if(want&&got)ok++;else if(want)miss++;else if(got)extra++;
+  let groups,note;
+  if(calOn()){
+    const known=IDS.filter(id=>cal[id]);
+    groups=known.map(id=>[[id],[id]]);
+    note=' Comparé sur les fûts appris : '+known.map(W).join(', ')+'.';
+  }else{
+    groups=[[['poum','doum','toum'],['poum']],[['tchak'],['tchak']],[['tss','tchaa','psch'],['tss']]];
+    note=' Sans calibration, seuls les graves, les médiums et les aigus sont écoutés.';
   }
+  let ok=0,miss=0,extra=0;
+  for(let s=0;s<m.steps;s++)groups.forEach(([want,got])=>{
+    const w=band(G(),want,s),h=band(g,got,s);
+    if(w&&h)ok++;else if(w)miss++;else if(h)extra++;
+  });
   const tot=ok+miss+extra;
   const pct=tot?Math.round(100*ok/tot):0;
-  $('#drillMsg').textContent=pct+' % de coups justes : '+ok+' bons, '+miss+' manqués, '+extra+' en trop. Seuls poum, tchak et tss sont écoutés.';
+  $('#drillMsg').textContent=pct+' % de coups justes : '+ok+' bons, '+miss+' manqués, '+extra+' en trop.'+note;
 }
 $('#drillSeg').addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -1416,7 +1512,7 @@ function dmsg(text,err,key){
   const box=document.querySelector('.dm[data-k="'+key+'"]');
   if(box){box.textContent=t;box.className='msg dm'+(err?' err':'');}
 }
-function commit(){saveStore();refreshLabels();fillDrumSelect();renderGrid();refreshText();renderDict();renderPick();restoreFocus();}
+function commit(){saveStore();refreshLabels();fillDrumSelect();renderGrid();refreshText();renderDict();renderPick();renderCal();restoreFocus();}
 function restoreFocus(){
   const r=refocus;refocus=null;if(!r)return;
   let t=null;
@@ -1560,6 +1656,102 @@ $('#dictReset').addEventListener('click',()=>{
   if(!resetArmed){resetArmed=true;b.textContent='Confirmer : tout remettre';setTimeout(()=>{resetArmed=false;b.textContent='Remettre l\'original';},4000);return;}
   resetArmed=false;b.textContent='Remettre l\'original';
   dict=defaultEntries();dmsg('Dictionnaire d\'origine rétabli.',false,'tools');commit();
+});
+
+/* ---------- Calibration du micro ---------- */
+let cal={},calW=null,learnId=null,learnBuf=[],learnBands=[];
+const calCount=()=>IDS.filter(id=>cal[id]).length;
+const calOn=()=>calCount()>=2;
+/* Les frappes se ressemblent toutes un peu : une attaque fait monter tout le spectre.
+   On retire ce qu'elles ont en commun pour ne garder que ce qui les distingue. */
+function calRecalc(){
+  const ids=IDS.filter(i=>cal[i]);
+  if(ids.length<2){calW=null;return;}
+  const mu=new Float32Array(NB);
+  ids.forEach(i=>{for(let k=0;k<NB;k++)mu[k]+=cal[i].v[k];});
+  for(let k=0;k<NB;k++)mu[k]/=ids.length;
+  const w={mu};
+  ids.forEach(i=>{
+    const v=new Float32Array(NB);
+    for(let k=0;k<NB;k++)v[k]=cal[i].v[k]-mu[k];
+    w[i]=normVec(v);
+  });
+  calW=w;
+}
+function whiten(vec){
+  if(!calW)return vec;
+  const v=new Float32Array(NB);
+  for(let k=0;k<NB;k++)v[k]=vec[k]-calW.mu[k];
+  return normVec(v);
+}
+const simTo=(q,id)=>calW&&calW[id]?cosSim(q,calW[id]):-2;
+function cmsg(t,err){const e=$('#calMsg');e.textContent=(err?'Erreur : ':'')+t;e.className='msg'+(err?' err':'');}
+function renderCal(){
+  const host=$('#calPick');host.innerHTML='';
+  DRUMS.forEach(d=>{
+    const learning=learnId===d.id;
+    const known=!!cal[d.id];
+    const txt=W(d.id)+(learning?' · '+learnBuf.length+'/3':known?' · appris':'');
+    const b=el('button','chip',txt);b.type='button';
+    b.setAttribute('aria-pressed',String(learning));
+    b.setAttribute('aria-label',txt+', '+d.name+' : '+(learning?'frappe encore, ou touche pour arrêter'
+      :known?'déjà appris, touche pour recommencer':'touche puis frappe trois fois'));
+    b.addEventListener('click',()=>startLearn(d.id));
+    host.appendChild(b);
+  });
+  $('#calForget').disabled=!calCount();
+}
+async function startLearn(id){
+  if(learnId===id){learnId=null;learnBuf=[];learnBands=[];renderCal();cmsg('Apprentissage arrêté.');return;}
+  if(!state.live){
+    await startLive();
+    if(!state.live)return;
+  }
+  learnId=id;learnBuf=[];learnBands=[];renderCal();
+  cmsg('Frappe '+DRUMS.find(d=>d.id===id).name.toLowerCase()+' trois fois.');
+}
+function domBand(g){
+  if(!g.f)return g.bands&&g.bands.length?g.bands[0]:-1;
+  let k=-1,best=0;
+  g.bands.forEach(b=>{if(g.f[b]>best){best=g.f[b];k=b;}});
+  return k;
+}
+function collectLearn(vec,bnd){
+  learnBuf.push(Float32Array.from(vec));
+  if(bnd>=0)learnBands.push(bnd);
+  if(learnBuf.length<3){renderCal();cmsg(learnBuf.length+' frappe'+(learnBuf.length>1?'s':'')+' sur 3.');return;}
+  const v=new Float32Array(NB);
+  learnBuf.forEach(x=>{for(let i=0;i<NB;i++)v[i]+=x[i];});
+  normVec(v);
+  const votes=[0,0,0];
+  learnBands.forEach(k=>{votes[k]++;});
+  let band=-1;
+  for(let k=0;k<3;k++)if(votes[k]>(band<0?0:votes[band]))band=k;
+  if(band<0)band=bandOf(v);
+  const id=learnId;
+  cal[id]={v:Array.from(v),band};
+  learnId=null;learnBuf=[];learnBands=[];calRecalc();saveStore();renderCal();
+  const n=calCount();
+  let close=null;
+  IDS.forEach(o=>{if(o!==id&&cal[o]&&cal[o].band===cal[id].band&&cosSim(cal[id].v,cal[o].v)>0.85)close=o;});
+  const name=DRUMS.find(d=>d.id===id).name;
+  if(close)cmsg(name+' appris, mais son son est très proche de '+W(close)+' : l\'appli risque de les confondre.');
+  else cmsg(name+' appris'+(n<2?'. Apprends-en un deuxième pour que la reconnaissance s\'en serve.':'. '+n+' fûts appris.'));
+}
+/* Avec la calibration, chaque frappe est nommée par le fût appris dont l'attaque
+   ressemble le plus. Une frappe donne un seul fût : si deux fûts sont joués
+   ensemble, c'est le plus fort qui est retenu. Sans ressemblance nette, on
+   retombe sur les trois familles graves, médiums, aigus. */
+function classify(rawVec,bands){
+  const vec=whiten(rawVec);
+  let best=null,bs=-2;
+  IDS.forEach(id=>{if(cal[id]){const sc=simTo(vec,id);if(sc>bs){bs=sc;best=id;}}});
+  if(best&&bs>=0.25)return [best];
+  return bands.map(k=>BAND_IDS[k]).filter((x,i,a)=>a.indexOf(x)===i);
+}
+$('#calForget').addEventListener('click',()=>{
+  cal={};calW=null;learnId=null;learnBuf=[];saveStore();renderCal();
+  cmsg('Calibration oubliée, retour aux trois familles de sons.');
 });
 
 /* ---------- Écouter : résultat commun ---------- */
@@ -1732,13 +1924,16 @@ async function startLive(){
     chain.forEach(([type,f])=>{const b=ctx.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=0.7;node.connect(b);node=b;nodes.push(b);});
     node.connect(merger,0,k);
   });
+  const an=ctx.createAnalyser();an.fftSize=1024;an.smoothingTimeConstant=0;mono.connect(an);
   const proc=ctx.createScriptProcessor(HOP,3,1);
   proc.channelCount=3;proc.channelCountMode='explicit';proc.channelInterpretation='discrete';
   const mute=ctx.createGain();mute.gain.value=0;
   merger.connect(proc);proc.connect(mute);mute.connect(ctx.destination);
-  live={on:true,stream,src,mono,merger,proc,mute,nodes,n:0,base:0,
+  const evD={};IDS.forEach(id=>{evD[id]=[];});
+  live={on:true,stream,src,mono,merger,proc,mute,nodes,an,n:0,base:0,
+    fbuf:new Float32Array(an.frequencyBinCount),edges:bandEdges(ctx.sampleRate,an.frequencyBinCount),ring:new Array(RING),
     prev:[0,0,0],d1:[0,0,0],d2:[0,0,0],m:[0,0,0],last:[-99,-99,-99],
-    tot:[],low:[],ev:[[],[],[]],grp:null,lv:[0,0,0],timer:0,raf:0};
+    tot:[],low:[],ev:[[],[],[]],evD,grp:null,lv:[0,0,0],timer:0,raf:0};
   proc.onaudioprocess=liveProcess;
   live.timer=setInterval(liveAnalyze,2000);
   live.raf=requestAnimationFrame(liveLevels);
@@ -1746,13 +1941,28 @@ async function startLive(){
   res=null;octave=1;$('#result').hidden=true;
   setListen('Écoute en cours. Joue ou lance de la musique près du micro, il faut environ 6 secondes pour estimer le tempo.');
 }
+/* Une frappe peut déborder sur les bandes voisines. On ne garde que les bandes
+   dont l'attaque fait au moins 35 % de la plus forte. */
+function strongBands(g){
+  if(!g.f)return g.bands;
+  let mx=0;g.bands.forEach(k=>{if(g.f[k]>mx)mx=g.f[k];});
+  const keep=g.bands.filter(k=>g.f[k]>=0.35*mx);
+  return keep.length?keep:g.bands;
+}
 function flushGroup(){
   const L=live;if(!L||!L.grp)return;
-  flash(L.grp.ids);L.grp=null;
+  const g=L.grp;L.grp=null;
+  const vec=attackVec(L.ring,g.h0,L.n-1);
+  const bands=strongBands(g);
+  if(vec&&learnId){collectLearn(vec,domBand(g));}
+  const ids=(vec&&calOn())?classify(vec,bands):bands.map(k=>BAND_IDS[k]).filter((x,i,a)=>a.indexOf(x)===i);
+  ids.forEach(id=>{if(L.evD[id])L.evD[id].push(g.h0);});
+  flash(ids);
 }
 function liveProcess(e){
   const L=live;if(!L||!L.on)return;
   const n=L.n++;
+  try{L.an.getFloatFrequencyData(L.fbuf);L.ring[n%RING]=bandRaw(L.fbuf,L.edges);}catch(err){}
   const w=[1,0.8,0.4];
   let totF=0,lowF=0;
   for(let k=0;k<3;k++){
@@ -1766,8 +1976,9 @@ function liveProcess(e){
     const thr=Math.max(0.12,L.m[k]*2.2);
     if(cand>thr&&cand>=L.d2[k]&&cand>d&&(n-1)-L.last[k]>=(k===2?4:5)){
       L.last[k]=n-1;L.ev[k].push(n-1);
-      if(!L.grp||(n-1)-L.grp.h0>5){flushGroup();L.grp={h0:n-1,ids:[]};}
-      if(!L.grp.ids.includes(BAND_IDS[k]))L.grp.ids.push(BAND_IDS[k]);
+      if(!L.grp||(n-1)-L.grp.h0>5){flushGroup();L.grp={h0:n-1,ids:[],bands:[],f:[0,0,0]};}
+      if(cand>L.grp.f[k])L.grp.f[k]=cand;
+      if(!L.grp.ids.includes(BAND_IDS[k])){L.grp.ids.push(BAND_IDS[k]);L.grp.bands.push(k);}
     }
     L.m[k]=0.97*L.m[k]+0.03*d;
     L.d2[k]=L.d1[k];L.d1[k]=d;
@@ -1778,6 +1989,7 @@ function liveProcess(e){
   if(L.tot.length>3000){
     L.tot.splice(0,1500);L.low.splice(0,1500);L.base+=1500;
     for(let k=0;k<3;k++)L.ev[k]=L.ev[k].filter(h=>h>=L.base);
+    IDS.forEach(id=>{L.evD[id]=L.evD[id].filter(h=>h>=L.base);});
   }
 }
 function liveLevels(){
@@ -1802,10 +2014,15 @@ function liveAnalyze(){
   if(tempo){
     bpm=tempo.bpm;clarity=tempo.clarity;
     if(clarity>=0.12){
-      const ons={low:[],mid:[],high:[]};
-      BAND_KEYS.forEach((k,ki)=>L.ev[ki].forEach(h=>{const r=h-absStart;if(r>=0&&r<Wn)ons[k].push(r);}));
       const phase=findPhase(tot,low,tempo.lag);
-      grid=extractRhythm(ons,tempo.lag,phase,Wn);
+      if(calOn()){
+        const byId={};IDS.forEach(id=>{byId[id]=L.evD[id].map(h=>h-absStart).filter(r=>r>=0&&r<Wn);});
+        grid=extractGrid(byId,tempo.lag,phase,Wn);
+      }else{
+        const ons={low:[],mid:[],high:[]};
+        BAND_KEYS.forEach((k,ki)=>L.ev[ki].forEach(h=>{const r=h-absStart;if(r>=0&&r<Wn)ons[k].push(r);}));
+        grid=extractRhythm(ons,tempo.lag,phase,Wn);
+      }
     }
   }
   res={from:'live',bpm,clarity,grid};
@@ -1818,7 +2035,8 @@ function stopLive(){
   res=res&&res.from==='live'?null:res;if(!res)$('#result').hidden=true;
   L.on=false;flushGroup();
   clearInterval(L.timer);cancelAnimationFrame(L.raf);
-  try{L.proc.onaudioprocess=null;L.proc.disconnect();L.merger.disconnect();L.mono.disconnect();L.src.disconnect();L.mute.disconnect();L.nodes.forEach(n=>n.disconnect());}catch(e){}
+  try{L.proc.onaudioprocess=null;L.proc.disconnect();L.merger.disconnect();L.an.disconnect();L.mono.disconnect();L.src.disconnect();L.mute.disconnect();L.nodes.forEach(n=>n.disconnect());}catch(e){}
+  if(learnId){learnId=null;learnBuf=[];learnBands=[];renderCal();}
   L.stream.getTracks().forEach(t=>t.stop());
   live=null;state.live=false;if(!state.playing)keepAwake(false);updateLiveButton();
 }
@@ -1831,7 +2049,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();sto
 
 /* ---------- Démarrage ---------- */
 const restored=loadStore();
-fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();
+fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();renderCal();
 setBpm(state.bpm);
 if(restored)renderAll();else applyPattern(PATTERNS[0]);
 readHash();
