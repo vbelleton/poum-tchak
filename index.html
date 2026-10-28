@@ -17,7 +17,7 @@
    Une couleur par fût, partout : icône, ligne de la grille, mot. */
 :root{
   --bg:#ECEFF3; --surface:#FFFFFF; --cell-a:#E3E7ED; --cell-b:#D8DDE5;
-  --ink:#141922; --ink-inv:#FFFFFF; --muted:#566074; --line:#CBD2DC; --edge:#7F899B; --err:#B3321C;
+  --ink:#141922; --ink-inv:#FFFFFF; --muted:#566074; --line:#CBD2DC; --edge:#7F899B; --err:#B3321C; --ok:#1B7A43; --warn:#8F5600;
   --c-poum:#2F4BD0; --c-tchak:#D4432B; --c-doum:#117A5E; --c-toum:#8742B8;
   --c-tss:#97640A; --c-tchaa:#5E7A0A; --c-psch:#B02468;
   --f-display:'Bricolage Grotesque','Arial Narrow',system-ui,sans-serif;
@@ -28,7 +28,7 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
-    --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70;
+    --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70; --ok:#5DD18D; --warn:#F2B04A;
     --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
     --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
     color-scheme:dark;
@@ -36,7 +36,7 @@
 }
 :root[data-theme="dark"]{
   --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
-  --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70;
+  --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70; --ok:#5DD18D; --warn:#F2B04A;
   --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
   --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
   color-scheme:dark;
@@ -67,7 +67,7 @@ button{font:inherit;color:inherit}
 .ic{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
 .ico{width:100%;max-width:34px;height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ic .w{font:700 12px/1.1 var(--f-body);color:var(--ink);max-width:100%;overflow-wrap:anywhere}
-.ic .n{font:500 10px/1.1 var(--f-mono);color:var(--muted)}
+.ic .n{font:500 9.5px/1.1 var(--f-body);color:var(--muted);text-align:center;max-width:100%}
 .ic.on{transform:scale(1.07);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
 
 /* Rubriques */
@@ -125,7 +125,9 @@ h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 .ch{font:500 11px/1 var(--f-mono);color:var(--muted);text-align:center;padding:2px 0 5px;border-bottom:2px solid transparent}
 .ch.b{color:var(--ink);font-weight:600}
 .ch.now{border-bottom-color:var(--ink);color:var(--ink)}
-.rl{font:700 12px/1 var(--f-body);color:var(--c);display:flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rl{color:var(--c);display:flex;flex-direction:column;justify-content:center;min-width:0;overflow:hidden;gap:2px}
+.rl b{font:700 12px/1 var(--f-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rl small{font:500 8.5px/1 var(--f-body);color:var(--muted);white-space:nowrap}
 .cell{position:relative;appearance:none;border:0;border-radius:6px;min-height:32px;background:var(--cell-a);box-shadow:inset 0 0 0 1px var(--edge);padding:0;cursor:pointer;touch-action:manipulation}
 .cell.g1{background:var(--cell-b)}
 .cell.on{background:var(--c);box-shadow:none}
@@ -225,8 +227,23 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px}
 .kv-word{font:800 clamp(22px,7vw,34px)/1 var(--f-display);color:var(--muted);transition:color .12s;overflow-wrap:anywhere;min-width:0}
 .kv-word.hot{color:var(--ink)}
-.kv-line{display:flex;align-items:center;gap:10px;min-height:22px}
-.kv-beats{display:flex;gap:6px;flex:none}
+.kv-set{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kv-set select{flex:1 1 140px;width:auto;min-height:38px;font-size:15px}
+.kv-hud{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;min-height:40px;overflow:hidden}
+.kv-verdict{font:800 clamp(20px,6vw,28px)/1 var(--f-display);text-align:center;color:var(--muted);min-width:0}
+.kv-verdict.ok{color:var(--ok)}.kv-verdict.warn{color:var(--warn)}.kv-verdict.bad{color:var(--err)}
+.kv-verdict.pop{animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(1.25)}to{transform:scale(1)}}
+.kv-pct{font:800 clamp(20px,6vw,28px)/1 var(--f-display);text-align:right}
+.kv-pct.ok{color:var(--ok)}.kv-pct.warn{color:var(--warn)}.kv-pct.bad{color:var(--err)}
+.kv-pct small{display:block;font:500 10px/1.2 var(--f-mono);color:var(--muted);text-align:right}
+.kv-meter{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px;font:500 11px var(--f-mono);color:var(--muted)}
+.kv-bar{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,color-mix(in srgb,var(--warn) 22%,var(--cell-a)) 0 25%,color-mix(in srgb,var(--ok) 22%,var(--cell-a)) 25% 75%,color-mix(in srgb,var(--warn) 22%,var(--cell-a)) 75%)}
+.kv-bar i{position:absolute;top:1px;bottom:1px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--ink);opacity:.25}
+.kv-bar i.last{opacity:1;width:4px;margin-left:-2px}
+.kv-bar i.mid{left:50%;opacity:.5;width:1px;margin-left:0;background:var(--ink)}
+.kv-streak{font:700 12px var(--f-mono);color:var(--ink);min-width:58px;text-align:right}
+.kv-beats{display:flex;gap:6px;flex:none;min-width:60px}
 .kv-beats i{width:12px;height:12px;border-radius:50%;background:var(--cell-b);display:block;transition:background .05s}
 .kv-beats i.on{background:var(--ink)}
 .kv-beats i.on.one{background:var(--err)}
@@ -242,13 +259,23 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   transition:background .06s,transform .06s}
 .pad svg{width:min(32px,6.5vw);height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .pad .pw{font:800 clamp(13px,4.2vw,20px)/1 var(--f-display);color:var(--ink);max-width:100%;overflow-wrap:anywhere;text-align:center}
-.pad .pn{font:500 10px/1 var(--f-mono);color:var(--muted)}
+.pad .pdn{font:500 11px/1.15 var(--f-body);color:var(--muted);text-align:center}
 .pad.on{background:var(--c);color:var(--ink-inv);transform:scale(.985)}
-.pad.on .pw,.pad.on .pn{color:var(--ink-inv)}
+.pad.proche{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--c) 45%,transparent)}
+.pad.cible{box-shadow:inset 0 0 0 5px var(--c);background:color-mix(in srgb,var(--c) 26%,var(--surface))}
+.pad.fb-ok{box-shadow:inset 0 0 0 5px var(--ok)}
+.pad.fb-warn{box-shadow:inset 0 0 0 5px var(--warn)}
+.pad.fb-bad{box-shadow:inset 0 0 0 5px var(--err)}
+.pad.on .pw,.pad.on .pdn{color:var(--ink-inv)}
+@media (max-height:700px){
+  .kv-read{display:none}
+  .kv-meter{font-size:10px}
+}
 @media (max-height:460px){
+  .kv-set,.kv-meter{display:none}
   .kv-pads{grid-template-rows:1fr 1fr 1fr 1fr}
   .pad svg{display:none}
-  .pad .pn{display:none}
+  .pad .pdn{display:none}
 }
 
 /* Barre du bas */
@@ -280,7 +307,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .kit{gap:4px}
   .ic{padding:5px 1px 4px}
   .ic .w{font-size:10.5px;letter-spacing:-.01em}
-  .ic .n{font-size:9.5px}
+  .ic .n{font-size:8.5px}
   .tog,.tapb{padding:0 8px}
   .bpm button{width:32px}
   .bpm input{width:44px;font-size:16px}
@@ -328,6 +355,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   <!-- Rythme : écrire et lire la mesure -->
   <section class="panel" role="tabpanel" id="p-rythme" aria-labelledby="t-rythme">
     <h2 class="sr">Rythme</h2>
+    <div id="slot-rythme"><div id="rhythmCtl">
     <div class="ctrl">
       <div class="seg" id="meterSeg" role="group" aria-label="Mesure"></div>
       <div class="seg" id="swingSeg" role="group" aria-label="Balancement">
@@ -341,6 +369,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     </div>
     <p class="msg" id="soundMsg" role="status"></p>
     <div class="chips" id="patterns" role="group" aria-label="Modèles de rythme"></div>
+    </div></div>
     <div class="card">
       <div class="bars" id="barBar" role="group" aria-label="Mesures de l'enchaînement"></div>
       <div class="tool">
@@ -381,9 +410,10 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   <!-- Pratique : jouer et travailler -->
   <section class="panel" role="tabpanel" id="p-pratique" aria-labelledby="t-pratique" hidden>
     <h2 class="sr">Pratique</h2>
+    <div id="slot-pratique"></div>
     <div class="cta">
       <button type="button" class="btn xl" id="kitBtn">Jouer sur l'écran</button>
-      <p class="hint">La batterie en plein écran, à jouer avec les doigts. Lance la lecture en bas : chaque frappe est comparée à la grille.</p>
+      <p class="hint">La batterie en plein écran, à jouer avec les doigts. Les pads à frapper s'entourent au bon moment, et chaque frappe reçoit son verdict : parfait, bien, tôt, tard, raté.</p>
     </div>
 
     <h3 id="h-drill">Parle-le avant de le jouer</h3>
@@ -510,8 +540,6 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <article class="ref"><header><span class="rw">Konnakol</span><span class="rn">rythme récité</span></header>
         <p>Rythme récité à pulsation constante, en musique carnatique d'Inde du Sud : ta (1), ta ka (2), ta ki ta (3), ta ka di mi (4). Dans l'appli, chaque temps garde toutes ses syllabes et un tiret remplace celles qui sont muettes.</p>
         <ul class="src"><li>Inde du Sud<b>ta ka di mi</b></li><li>Batterie<b>ta ki ta</b></li></ul></article>
-      <article class="ref"><header><span class="rw">do ré mi…</span><span class="rn">une note par fût</span></header>
-        <p>poum do, tchak ré, doum mi, toum fa, tss sol, tchaa la, psch si. Un mémo pour retenir les sept fûts, sans rapport avec leur hauteur réelle.</p></article>
     </div>
   </section>
 
@@ -526,10 +554,23 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <div class="kv-word" id="kvWord">poum tchak</div>
     <button type="button" class="btn ghost" id="kvClose">Fermer</button>
   </div>
-  <div class="kv-line">
-    <div class="kv-beats" id="kvBeats" aria-hidden="true"></div>
-    <p class="kv-score" id="kvScore" role="status"></p>
+  <div class="kv-set">
+    <select class="sm" id="kvPat" aria-label="Rythme à jouer"></select>
+    <div class="seg small" id="kvSound" role="group" aria-label="Sons">
+      <button type="button" data-v="synth">Synthé</button>
+      <button type="button" data-v="kit">Batterie</button>
+    </div>
   </div>
+  <div class="kv-hud">
+    <div class="kv-beats" id="kvBeats" aria-hidden="true"></div>
+    <div class="kv-verdict" id="kvVerdict" aria-hidden="true"></div>
+    <div class="kv-pct" id="kvPct" aria-hidden="true"></div>
+  </div>
+  <div class="kv-meter" id="kvMeter" aria-hidden="true">
+    <span>tôt</span><div class="kv-bar" id="kvBar"><i class="mid"></i></div><span>tard</span>
+    <b class="kv-streak" id="kvStreak"></b>
+  </div>
+  <p class="kv-score" id="kvScore" role="status"></p>
   <div class="kv-read" id="kvRead" aria-hidden="true"></div>
   <div class="kv-pads" id="kvPads"></div>
 </section>
@@ -553,13 +594,13 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 
 //#pure-start
 const DRUMS=[
-  {id:'poum', note:'do', name:'Grosse caisse'},
-  {id:'tchak',note:'ré', name:'Caisse claire'},
-  {id:'doum', note:'mi', name:'Tom médium'},
-  {id:'toum', note:'fa', name:'Tom basse'},
-  {id:'tss',  note:'sol',name:'Charleston fermé'},
-  {id:'tchaa',note:'la', name:'Charleston ouvert'},
-  {id:'psch', note:'si', name:'Crash'}
+  {id:'poum', name:'Grosse caisse',     short:'Grosse caisse', abbr:'G. caisse'},
+  {id:'tchak',name:'Caisse claire',     short:'Caisse claire', abbr:'C. claire'},
+  {id:'doum', name:'Tom médium',        short:'Tom médium',    abbr:'Tom méd.'},
+  {id:'toum', name:'Tom basse',         short:'Tom basse',     abbr:'Tom basse'},
+  {id:'tss',  name:'Charleston fermé',  short:'Charley',       abbr:'Charley'},
+  {id:'tchaa',name:'Charleston ouvert', short:'Charley ouvert',abbr:'Ch. ouvert'},
+  {id:'psch', name:'Crash',             short:'Crash',         abbr:'Crash'}
 ];
 const IDS=DRUMS.map(d=>d.id);
 const ROWS=['psch','tchaa','tss','tchak','doum','toum','poum'];
@@ -1161,7 +1202,7 @@ const icEls={};
 DRUMS.forEach(d=>{
   const b=el('button','ic');b.type='button';
   b.style.setProperty('--c','var(--c-'+d.id+')');
-  b.innerHTML='<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+d.id+'"/></svg><span class="w"></span> <span class="n">'+d.note+'</span>';
+  b.innerHTML='<svg class="ico" viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+d.id+'"/></svg><span class="w"></span> <span class="n">'+d.short+'</span>';
   b.addEventListener('pointerdown',e=>{e.preventDefault();hit(d.id);});
   b.addEventListener('click',e=>{if(e.detail===0)hit(d.id);});
   kitEl.appendChild(b);icEls[d.id]=b;
@@ -1170,7 +1211,7 @@ function refreshLabels(){
   DRUMS.forEach(d=>{
     const b=icEls[d.id];
     b.querySelector('.w').textContent=W(d.id);
-    b.setAttribute('aria-label',W(d.id)+' '+d.note+', '+d.name);
+    b.setAttribute('aria-label',W(d.id)+' '+d.short);
   });
 }
 let wordTimer=null;
@@ -1230,7 +1271,7 @@ function scheduleStep(bar,step,abs,t){
   DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);if(audible)voice(d.id,t,VEL[v]);}});
   if(!silent&&(state.click||state.mute)&&step%m.perBeat===0)clickSound(t,step===0);
   queue.push({t,step,bar,ids,lv:levelOf(g,ids,step),silent});
-  if(ids.length){recent.push({t,ids});if(recent.length>96)recent.shift();}
+  if(ids.length){recent.push({t,ids,hit:{},done:false});if(recent.length>96)recent.shift();}
 }
 function tick(){
   const m=M();
@@ -1258,7 +1299,9 @@ function frame(){
     if(e.bar!==state.bar&&state.bars.length>1)showBar(e.bar);
     if(e.step===0)$('#silFlag').hidden=!e.silent;
     setNow(e.step);flash(e.ids,e.lv);
+    guide(e);
   }
+  checkMisses();
   rafId=requestAnimationFrame(frame);
 }
 function play(){
@@ -1274,7 +1317,9 @@ function play(){
 function stop(){
   if(!state.playing)return;
   state.playing=false;clearInterval(timer);cancelAnimationFrame(rafId);
-  queue.length=0;recent.length=0;setNow(-1);$('#silFlag').hidden=true;updateScore();
+  queue.length=0;setNow(-1);$('#silFlag').hidden=true;
+  if(kvOpen){PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));setVerdict(judged()?'Fini':'','');}
+  recent.length=0;updateScore();
   if(rampBase!=null&&state.bpm!==rampBase){
     const top=state.bpm;setBpm(rampBase);
     setWork('Tu es monté à '+top+' BPM. Retour à '+rampBase+' BPM.');
@@ -1298,7 +1343,8 @@ function renderGrid(){
     }
     for(let i=n;i<m.line;i++)bar.appendChild(el('div','fill'));
     ROWS.forEach(id=>{
-      const rl=el('div','rl',W(id));rl.style.setProperty('--c','var(--c-'+id+')');
+      const rl=el('div','rl');rl.style.setProperty('--c','var(--c-'+id+')');
+      rl.append(el('b',null,W(id)),el('small',null,DRUMS.find(x=>x.id===id).abbr));
       bar.appendChild(rl);
       for(let i=0;i<n;i++){
         const s=start+i;
@@ -1493,7 +1539,7 @@ PAD_ORDER.forEach(id=>{
   const b=el('button','pad');b.type='button';
   b.style.setProperty('--c','var(--c-'+id+')');
   b.style.gridArea=id;b.dataset.id=id;
-  b.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+id+'"/></svg><span class="pw"></span> <span class="pn">'+d.note+'</span>';
+  b.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+id+'"/></svg><span class="pw"></span> <span class="pdn">'+d.name+'</span>';
   b.addEventListener('pointerdown',e=>{
     e.preventDefault();
     if(b.releasePointerCapture&&b.hasPointerCapture&&b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId);
@@ -1508,7 +1554,7 @@ function refreshPads(){
   PAD_ORDER.forEach(id=>{
     const d=DRUMS.find(x=>x.id===id);
     padEls[id].querySelector('.pw').textContent=W(id);
-    padEls[id].setAttribute('aria-label',W(id)+' '+d.note+', '+d.name);
+    padEls[id].setAttribute('aria-label',W(id)+' '+d.name);
   });
 }
 function padHit(id){
@@ -1517,53 +1563,153 @@ function padHit(id){
   hit(id);
   judge(id);
 }
-let jHits=0,jExtra=0,jErr=[];
-function resetScore(){jHits=0;jExtra=0;jErr=[];updateScore();}
+
+/* Le guide : la case qui sonne maintenant s'entoure fort, celle qui vient s'annonce. */
+function guide(e){
+  if(!kvOpen)return;
+  PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
+  if(!state.playing)return;
+  e.ids.forEach(id=>padEls[id].classList.add('cible'));
+  const m=M();
+  let bar=e.bar,st=e.step+1;
+  if(st>=m.steps){st=0;bar=(bar+1)%state.bars.length;}
+  const g=state.bars[bar]||G();
+  IDS.forEach(id=>{if(g[id][st]&&!e.ids.includes(id))padEls[id].classList.add('proche');});
+}
+
+/* Le juge. Une frappe est comparée à la note attendue la plus proche du même fût :
+   à 35 ms près c'est parfait, à 70 ms c'est bien, au-delà, tôt ou tard. Une note
+   que personne ne frappe est ratée ; une frappe sans note attendue est en trop.
+   Seuls les fûts que tu as déjà frappés comptent leurs ratés : tu peux ne jouer
+   que la grosse caisse et la caisse claire, le reste ne te sera pas reproché. */
+const sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set()};
+const judgeWin=()=>Math.min(0.18,(60/state.bpm)/M().perBeat*0.9);
+function resetScore(){
+  Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set()});
+  recent.forEach(e=>{e.done=true;});
+  setVerdict(kvOpen&&!state.playing?'Prêt':'','');updateScore();
+}
+const judged=()=>sc.perfect+sc.good+sc.approx+sc.miss+sc.extra;
+const pct=()=>{const n=judged();return n?Math.round(100*(sc.perfect+sc.good+0.5*sc.approx)/n):0;};
+let verdictTimer=0;
+function setVerdict(txt,kind){
+  const v=$('#kvVerdict');
+  v.textContent=txt;v.className='kv-verdict'+(kind?' '+kind:'');
+  if(txt&&state.playing){void v.offsetWidth;v.classList.add('pop');}
+  clearTimeout(verdictTimer);
+  if(txt&&state.playing)verdictTimer=setTimeout(()=>{v.textContent='';v.className='kv-verdict';},700);
+}
+function padFeedback(id,kind){
+  const p=padEls[id];if(!p)return;
+  p.classList.remove('fb-ok','fb-warn','fb-bad');
+  void p.offsetWidth;p.classList.add('fb-'+kind);
+  clearTimeout(p._f);p._f=setTimeout(()=>p.classList.remove('fb-'+kind),220);
+}
 function judge(id){
   if(!kvOpen||!state.playing||!ctx)return;
-  const now=ctx.currentTime,m=M();
-  const win=Math.min(0.22,(60/state.bpm)/m.perBeat*0.7);
-  let bd=null;
+  sc.mine.add(id);
+  const now=ctx.currentTime,win=judgeWin();
+  let best=null,bd=1e9;
   for(let i=0;i<recent.length;i++){
     const e=recent[i];
-    if(e.ids.indexOf(id)<0)continue;
+    if(e.hit[id]||e.ids.indexOf(id)<0)continue;
     const d=now-e.t;
-    if(bd===null||Math.abs(d)<Math.abs(bd))bd=d;
+    if(Math.abs(d)<Math.abs(bd)){bd=d;best=e;}
   }
-  if(bd!==null&&Math.abs(bd)<=win){jHits++;jErr.push(bd*1000);if(jErr.length>40)jErr.shift();}
-  else jExtra++;
+  if(best&&Math.abs(bd)<=win){
+    best.hit[id]=true;
+    const ms=bd*1000,a=Math.abs(ms);
+    sc.offs.push(ms);if(sc.offs.length>12)sc.offs.shift();
+    if(a<=35){sc.perfect++;sc.streak++;setVerdict('Parfait','ok');padFeedback(id,'ok');}
+    else if(a<=70){sc.good++;sc.streak++;setVerdict('Bien','ok');padFeedback(id,'ok');}
+    else{sc.approx++;setVerdict(ms<0?'Tôt':'Tard','warn');padFeedback(id,'warn');}
+    if(sc.streak>sc.best)sc.best=sc.streak;
+  }else{
+    sc.extra++;sc.streak=0;setVerdict('En trop','bad');padFeedback(id,'bad');
+  }
   updateScore();
+}
+function checkMisses(){
+  if(!kvOpen||!state.playing||!ctx)return;
+  const lim=ctx.currentTime-judgeWin();
+  let missed=null;
+  for(let i=0;i<recent.length;i++){
+    const e=recent[i];
+    if(e.done||e.t>lim)continue;
+    e.done=true;
+    e.ids.forEach(id=>{if(sc.mine.has(id)&&!e.hit[id]){sc.miss++;sc.streak=0;missed=id;}});
+  }
+  if(missed){setVerdict('Raté','bad');padFeedback(missed,'bad');updateScore();}
+}
+function drawMeter(){
+  const bar=$('#kvBar');
+  bar.querySelectorAll('i:not(.mid)').forEach(n=>n.remove());
+  const win=judgeWin()*1000;
+  sc.offs.forEach((ms,i)=>{
+    const t=el('i',i===sc.offs.length-1?'last':null);
+    t.style.left=(50+Math.max(-50,Math.min(50,ms/win*50)))+'%';
+    bar.appendChild(t);
+  });
+}
+function tendency(){
+  if(sc.offs.length<4)return '';
+  const mean=sc.offs.reduce((a,b)=>a+b,0)/sc.offs.length;
+  return mean>20?'plutôt en retard':mean<-20?'plutôt en avance':'bien calé';
 }
 function updateScore(){
   if(!kvOpen)return;
-  if(!state.playing&&!jHits&&!jExtra){kvScore.textContent='Lance la lecture pour être noté.';return;}
-  if(!jHits&&!jExtra){kvScore.textContent='À toi de jouer';return;}
-  let t=jHits+(jHits>1?' coups justes':' coup juste');
-  if(jErr.length>=3){
-    const mean=jErr.reduce((a,b)=>a+b,0)/jErr.length;
-    const dev=Math.round(jErr.reduce((a,b)=>a+Math.abs(b),0)/jErr.length);
-    t+=' · ±'+dev+' ms'+(mean>14?', un peu en retard':mean<-14?', un peu en avance':', bien calé');
+  const n=judged();
+  const kp=$('#kvPct');
+  kp.innerHTML=n?pct()+' %<small>précision</small>':'';
+  kp.className='kv-pct'+(n?(pct()>=85?' ok':pct()>=60?' warn':' bad'):'');
+  $('#kvStreak').textContent=sc.streak>1?'série '+sc.streak:'';
+  drawMeter();
+  if(!state.playing){
+    kvScore.textContent=n?'Bilan : '+pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():'')+'. Relance la lecture pour rejouer.'
+      :'Appuie sur ▶ en bas. Les pads à frapper s\'entourent au bon moment ; seuls les fûts que tu joues sont notés.';
+    return;
   }
-  if(jExtra)t+=' · '+jExtra+(jExtra>1?' à côté':' à côté');
-  kvScore.textContent=t;
+  if(!n){kvScore.textContent='À toi : frappe les pads entourés.';return;}
+  const notes=[...sc.mine].map(W).join(', ');
+  const justes=sc.perfect+sc.good,parts=[];
+  if(justes)parts.push(justes+(justes>1?' justes':' juste'));
+  if(sc.approx)parts.push(sc.approx+' tôt ou tard');
+  if(sc.miss)parts.push(sc.miss+(sc.miss>1?' ratées':' ratée'));
+  if(sc.extra)parts.push(sc.extra+' en trop');
+  if(tendency())parts.push(tendency());
+  if(notes)parts.push('noté sur '+notes);
+  kvScore.textContent=parts.join(' · ');
 }
 function openKit(){
   if(kvOpen)return;
   kvReturn=document.activeElement;
   kvOpen=true;$('#kitView').hidden=false;
   document.body.style.overflow='hidden';
-  refreshPads();renderKitRead();ensureAudio();keepAwake(true);
-  if(!state.playing)resetScore();else updateScore();
+  refreshPads();fillKitPat();renderKitRead();ensureAudio();keepAwake(true);
+  resetScore();
   $('#kvClose').focus();
 }
+/* Choisir le rythme et les sons sans quitter la batterie. */
+function fillKitPat(){
+  const sel=$('#kvPat');sel.innerHTML='';
+  if(!state.pattern){const o=el('option',null,'Ma grille');o.value='';o.disabled=true;sel.appendChild(o);}
+  PATTERNS.forEach(p=>{const o=el('option',null,p.label+' · '+METERS[p.meter].label);o.value=p.id;sel.appendChild(o);});
+  sel.value=state.pattern||'';
+}
+$('#kvPat').addEventListener('change',e=>{
+  const p=PATTERNS.find(x=>x.id===e.target.value);if(!p)return;
+  applyPattern(p);fillKitPat();resetScore();
+});
+$('#kvSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
 function closeKit(silent){
   if(!kvOpen)return;
-  const summary=(jHits||jExtra)?kvScore.textContent:'';
+  const summary=judged()?pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():''):'';
   kvOpen=false;$('#kitView').hidden=true;
   document.body.style.overflow='';
   if(drill==='screen'&&!silent){
     stop();
     if(summary)$('#drillMsg').textContent='Dernier passage : '+summary+'.';
+    PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
   }
   if(!state.playing&&!state.live)keepAwake(false);
   if(kvReturn&&kvReturn.focus&&document.contains(kvReturn))kvReturn.focus();
@@ -1582,6 +1728,9 @@ function showTab(name,focus){
     b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;
     $('#p-'+t).hidden=!on;
   });
+  /* Mesure, balancement, sons et modèles : les mêmes réglages en Rythme et en Pratique. */
+  const slot=$('#slot-'+name);
+  if(slot&&!slot.contains($('#rhythmCtl')))slot.appendChild($('#rhythmCtl'));
   if(focus)$('#t-'+name).focus();
   save();
 }
@@ -1706,6 +1855,8 @@ function updateControls(){
   [...$('#solfSeg').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.solf)));
   [...$('#brushSeg').children].forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===state.brush)));
   [...$('#soundSeg').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.sound)));
+  [...$('#kvSound').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.sound)));
+  if(kvOpen&&$('#kvPat').value!==(state.pattern||''))fillKitPat();
   [...patHost.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.pattern)));
   $('#clic').setAttribute('aria-pressed',String(state.click));
   const pb=$('#play');
@@ -1932,7 +2083,7 @@ function renderDict(){
     det.addEventListener('toggle',()=>{if(det.open)openDet.add(d.id);else openDet.delete(d.id);});
     const count=dict.filter(e=>keyOf(e.ids)===d.id).length;
     const sum=el('summary');sum.dataset.k=d.id;
-    sum.append(el('span','rw',W(d.id)),el('span','rn',d.name+' · '+d.note),el('span','rc',count+(count>1?' mots':' mot')));
+    sum.append(el('span','rw',W(d.id)),el('span','rn',d.name),el('span','rc',count+(count>1?' mots':' mot')));
     det.appendChild(sum);det.appendChild(el('p',null,r.txt));
     const ul=el('ul','src');
     r.src.forEach(pair=>{const li=el('li');li.append(el('span',null,pair[0]),el('b',null,pair[1]));ul.appendChild(li);});

@@ -95,6 +95,20 @@ test.describe('Grille', () => {
   });
 });
 
+test.describe('Réglages partagés', () => {
+  test('mesure, sons et modèles se règlent aussi depuis Pratique', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await expect(page.locator('#p-pratique #rhythmCtl')).toBeVisible();
+    await page.locator('#patterns').getByRole('button', { name: 'Bossa' }).click();
+    await page.locator('#soundSeg').getByRole('button', { name: 'Batterie' }).click();
+    await rubrique(page, 'Rythme');
+    await expect(page.locator('#p-rythme #rhythmCtl')).toBeVisible();
+    await expect(page.locator('#patterns [data-v="bossa"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#soundSeg [data-v="kit"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#rhythmCtl')).toHaveCount(1);
+  });
+});
+
 test.describe('Traduire', () => {
   test('des onomatopées vers la grille, et retour', async ({ page }) => {
     await rubrique(page, 'Mots');

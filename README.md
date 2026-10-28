@@ -19,10 +19,14 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   (ghost note), normale, forte (accent). Dessous, la mesure en onomatopées et en
   solfège rythmique (Kodály, Takadimi, Konnakol). Mes grooves : enregistrer
   l'enchaînement ou le partager par un lien.
-- **Pratique** : jouer sur l'écran, la batterie en plein écran, multitouch, avec
-  la note de justesse en millisecondes. Parle-le avant de le jouer, en quatre
-  étapes : écouter, dire, jouer sur l'écran, jouer sur sa batterie au micro.
-  Tempo progressif et mesures muettes.
+- **Pratique** : les mêmes réglages de rythme qu'en Rythme, puis jouer sur
+  l'écran : la batterie en plein écran, multitouch. Les pads à frapper
+  s'entourent au bon moment ; chaque frappe reçoit un verdict (parfait, bien,
+  tôt, tard, raté, en trop), avec la précision en pourcentage, la série, une
+  jauge avance/retard et un bilan à l'arrêt. Seuls les fûts que tu joues sont
+  notés. Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
+  sur l'écran, jouer sur sa batterie au micro. Tempo progressif et mesures
+  muettes.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
 - **Mots** : traduire des onomatopées ou du solfège vers la grille, modifier le

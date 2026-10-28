@@ -6,20 +6,20 @@ async function ouvrirBatterie(page) {
   await expect(page.locator('#kitView')).toBeVisible();
 }
 
-/* Tape sur un pad au moment où la grille arrive sur une case de ce fût. */
-async function frapperEnRythme(page, id, nombre) {
-  return page.evaluate(([id, nombre]) => new Promise((ok) => {
+/* Tape sur un pad au moment où la grille arrive sur une case de ce fût (avec un décalage en ms). */
+async function frapperEnRythme(page, id, nombre, decalage = 0) {
+  return page.evaluate(([id, nombre, decalage]) => new Promise((ok) => {
     let n = 0, derniere = document.querySelector(`#grid .cell.on.now[data-id="${id}"]`);
     const iv = setInterval(() => {
       const c = document.querySelector(`#grid .cell.on.now[data-id="${id}"]`);
       if (derniere && !derniere.classList.contains('now')) derniere = null;
       if (c && c !== derniere) {
         derniere = c; n++;
-        document.querySelector(`.pad[data-id="${id}"]`).dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, bubbles: true, cancelable: true, pressure: 1 }));
-        if (n >= nombre) { clearInterval(iv); setTimeout(() => ok(n), 50); }
+        setTimeout(() => document.querySelector(`.pad[data-id="${id}"]`).dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, bubbles: true, cancelable: true, pressure: 1 })), decalage);
+        if (n >= nombre) { clearInterval(iv); setTimeout(() => ok(n), decalage + 50); }
       }
     }, 4);
-  }), [id, nombre]);
+  }), [id, nombre, decalage]);
 }
 
 test.describe("Jouer sur l'écran", () => {
@@ -48,21 +48,70 @@ test.describe("Jouer sur l'écran", () => {
 
   test('deux doigts en même temps donnent le mot fondu', async ({ page }) => {
     await ouvrirBatterie(page);
-    await frapperPad(page, 'poum', 1);
-    await frapperPad(page, 'tss', 2);
+    await page.evaluate(() => ['poum', 'tss'].forEach((id, i) => document.querySelector(`.pad[data-id="${id}"]`)
+      .dispatchEvent(new PointerEvent('pointerdown', { pointerId: i + 1, bubbles: true, cancelable: true, pressure: 1 }))));
     await expect(page.locator('#kvWord')).toHaveText('pouts');
   });
 
-  test('pendant la lecture, les frappes en rythme sont notées justes', async ({ page }) => {
+  test('avant de jouer, la vue invite à lancer la lecture', async ({ page }) => {
     await ouvrirBatterie(page);
-    await expect(page.locator('#kvScore')).toHaveText('Lance la lecture pour être noté.');
+    await expect(page.locator('#kvVerdict')).toHaveText('Prêt');
+    await expect(page.locator('#kvScore')).toContainText('Appuie sur ▶ en bas');
+  });
+
+  test('les pads à frapper sont entourés pendant la lecture', async ({ page }) => {
+    await ouvrirBatterie(page);
     await page.locator('#play').click();
-    await expect(page.locator('#kvScore')).toHaveText('À toi de jouer');
-    await expect(page.locator('#kvBeats i.on')).toHaveCount(1);
+    await expect(page.locator('.pad.cible').first()).toBeVisible();
+    await expect(page.locator('.pad[data-id="tss"].cible, .pad[data-id="tss"].proche')).toHaveCount(1, { timeout: 3000 });
+    await page.locator('#play').click();
+    await expect(page.locator('.pad.cible, .pad.proche')).toHaveCount(0);
+  });
+
+  test('frappes en rythme : verdict, précision, série, jauge', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.locator('#play').click();
     await frapperEnRythme(page, 'poum', 4);
-    await expect(page.locator('#kvScore')).toHaveText(/^4 coups justes · ±\d+ ms/);
+    await expect(page.locator('#kvScore')).toHaveText(/^4 justes/);
+    await expect(page.locator('#kvScore')).toContainText('noté sur poum');
+    await expect(page.locator('#kvPct')).toContainText('100 %');
+    await expect(page.locator('#kvStreak')).toHaveText(/série [34]/);
+    await expect(page.locator('#kvBar i:not(.mid)')).toHaveCount(4);
+  });
+
+  test('une frappe en retard est signalée, une frappe sans note est en trop', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.locator('#play').click();
+    await frapperEnRythme(page, 'tchak', 1, 100);
+    await expect(page.locator('#kvScore')).toContainText('1 tôt ou tard');
     await frapperPad(page, 'psch');
-    await expect(page.locator('#kvScore')).toContainText('1 à côté');
+    await expect(page.locator('#kvVerdict')).toHaveText('En trop');
+    await expect(page.locator('#kvVerdict')).toHaveClass(/bad/);
+    await expect(page.locator('#kvScore')).toContainText('1 en trop');
+  });
+
+  test('seuls les fûts joués comptent leurs ratés, et le bilan reste à l\'arrêt', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.locator('#play').click();
+    await frapperEnRythme(page, 'poum', 2);
+    await page.waitForTimeout(2600);
+    await expect(page.locator('#kvScore')).toContainText(/[1-9] ratées?/);
+    await expect(page.locator('#kvScore')).not.toContainText('tss');
+    await page.locator('#play').click();
+    await expect(page.locator('#kvVerdict')).toHaveText('Fini');
+    await expect(page.locator('#kvScore')).toHaveText(/^Bilan : \d+ % de précision, série max \d+/);
+  });
+
+  test('changer de rythme et de sons sans quitter la batterie', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.getByLabel('Rythme à jouer').selectOption('valse');
+    await expect(page.locator('#kvBeats i')).toHaveCount(3);
+    await expect(page.locator('#kvRead')).toContainText('pouts');
+    await page.locator('#kvSound').getByRole('button', { name: 'Batterie' }).click();
+    await expect(page.locator('#kvSound [data-v="kit"]')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Fermer' }).click();
+    await expect(page.locator('#meterSeg [aria-pressed="true"]')).toHaveText('3/4');
+    await expect(page.locator('#soundSeg [data-v="kit"]')).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('Échap ferme la vue et rend le focus au bouton', async ({ page }) => {
@@ -106,7 +155,7 @@ test.describe('Parle-le avant de le jouer', () => {
     await frapperEnRythme(page, 'tchak', 2);
     await page.getByRole('button', { name: 'Fermer' }).click();
     await expect(page.locator('#play')).toHaveText('Jouer');
-    await expect(page.locator('#drillMsg')).toHaveText(/^Dernier passage : 2 coups justes/);
+    await expect(page.locator('#drillMsg')).toHaveText(/^Dernier passage : \d+ % de précision, série max \d+/);
     await expect(etape(page, "Jouer sur l'écran")).toHaveAttribute('aria-pressed', 'false');
   });
 

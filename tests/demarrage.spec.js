@@ -39,8 +39,15 @@ test.describe('Démarrage et rubriques', () => {
     await expect(page.locator('#p-ecoute')).toBeVisible();
   });
 
+  test('les fûts sont nommés, sans notes de musique', async ({ page }) => {
+    await expect(page.locator('#kit .ic').first()).toContainText('Grosse caisse');
+    await expect(page.locator('#kit .ic').nth(4)).toContainText('Charley');
+    await expect(page.locator('#grid .rl').first()).toContainText('Crash');
+    await expect(page.locator('#kit')).not.toContainText(/\b(do|ré|mi|fa|sol|la|si)\b/);
+  });
+
   test('toucher un fût en haut le joue et affiche son mot', async ({ page }) => {
-    await page.getByRole('button', { name: /^tchak ré/ }).click();
+    await page.getByRole('button', { name: 'tchak Caisse claire' }).first().click();
     await expect(page.locator('#word')).toHaveText('tchak');
   });
 
