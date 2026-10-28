@@ -23,6 +23,23 @@ async function frapperEnRythme(page, id, nombre, decalage = 0) {
 }
 
 test.describe("Jouer sur l'écran", () => {
+  test('la partition montre les fûts du rythme, et le choix des zones est visible', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await expect(page.locator('#kvLayout')).toBeVisible();
+    await expect(page.locator('#kvStaff')).toBeVisible();
+    // Rock : charleston fermé, caisse claire, grosse caisse
+    await expect(page.locator('#kvStaff .ks-lab span')).toHaveCount(3);
+    await expect(page.locator('#kvStaff .ks-c')).toHaveCount(16);
+    await expect(page.locator('#kvStaff .ks-d i').first()).toBeVisible();
+    await page.locator('#kvLayout').getByRole('button', { name: 'Utiles' }).click();
+    await expect(page.locator('.pad:visible')).toHaveCount(3);
+    await expect(page.locator('#kvMineRow')).toBeVisible();
+    await page.locator('#kvLayout').getByRole('button', { name: 'Toutes' }).click();
+    await expect(page.locator('.pad:visible')).toHaveCount(7);
+    await page.locator('#play').click();
+    await expect(page.locator('#kvStaff .ks-c.now')).toHaveCount(1);
+  });
+
   test('la batterie occupe l\'écran, avec des pads assez grands', async ({ page }) => {
     await ouvrirBatterie(page);
     await expect(page.locator('.pad')).toHaveCount(7);

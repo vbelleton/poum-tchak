@@ -221,61 +221,103 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .pick .chip{min-height:34px;padding:4px 11px}
 
-/* Jouer sur l'écran */
+/* Jouer sur l'écran : une carte de lecture, une consigne, des zones à frapper */
 .kv{position:fixed;inset:0;z-index:6;margin:0;background:var(--bg);display:flex;flex-direction:column;gap:8px;
   padding:calc(8px + env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) calc(92px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
-.kv-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px}
-.kv-word{font:800 clamp(22px,7vw,34px)/1 var(--f-display);color:var(--muted);transition:color .12s;overflow-wrap:anywhere;min-width:0}
+.kv-bar1{display:flex;align-items:center;gap:8px}
+.kv-bar1 select{flex:1 1 auto;width:auto;min-width:0;min-height:44px;font-size:15px}
+.kv .ib{width:44px;min-height:44px;flex:none;color:var(--ink)}
+.kv .ib svg{width:20px;height:20px;stroke-width:2}
+.kv .ib[aria-expanded="true"]{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
+.kv-set{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.kv-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kv-row .lab{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:64px}
+.kv-row .pick{margin:0}
+.kv-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 12px 10px;display:grid;gap:6px}
+.kv-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;min-height:52px}
+.kv-word{font:800 clamp(18px,5.4vw,26px)/1 var(--f-display);color:var(--muted);transition:color .12s;overflow-wrap:anywhere;min-width:0}
 .kv-word.hot{color:var(--ink)}
-.kv-set{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.kv-set select{flex:1 1 140px;width:auto;min-height:38px;font-size:15px}
-.kv-hud{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;min-height:40px;overflow:hidden}
-.kv-verdict{font:800 clamp(20px,6vw,28px)/1 var(--f-display);text-align:center;color:var(--muted);min-width:0}
+.kv-count{font:300 clamp(40px,13vw,58px)/1 var(--f-body);color:var(--muted);text-align:center;min-width:1ch;font-variant-numeric:tabular-nums}
+.kv-count.one{color:var(--ink)}
+.kv-count.pre{color:var(--err)}
+.kv-pct{font:800 clamp(18px,5.4vw,26px)/1 var(--f-display);text-align:right}
+.kv-pct.ok{color:var(--ok)}.kv-pct.warn{color:var(--warn)}.kv-pct.bad{color:var(--err)}
+.kv-pct small{display:block;font:500 10px/1.2 var(--f-mono);color:var(--muted);text-align:right}
+.kv-lay{display:grid;gap:6px}
+.kv-lay .kv-row .lab{min-width:0}
+.kv-staff{--lh:24px;display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:start;border-top:1px solid var(--line);padding-top:7px}
+.kv-staff[hidden]{display:none}
+.ks-lab{display:grid;grid-auto-rows:var(--lh)}
+.ks-lab span{font:700 10.5px/var(--lh) var(--f-mono);color:var(--c);white-space:nowrap}
+.ks-body{display:flex;gap:5px;min-width:0}
+.ks-b{flex:1 1 0;display:flex;gap:1px;background:var(--cell-a);border-radius:8px;padding:0 2px;min-width:0}
+.ks-c{flex:1 1 0;display:grid;grid-auto-rows:var(--lh);border-radius:4px;min-width:0;transition:background .06s}
+.ks-c.now{background:color-mix(in srgb,var(--ink) 18%,transparent)}
+.ks-d{display:grid;place-items:center;background:linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat}
+.ks-d.app{opacity:.4}
+.ks-d i{display:block;border-radius:50%;background:var(--c);width:calc(var(--lh)*.6);max-width:86%;aspect-ratio:1}
+.ks-d i.l1{background:var(--surface);border:2px solid var(--c);transform:scale(.7)}
+.ks-d i.l3{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--c);transform:scale(.92)}
+.kv-read{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 6px;font:500 12.5px/1.35 var(--f-mono);border-top:1px solid var(--line);padding-top:7px}
+.kv-read .pg{padding:2px 5px;gap:3px}
+.kv-read .tk{padding:0 2px}
+.kv-meter{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px;font:500 11px var(--f-mono);color:var(--muted)}
+.kv-gauge{position:relative;height:12px;border-radius:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--warn) 22%,var(--cell-a)) 0 25%,color-mix(in srgb,var(--ok) 22%,var(--cell-a)) 25% 75%,color-mix(in srgb,var(--warn) 22%,var(--cell-a)) 75%)}
+.kv-gauge i{position:absolute;top:1px;bottom:1px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--ink);opacity:.25}
+.kv-gauge i.last{opacity:1;width:4px;margin-left:-2px}
+.kv-gauge i.mid{left:50%;opacity:.5;width:1px;margin-left:0}
+.kv-streak{font:700 12px var(--f-mono);color:var(--ink);min-width:58px;text-align:right}
+.kv-score{font:500 12px/1.3 var(--f-mono);color:var(--muted);margin:0;text-align:center}
+.kv-say{display:grid;place-items:center;min-height:44px;text-align:center;overflow:hidden}
+.kv-verdict{grid-area:1/1;font:800 clamp(22px,7vw,32px)/1 var(--f-display);color:var(--muted)}
+.kv-verdict:empty{display:none}
 .kv-verdict.ok{color:var(--ok)}.kv-verdict.warn{color:var(--warn)}.kv-verdict.bad{color:var(--err)}
 .kv-verdict.pop{animation:pop .18s ease-out}
 @keyframes pop{from{transform:scale(1.25)}to{transform:scale(1)}}
-.kv-pct{font:800 clamp(20px,6vw,28px)/1 var(--f-display);text-align:right}
-.kv-pct.ok{color:var(--ok)}.kv-pct.warn{color:var(--warn)}.kv-pct.bad{color:var(--err)}
-.kv-pct small{display:block;font:500 10px/1.2 var(--f-mono);color:var(--muted);text-align:right}
-.kv-meter{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px;font:500 11px var(--f-mono);color:var(--muted)}
-.kv-bar{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,color-mix(in srgb,var(--warn) 22%,var(--cell-a)) 0 25%,color-mix(in srgb,var(--ok) 22%,var(--cell-a)) 25% 75%,color-mix(in srgb,var(--warn) 22%,var(--cell-a)) 75%)}
-.kv-bar i{position:absolute;top:1px;bottom:1px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--ink);opacity:.25}
-.kv-bar i.last{opacity:1;width:4px;margin-left:-2px}
-.kv-bar i.mid{left:50%;opacity:.5;width:1px;margin-left:0;background:var(--ink)}
-.kv-streak{font:700 12px var(--f-mono);color:var(--ink);min-width:58px;text-align:right}
-.kv-beats{display:flex;gap:6px;flex:none;min-width:60px}
-.kv-beats i{width:12px;height:12px;border-radius:50%;background:var(--cell-b);display:block;transition:background .05s}
-.kv-beats i.on{background:var(--ink)}
-.kv-beats i.on.one{background:var(--err)}
-.kv-score{font:500 12px/1.3 var(--f-mono);color:var(--muted);margin:0;min-width:0}
-.kv-read{display:flex;flex-wrap:wrap;gap:4px 6px;font:500 12px/1.35 var(--f-mono)}
-.kv-read .pg{padding:2px 5px;gap:3px}
-.kv-read .tk{padding:0 2px}
-.kv-pads{flex:1;min-height:0;display:grid;gap:7px;grid-template-columns:repeat(6,1fr);grid-template-rows:1fr 1fr 1.05fr .95fr;
+.kv-hint{grid-area:1/1;margin:0;font:700 13.5px/1.25 var(--f-body);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);max-width:34ch}
+.kv-verdict:not(:empty)+.kv-hint{visibility:hidden}
+.kv-pads{flex:1;min-height:0;display:grid;gap:7px}
+.kv-pads.l-kit{grid-template-columns:repeat(6,1fr);grid-template-rows:1fr 1fr 1.05fr .95fr;
   grid-template-areas:"psch psch tchaa tchaa tss tss" "doum doum doum toum toum toum" "tchak tchak tchak tchak tchak tchak" "poum poum poum poum poum poum"}
-.pad{appearance:none;border:1px solid var(--edge);border-radius:14px;background:color-mix(in srgb,var(--c) 13%,var(--surface));
-  color:var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;padding:4px;
+.pad{position:relative;appearance:none;border:1px solid var(--edge);border-radius:16px;background:color-mix(in srgb,var(--c) 13%,var(--surface));
+  color:var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:0;padding:4px;overflow:hidden;
   touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer;
-  transition:background .06s,transform .06s}
+  transition:background .08s,transform .06s,box-shadow .08s}
+.pad[hidden]{display:none!important}
 .pad svg{width:min(32px,6.5vw);height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.pad .pw{font:800 clamp(13px,4.2vw,20px)/1 var(--f-display);color:var(--ink);max-width:100%;overflow-wrap:anywhere;text-align:center}
+.pad .pw{font:800 clamp(14px,4.4vw,22px)/1 var(--f-display);color:var(--ink);max-width:100%;overflow-wrap:anywhere;text-align:center}
 .pad .pdn{font:500 11px/1.15 var(--f-body);color:var(--muted);text-align:center}
-.pad.on{background:var(--c);color:var(--ink-inv);transform:scale(.985)}
-.pad.proche{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--c) 45%,transparent)}
-.pad.cible{box-shadow:inset 0 0 0 5px var(--c);background:color-mix(in srgb,var(--c) 26%,var(--surface))}
-.pad.fb-ok{box-shadow:inset 0 0 0 5px var(--ok)}
-.pad.fb-warn{box-shadow:inset 0 0 0 5px var(--warn)}
-.pad.fb-bad{box-shadow:inset 0 0 0 5px var(--err)}
-.pad.on .pw,.pad.on .pdn{color:var(--ink-inv)}
-@media (max-height:700px){
+.pad .pv{position:absolute;left:0;right:0;bottom:8px;font:800 15px/1 var(--f-display);color:var(--ink-inv);opacity:0;text-align:center;pointer-events:none}
+.kv-pads.big .pad svg{width:min(56px,12vw)}
+.kv-pads.big .pad .pw{font-size:clamp(26px,9vw,44px)}
+.kv-pads.big .pad .pdn{font-size:14px}
+.kv-pads.big .pad .pv{font-size:22px;bottom:14px}
+.pad.on{transform:scale(.985)}
+.pad.proche{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--c) 50%,transparent)}
+.pad.cible{box-shadow:inset 0 0 0 6px var(--c);background:color-mix(in srgb,var(--c) 30%,var(--surface))}
+.pad.fb-ok{background:var(--ok);box-shadow:none}
+.pad.fb-warn{background:var(--warn);box-shadow:none}
+.pad.fb-bad{background:var(--err);box-shadow:none}
+.pad.fb-ok,.pad.fb-warn,.pad.fb-bad{color:var(--ink-inv)}
+.pad.fb-ok .pw,.pad.fb-warn .pw,.pad.fb-bad .pw,.pad.fb-ok .pdn,.pad.fb-warn .pdn,.pad.fb-bad .pdn{color:var(--ink-inv)}
+.pad.fb-ok .pv,.pad.fb-warn .pv,.pad.fb-bad .pv{opacity:1}
+.pad.fb-ok .pdn,.pad.fb-warn .pdn,.pad.fb-bad .pdn{visibility:hidden}
+.pad.free:not(.fb-ok):not(.fb-warn):not(.fb-bad).on{background:var(--c);color:var(--ink-inv)}
+.pad.free.on .pw,.pad.free.on .pdn{color:var(--ink-inv)}
+@media (max-height:740px){
+  .kv-meter{display:none}
+  .kv-staff{--lh:19px}
+  .kv-staff:not([hidden])~.kv-read{display:none}
+  .kv-head{min-height:44px}
+}
+@media (max-height:620px){
   .kv-read{display:none}
-  .kv-meter{font-size:10px}
+  .pad .pdn{display:none}
 }
 @media (max-height:460px){
-  .kv-set,.kv-meter{display:none}
-  .kv-pads{grid-template-rows:1fr 1fr 1fr 1fr}
+  .kv-card{padding:4px 10px}
+  .kv-say{min-height:30px}
   .pad svg{display:none}
-  .pad .pdn{display:none}
 }
 
 /* Barre du bas */
@@ -550,29 +592,50 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 </main>
 
 <section class="kv" id="kitView" hidden aria-label="Batterie à jouer avec les doigts">
-  <div class="kv-top">
-    <div class="kv-word" id="kvWord">poum tchak</div>
-    <button type="button" class="btn ghost" id="kvClose">Fermer</button>
-  </div>
-  <div class="kv-set">
+  <div class="kv-bar1">
+    <button type="button" class="ib" id="kvClose" aria-label="Fermer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
     <select class="sm" id="kvPat" aria-label="Rythme à jouer"></select>
-    <div class="seg small" id="kvSound" role="group" aria-label="Sons">
-      <button type="button" data-v="synth">Synthé</button>
-      <button type="button" data-v="kit">Batterie</button>
+    <button type="button" class="ib" id="kvSetBtn" aria-label="Réglages de la vue" aria-expanded="false" aria-controls="kvSet"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="8" r="1.5"/><circle cx="12.5" cy="12" r="1.5"/></svg></button>
+  </div>
+  <div class="kv-set" id="kvSet" hidden>
+    <div class="kv-row"><span class="lab" id="lab-snd">Sons</span>
+      <div class="seg small" id="kvSound" role="group" aria-labelledby="lab-snd">
+        <button type="button" data-v="synth">Synthé</button>
+        <button type="button" data-v="kit">Batterie</button>
+      </div>
     </div>
   </div>
-  <div class="kv-hud">
-    <div class="kv-beats" id="kvBeats" aria-hidden="true"></div>
+  <div class="kv-card">
+    <div class="kv-head">
+      <div class="kv-word" id="kvWord">poum tchak</div>
+      <div class="kv-count" id="kvCount" aria-hidden="true">1</div>
+      <div class="kv-pct" id="kvPct" aria-hidden="true"></div>
+    </div>
+    <div class="kv-staff" id="kvStaff" aria-hidden="true"></div>
+    <div class="kv-read" id="kvRead" aria-hidden="true"></div>
+    <div class="kv-meter" id="kvMeter" aria-hidden="true">
+      <span>tôt</span><div class="kv-gauge" id="kvBar"><i class="mid"></i></div><span>tard</span>
+      <b class="kv-streak" id="kvStreak"></b>
+    </div>
+    <p class="kv-score" id="kvScore" role="status"></p>
+  </div>
+  <div class="kv-say">
     <div class="kv-verdict" id="kvVerdict" aria-hidden="true"></div>
-    <div class="kv-pct" id="kvPct" aria-hidden="true"></div>
+    <p class="kv-hint" id="kvHint"></p>
   </div>
-  <div class="kv-meter" id="kvMeter" aria-hidden="true">
-    <span>tôt</span><div class="kv-bar" id="kvBar"><i class="mid"></i></div><span>tard</span>
-    <b class="kv-streak" id="kvStreak"></b>
+  <div class="kv-lay">
+    <div class="kv-row"><span class="lab" id="lab-zones">Zones</span>
+      <div class="seg small" id="kvLayout" role="group" aria-labelledby="lab-zones">
+        <button type="button" data-v="kit">Batterie</button>
+        <button type="button" data-v="toutes">Toutes</button>
+        <button type="button" data-v="utiles">Utiles</button>
+      </div>
+    </div>
+    <div class="kv-row" id="kvMineRow"><span class="lab" id="lab-mine">Je joue</span>
+      <div class="pick" id="kvMine" role="group" aria-labelledby="lab-mine"></div>
+    </div>
   </div>
-  <p class="kv-score" id="kvScore" role="status"></p>
-  <div class="kv-read" id="kvRead" aria-hidden="true"></div>
-  <div class="kv-pads" id="kvPads"></div>
+  <div class="kv-pads l-kit" id="kvPads"></div>
 </section>
 
 <nav class="dock" aria-label="Lecture">
@@ -1010,7 +1073,7 @@ const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
 const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bars:[emptyGrid(METERS['44'])],bar:0,
-  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',
+  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null},
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
 const MAXBARS=8;
@@ -1022,7 +1085,7 @@ function saveStore(){
   try{
     const m=M();
     localStorage.setItem(STORE_KEY,JSON.stringify({v:3,entries:dict,bpm:state.bpm,meter:state.meter,swing:state.swing,
-      click:state.click,solf:state.solf,pattern:state.pattern,brush:state.brush,ramp:state.ramp,sil:state.sil,sound:state.sound,tab:state.tab,
+      click:state.click,solf:state.solf,pattern:state.pattern,brush:state.brush,ramp:state.ramp,sil:state.sil,sound:state.sound,tab:state.tab,kvl:state.kvl,
       grooves,cal,bars:state.bars.map(g=>packGrid(g,m))}));
   }catch(e){}
 }
@@ -1046,6 +1109,10 @@ function loadStore(){
   if([1,2,3].includes(s.brush))state.brush=s.brush;
   if(s.sound==='kit'||s.sound==='synth')state.sound=s.sound;
   if(['rythme','pratique','ecoute','mots'].includes(s.tab))state.tab=s.tab;
+  if(s.kvl&&typeof s.kvl==='object'){
+    if(['kit','toutes','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
+    state.kvl.mine=Array.isArray(s.kvl.mine)?s.kvl.mine.filter(id=>DRUMS.some(d=>d.id===id)):null;
+  }
   if(s.ramp&&typeof s.ramp==='object'){
     state.ramp.on=!!s.ramp.on;
     if([1,2,5].includes(s.ramp.add))state.ramp.add=s.ramp.add;
@@ -1500,46 +1567,20 @@ function scoreTap(g){
 }
 
 /* ---------- Jouer sur l'écran ---------- */
-const kvPads=$('#kvPads'),kvScore=$('#kvScore'),kvBeats=$('#kvBeats'),kvRead=$('#kvRead');
-let kvTok=[],kvDots=[];
-function renderKitRead(){
-  if(!kvOpen)return;
-  const m=M();
-  kvBeats.innerHTML='';kvDots=[];
-  for(let i=0;i<m.beats;i++){const d=el('i');kvDots.push(d);kvBeats.appendChild(d);}
-  const toks=phraseTokens(G(),m,dict);
-  kvRead.innerHTML='';kvTok=[];
-  for(let b=0;b<m.beats;b++){
-    const grp=el('span','pg');
-    for(let k=0;k<m.perBeat;k++){
-      const st=b*m.perBeat+k;if(st>=m.steps)break;
-      const tk=toks[st];
-      const t=el('span','tk'+(!tk.lv?' rest':tk.lv===3?' ac':tk.lv===1?' gh':''),tk.lv?showLevel(tk.w,tk.lv):'.');
-      kvTok[st]=t;grp.appendChild(t);
-    }
-    kvRead.appendChild(grp);
-  }
-}
-function kitNow(prev,step){
-  if(!kvOpen)return;
-  if(prev>=0&&kvTok[prev])kvTok[prev].classList.remove('now');
-  if(step<0){kvDots.forEach(d=>{d.className='';});return;}
-  if(kvTok[step])kvTok[step].classList.add('now');
-  const m=M();
-  if(step%m.perBeat===0){
-    const bt=Math.floor(step/m.perBeat);
-    kvDots.forEach((d,i)=>{d.className=i===bt?(bt===0?'on one':'on'):'';});
-  }
-}
+/* Une carte de lecture (le temps en gros, la mesure en mots, la précision),
+   une consigne, et des zones à frapper. Trois dispositions : la batterie,
+   toutes les zones en bandes, ou seulement les fûts utiles au rythme. */
+const kvPads=$('#kvPads'),kvScore=$('#kvScore'),kvRead=$('#kvRead'),kvStaff=$('#kvStaff'),kvCount=$('#kvCount');
 const PAD_ORDER=['psch','tchaa','tss','doum','toum','tchak','poum'];
 const padEls={};
-let kvOpen=false,kvReturn=null;
+let kvOpen=false,kvReturn=null,kvTok=[],kvCol=[],kvMutes=new Set(),counting=false;
+
 PAD_ORDER.forEach(id=>{
   const d=DRUMS.find(x=>x.id===id);
   const b=el('button','pad');b.type='button';
   b.style.setProperty('--c','var(--c-'+id+')');
   b.style.gridArea=id;b.dataset.id=id;
-  b.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+id+'"/></svg><span class="pw"></span> <span class="pdn">'+d.name+'</span>';
+  b.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#i-'+id+'"/></svg><span class="pw"></span> <span class="pdn">'+d.name+'</span><span class="pv" aria-hidden="true"></span>';
   b.addEventListener('pointerdown',e=>{
     e.preventDefault();
     if(b.releasePointerCapture&&b.hasPointerCapture&&b.hasPointerCapture(e.pointerId))b.releasePointerCapture(e.pointerId);
@@ -1557,6 +1598,147 @@ function refreshPads(){
     padEls[id].setAttribute('aria-label',W(id)+' '+d.name);
   });
 }
+
+/* Les fûts présents dans le rythme, et ceux que tu choisis de jouer. */
+const usedDrums=()=>PAD_ORDER.filter(id=>state.bars.some(g=>g[id].some(v=>v)));
+function myDrums(){
+  const used=usedDrums();
+  if(!used.length)return PAD_ORDER.slice();
+  const mine=Array.isArray(state.kvl.mine)?state.kvl.mine.filter(id=>used.includes(id)):[];
+  return mine.length?mine:used;
+}
+const zones=()=>state.kvl.layout==='utiles'?myDrums():PAD_ORDER.slice();
+function applyLayout(){
+  const lay=state.kvl.layout,z=zones();
+  PAD_ORDER.forEach(id=>{padEls[id].hidden=!z.includes(id);});
+  kvPads.classList.toggle('l-kit',lay==='kit');
+  kvPads.classList.toggle('big',lay==='utiles'&&z.length<=2);
+  if(lay==='kit'){kvPads.style.gridTemplateAreas=kvPads.style.gridTemplateColumns=kvPads.style.gridTemplateRows='';}
+  else if(lay==='utiles'&&z.length===2){
+    kvPads.style.gridTemplateColumns='1fr 1fr';kvPads.style.gridTemplateRows='1fr';
+    kvPads.style.gridTemplateAreas='"'+z.join(' ')+'"';
+  }else{
+    kvPads.style.gridTemplateColumns='1fr';kvPads.style.gridTemplateRows='repeat('+z.length+',1fr)';
+    kvPads.style.gridTemplateAreas=z.map(id=>'"'+id+'"').join(' ');
+  }
+  /* En « Utiles », l'appli se tait sur les fûts que tu joues : c'est ta partie. */
+  kvMutes=lay==='utiles'?new Set(z):new Set();
+  PAD_ORDER.forEach(id=>padEls[id].classList.toggle('free',lay!=='utiles'));
+  [...$('#kvLayout').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===lay)));
+  renderMine();renderStaff();updateHint();
+}
+function renderMine(){
+  const row=$('#kvMineRow'),host=$('#kvMine');
+  row.hidden=state.kvl.layout!=='utiles';
+  host.innerHTML='';
+  const used=usedDrums(),mine=myDrums();
+  used.forEach(id=>{
+    const b=el('button','chip',W(id));b.type='button';
+    b.setAttribute('aria-pressed',String(mine.includes(id)));
+    b.setAttribute('aria-label',W(id)+' : '+DRUMS.find(d=>d.id===id).name);
+    b.addEventListener('click',()=>{
+      let next=mine.includes(id)?mine.filter(x=>x!==id):mine.concat(id);
+      if(!next.length)return;
+      state.kvl.mine=next.length===used.length?null:next;
+      save();applyLayout();resetScore();
+      const again=[...$('#kvMine').children].find(c=>c.textContent===W(id));if(again)again.focus();
+    });
+    host.appendChild(b);
+  });
+}
+$('#kvLayout').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  state.kvl.layout=b.dataset.v;save();applyLayout();resetScore();
+});
+$('#kvSetBtn').addEventListener('click',()=>{
+  const p=$('#kvSet'),open=p.hidden;
+  p.hidden=!open;$('#kvSetBtn').setAttribute('aria-expanded',String(open));
+});
+$('#kvSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
+
+/* La consigne, en une phrase, selon la situation. */
+const list=ids=>ids.length<2?ids.map(W).join(''):ids.slice(0,-1).map(W).join(', ')+' et '+W(ids[ids.length-1]);
+function updateHint(){
+  const h=$('#kvHint');
+  if(!kvOpen)return;
+  if(counting){h.textContent='Prépare-toi…';return;}
+  if(!state.playing){h.textContent='Appuie sur ▶ en bas : une mesure de décompte, puis à toi.';return;}
+  if(state.kvl.layout==='utiles'){
+    const mine=myDrums(),rest=usedDrums().filter(id=>!mine.includes(id));
+    h.textContent='Frappe '+list(mine)+(state.mute?' avec le clic':(rest.length?', l\'appli joue '+list(rest):' avec le clic'));
+  }else h.textContent='Frappe les zones qui s\'allument';
+}
+
+/* La partition : une ligne par fût du rythme, les notes en pastilles
+   (petite creuse = fantôme, grosse cerclée = accent), un curseur qui avance.
+   En « Utiles », tes fûts sont pleins et ceux de l'appli sont en retrait. */
+function renderStaff(){
+  kvStaff.innerHTML='';kvCol=[];
+  const ids=usedDrums();
+  kvStaff.hidden=!ids.length;
+  if(!ids.length)return;
+  const m=M(),g=G(),mine=state.kvl.layout==='utiles'?myDrums():ids;
+  const lab=el('div','ks-lab');
+  ids.forEach(id=>{const s=el('span','',W(id));s.style.setProperty('--c','var(--c-'+id+')');lab.appendChild(s);});
+  const body=el('div','ks-body');
+  for(let b=0;b<m.beats;b++){
+    const grp=el('div','ks-b');
+    for(let k=0;k<m.perBeat;k++){
+      const st=b*m.perBeat+k;if(st>=m.steps)break;
+      const col=el('div','ks-c');
+      ids.forEach(id=>{
+        const d=el('div','ks-d'+(mine.includes(id)?'':' app')),v=g[id][st];
+        d.style.setProperty('--c','var(--c-'+id+')');
+        if(v)d.appendChild(el('i','l'+v));
+        col.appendChild(d);
+      });
+      kvCol[st]=col;grp.appendChild(col);
+    }
+    body.appendChild(grp);
+  }
+  kvStaff.append(lab,body);
+}
+
+/* La carte : la mesure en mots, le pas joué en surbrillance, le temps en gros. */
+function renderKitRead(){
+  if(!kvOpen)return;
+  renderStaff();
+  const m=M();
+  const toks=phraseTokens(G(),m,dict);
+  kvRead.innerHTML='';kvTok=[];
+  for(let b=0;b<m.beats;b++){
+    const grp=el('span','pg');
+    for(let k=0;k<m.perBeat;k++){
+      const st=b*m.perBeat+k;if(st>=m.steps)break;
+      const tk=toks[st];
+      const t=el('span','tk'+(!tk.lv?' rest':tk.lv===3?' ac':tk.lv===1?' gh':''),tk.lv?showLevel(tk.w,tk.lv):'.');
+      kvTok[st]=t;grp.appendChild(t);
+    }
+    kvRead.appendChild(grp);
+  }
+}
+function kitNow(prev,step){
+  if(!kvOpen)return;
+  if(prev>=0){if(kvTok[prev])kvTok[prev].classList.remove('now');if(kvCol[prev])kvCol[prev].classList.remove('now');}
+  if(step<0){kvCount.textContent='1';kvCount.className='kv-count';return;}
+  if(kvTok[step])kvTok[step].classList.add('now');
+  if(kvCol[step])kvCol[step].classList.add('now');
+  const m=M();
+  if(step%m.perBeat===0){
+    const bt=Math.floor(step/m.perBeat);
+    kvCount.textContent=String(bt+1);kvCount.className='kv-count'+(bt===0?' one':'');
+  }
+}
+/* Le décompte : une mesure de clic avant de jouer, le temps à rebours. */
+function countBeat(e){
+  const m=M();
+  if(e.step%m.perBeat!==0)return;
+  const left=m.beats-Math.floor(e.step/m.perBeat);
+  kvCount.textContent=String(left);kvCount.className='kv-count pre';
+  if(!counting){counting=true;updateHint();}
+}
+function endCount(){if(counting){counting=false;updateHint();}}
+
 function padHit(id){
   const p=padEls[id];
   p.classList.add('on');clearTimeout(p._t);p._t=setTimeout(()=>p.classList.remove('on'),110);
@@ -1564,7 +1746,7 @@ function padHit(id){
   judge(id);
 }
 
-/* Le guide : la case qui sonne maintenant s'entoure fort, celle qui vient s'annonce. */
+/* Le guide : la zone qui doit sonner maintenant s'allume, celle qui vient s'annonce. */
 function guide(e){
   if(!kvOpen)return;
   PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
@@ -1580,14 +1762,16 @@ function guide(e){
 /* Le juge. Une frappe est comparée à la note attendue la plus proche du même fût :
    à 35 ms près c'est parfait, à 70 ms c'est bien, au-delà, tôt ou tard. Une note
    que personne ne frappe est ratée ; une frappe sans note attendue est en trop.
-   Seuls les fûts que tu as déjà frappés comptent leurs ratés : tu peux ne jouer
-   que la grosse caisse et la caisse claire, le reste ne te sera pas reproché. */
+   En « Utiles », les fûts choisis sont notés dès le départ. Ailleurs, un fût
+   n'est noté qu'une fois frappé : tu peux ne jouer que grosse caisse et caisse
+   claire, le reste ne te sera pas reproché. */
 const sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set()};
 const judgeWin=()=>Math.min(0.18,(60/state.bpm)/M().perBeat*0.9);
 function resetScore(){
-  Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set()});
+  Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],
+    mine:new Set(state.kvl.layout==='utiles'?myDrums():[])});
   recent.forEach(e=>{e.done=true;});
-  setVerdict(kvOpen&&!state.playing?'Prêt':'','');updateScore();
+  setVerdict(kvOpen&&!state.playing?'Prêt':'','');updateScore();updateHint();
 }
 const judged=()=>sc.perfect+sc.good+sc.approx+sc.miss+sc.extra;
 const pct=()=>{const n=judged();return n?Math.round(100*(sc.perfect+sc.good+0.5*sc.approx)/n):0;};
@@ -1597,16 +1781,17 @@ function setVerdict(txt,kind){
   v.textContent=txt;v.className='kv-verdict'+(kind?' '+kind:'');
   if(txt&&state.playing){void v.offsetWidth;v.classList.add('pop');}
   clearTimeout(verdictTimer);
-  if(txt&&state.playing)verdictTimer=setTimeout(()=>{v.textContent='';v.className='kv-verdict';},700);
+  if(txt&&state.playing)verdictTimer=setTimeout(()=>{v.textContent='';v.className='kv-verdict';},650);
 }
-function padFeedback(id,kind){
+function padFeedback(id,kind,txt){
   const p=padEls[id];if(!p)return;
   p.classList.remove('fb-ok','fb-warn','fb-bad');
+  p.querySelector('.pv').textContent=txt||'';
   void p.offsetWidth;p.classList.add('fb-'+kind);
-  clearTimeout(p._f);p._f=setTimeout(()=>p.classList.remove('fb-'+kind),220);
+  clearTimeout(p._f);p._f=setTimeout(()=>p.classList.remove('fb-'+kind),260);
 }
 function judge(id){
-  if(!kvOpen||!state.playing||!ctx)return;
+  if(!kvOpen||!state.playing||!ctx||counting)return;
   sc.mine.add(id);
   const now=ctx.currentTime,win=judgeWin();
   let best=null,bd=1e9;
@@ -1620,12 +1805,12 @@ function judge(id){
     best.hit[id]=true;
     const ms=bd*1000,a=Math.abs(ms);
     sc.offs.push(ms);if(sc.offs.length>12)sc.offs.shift();
-    if(a<=35){sc.perfect++;sc.streak++;setVerdict('Parfait','ok');padFeedback(id,'ok');}
-    else if(a<=70){sc.good++;sc.streak++;setVerdict('Bien','ok');padFeedback(id,'ok');}
-    else{sc.approx++;setVerdict(ms<0?'Tôt':'Tard','warn');padFeedback(id,'warn');}
+    if(a<=35){sc.perfect++;sc.streak++;setVerdict('Parfait','ok');padFeedback(id,'ok','Parfait');}
+    else if(a<=70){sc.good++;sc.streak++;setVerdict('Bien','ok');padFeedback(id,'ok','Bien');}
+    else{const w=ms<0?'Tôt':'Tard';sc.approx++;setVerdict(w,'warn');padFeedback(id,'warn',w);}
     if(sc.streak>sc.best)sc.best=sc.streak;
   }else{
-    sc.extra++;sc.streak=0;setVerdict('En trop','bad');padFeedback(id,'bad');
+    sc.extra++;sc.streak=0;setVerdict('En trop','bad');padFeedback(id,'bad','En trop');
   }
   updateScore();
 }
@@ -1639,7 +1824,7 @@ function checkMisses(){
     e.done=true;
     e.ids.forEach(id=>{if(sc.mine.has(id)&&!e.hit[id]){sc.miss++;sc.streak=0;missed=id;}});
   }
-  if(missed){setVerdict('Raté','bad');padFeedback(missed,'bad');updateScore();}
+  if(missed){setVerdict('Raté','bad');padFeedback(missed,'bad','Raté');updateScore();}
 }
 function drawMeter(){
   const bar=$('#kvBar');
@@ -1665,31 +1850,31 @@ function updateScore(){
   $('#kvStreak').textContent=sc.streak>1?'série '+sc.streak:'';
   drawMeter();
   if(!state.playing){
-    kvScore.textContent=n?'Bilan : '+pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():'')+'. Relance la lecture pour rejouer.'
-      :'Appuie sur ▶ en bas. Les pads à frapper s\'entourent au bon moment ; seuls les fûts que tu joues sont notés.';
+    kvScore.textContent=n?'Bilan : '+pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():'')+'.':'';
     return;
   }
-  if(!n){kvScore.textContent='À toi : frappe les pads entourés.';return;}
-  const notes=[...sc.mine].map(W).join(', ');
+  if(!n){kvScore.textContent='';return;}
   const justes=sc.perfect+sc.good,parts=[];
   if(justes)parts.push(justes+(justes>1?' justes':' juste'));
   if(sc.approx)parts.push(sc.approx+' tôt ou tard');
   if(sc.miss)parts.push(sc.miss+(sc.miss>1?' ratées':' ratée'));
   if(sc.extra)parts.push(sc.extra+' en trop');
   if(tendency())parts.push(tendency());
-  if(notes)parts.push('noté sur '+notes);
+  if(state.kvl.layout!=='utiles'&&sc.mine.size)parts.push('noté sur '+list([...sc.mine]));
   kvScore.textContent=parts.join(' · ');
 }
+
 function openKit(){
   if(kvOpen)return;
   kvReturn=document.activeElement;
   kvOpen=true;$('#kitView').hidden=false;
   document.body.style.overflow='hidden';
-  refreshPads();fillKitPat();renderKitRead();ensureAudio();keepAwake(true);
+  refreshPads();fillKitPat();renderKitRead();applyLayout();ensureAudio();keepAwake(true);
+  kvCount.textContent='1';kvCount.className='kv-count';
   resetScore();
   $('#kvClose').focus();
 }
-/* Choisir le rythme et les sons sans quitter la batterie. */
+/* Choisir le rythme sans quitter la batterie. */
 function fillKitPat(){
   const sel=$('#kvPat');sel.innerHTML='';
   if(!state.pattern){const o=el('option',null,'Ma grille');o.value='';o.disabled=true;sel.appendChild(o);}
@@ -1698,18 +1883,18 @@ function fillKitPat(){
 }
 $('#kvPat').addEventListener('change',e=>{
   const p=PATTERNS.find(x=>x.id===e.target.value);if(!p)return;
-  applyPattern(p);fillKitPat();resetScore();
+  applyPattern(p);fillKitPat();applyLayout();resetScore();
 });
-$('#kvSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
 function closeKit(silent){
   if(!kvOpen)return;
   const summary=judged()?pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():''):'';
   kvOpen=false;$('#kitView').hidden=true;
   document.body.style.overflow='';
+  kvMutes=new Set();counting=false;
+  PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
   if(drill==='screen'&&!silent){
     stop();
     if(summary)$('#drillMsg').textContent='Dernier passage : '+summary+'.';
-    PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
   }
   if(!state.playing&&!state.live)keepAwake(false);
   if(kvReturn&&kvReturn.focus&&document.contains(kvReturn))kvReturn.focus();
