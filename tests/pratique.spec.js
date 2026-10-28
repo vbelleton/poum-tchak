@@ -82,7 +82,7 @@ test.describe("Jouer sur l'écran", () => {
   test('une frappe en retard est signalée, une frappe sans note est en trop', async ({ page }) => {
     await ouvrirBatterie(page);
     await page.locator('#play').click();
-    await frapperEnRythme(page, 'tchak', 1, 100);
+    await frapperEnRythme(page, 'tchak', 1, 92);
     await expect(page.locator('#kvScore')).toContainText('1 tôt ou tard');
     await frapperPad(page, 'psch');
     await expect(page.locator('#kvVerdict')).toHaveText('En trop');

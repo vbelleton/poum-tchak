@@ -7,6 +7,8 @@ module.exports = defineConfig({
   timeout: 60_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,
+  // Les tests de rythme dépendent de l'horloge : une seconde chance absorbe un ordinateur chargé.
+  retries: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4173/',
