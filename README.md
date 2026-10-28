@@ -14,6 +14,12 @@ Page en ligne : https://vbelleton.github.io/poum-tchak/
 - **La grille** : 4/4, 3/4, 6/8, droit ou ternaire, modèles rock, funk, disco,
   bossa, shuffle, valse, 6/8. Jusqu'à huit mesures enchaînées. Trois forces de
   frappe : faible (ghost note), normale, forte (accent).
+- **Jouer sur l'écran** : la batterie en plein écran, sept pads à la taille d'un
+  doigt, multitouch (grosse caisse et charleston ensemble donnent bien « pouts »).
+  Pendant la lecture, chaque frappe est comparée à la grille : nombre de coups
+  justes, écart moyen en millisecondes, et si tu es en avance ou en retard.
+- **Deux jeux de sons** : la synthèse d'origine, ou les échantillons d'une vraie
+  batterie, embarqués dans la page (environ 60 ko).
 - **Parle-le avant de le jouer** : écouter la mesure, la dire à voix haute sur
   le clic, puis la jouer, le micro comparant le résultat à la grille.
 - **Travailler** : tempo progressif (monter tout seul de N BPM toutes les
@@ -36,6 +42,16 @@ Page en ligne : https://vbelleton.github.io/poum-tchak/
 - Le premier temps trouvé par l'appli peut tomber sur un autre temps de la
   mesure : la grille est alors juste mais décalée.
 - La lecture du rythme au micro ne marche qu'en 4/4.
+- Sur l'écran d'un téléphone, il reste 30 à 50 ms entre le doigt et le son :
+  c'est bon pour lire et mémoriser un rythme, pas pour travailler un toucher.
+
+## Crédits
+
+Les sons de batterie viennent de
+[Web Audio Samples](https://github.com/GoogleChromeLabs/web-audio-samples) de
+l'équipe Chrome Web Audio, sous licence Apache 2.0 : grosse caisse, caisse
+claire, toms, charleston et crash. Le charleston ouvert est fabriqué à partir du
+charleston fermé.
 
 ## Fichiers
 
