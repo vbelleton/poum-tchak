@@ -54,7 +54,7 @@ test.describe("Jouer sur l'écran", () => {
     await expect(page.locator('.dock')).toBeVisible();
     await expect(page.locator('#play')).toBeInViewport();
     await expect(page.locator('#kvRead')).toContainText('pouts');
-    await expect(page.locator('#kvBeats i')).toHaveCount(4);
+    await expect(page.locator('#kvStaff .ks-b')).toHaveCount(4);
   });
 
   test('une frappe allume le pad et affiche le mot', async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe("Jouer sur l'écran", () => {
   test('avant de jouer, la vue invite à lancer la lecture', async ({ page }) => {
     await ouvrirBatterie(page);
     await expect(page.locator('#kvVerdict')).toHaveText('Prêt');
-    await expect(page.locator('#kvScore')).toContainText('Appuie sur ▶ en bas');
+    await expect(page.locator('#kvHint')).toContainText('Appuie sur ▶');
   });
 
   test('les pads à frapper sont entourés pendant la lecture', async ({ page }) => {
@@ -122,8 +122,9 @@ test.describe("Jouer sur l'écran", () => {
   test('changer de rythme et de sons sans quitter la batterie', async ({ page }) => {
     await ouvrirBatterie(page);
     await page.getByLabel('Rythme à jouer').selectOption('valse');
-    await expect(page.locator('#kvBeats i')).toHaveCount(3);
+    await expect(page.locator('#kvStaff .ks-b')).toHaveCount(3);
     await expect(page.locator('#kvRead')).toContainText('pouts');
+    await page.getByRole('button', { name: 'Réglages de la vue' }).click();
     await page.locator('#kvSound').getByRole('button', { name: 'Batterie' }).click();
     await expect(page.locator('#kvSound [data-v="kit"]')).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Fermer' }).click();
