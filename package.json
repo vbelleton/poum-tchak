@@ -1,0 +1,13 @@
+{
+  "name": "poum-tchak",
+  "private": true,
+  "description": "Tests de l'interface de Poum Tchak",
+  "scripts": {
+    "test": "playwright test",
+    "test:rapide": "playwright test --grep-invert @lent"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.56.0"
+  }
+}

@@ -70,10 +70,15 @@ button{font:inherit;color:inherit}
 .ic .n{font:500 10px/1.1 var(--f-mono);color:var(--muted)}
 .ic.on{transform:scale(1.07);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
 
-/* Sections */
-.wrap{padding-block:16px 8px}
-section{margin-top:24px}
-section:first-child{margin-top:0}
+/* Rubriques */
+.wrap{padding-block:14px 8px}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs [role=tab]{appearance:none;border:0;background:transparent;border-radius:9px;min-height:42px;padding:4px 2px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;touch-action:manipulation;min-width:0}
+.tabs [role=tab][aria-selected=true]{background:var(--ink);color:var(--ink-inv)}
+.panel{margin:0}
+.panel>.first{margin-top:4px}
+.foot{margin-top:28px;border-top:1px solid var(--line);padding-top:12px}
+.foot .hint{font-size:13px;margin-bottom:6px}
 h2{font:600 12px/1.2 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
 h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 .hint{color:var(--muted);font-size:14px;margin:0 0 10px;max-width:62ch}
@@ -91,6 +96,29 @@ h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 .chip{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:999px;padding:6px 13px;min-height:36px;font-weight:600;font-size:13px;cursor:pointer;touch-action:manipulation}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
 
+/* Outils au-dessus de la grille */
+.tool{display:flex;align-items:center;gap:8px;margin:-2px 0 12px;flex-wrap:wrap}
+.tool .lab,.bars .lab{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:58px}
+
+/* Pratique */
+.cta{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.cta .hint{margin:0}
+.btn.xl{min-height:54px;font-size:16px;width:100%}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.step{appearance:none;width:100%;text-align:left;border:1px solid var(--edge);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 12px;min-height:58px;cursor:pointer;display:grid;grid-template-columns:32px 1fr;gap:1px 10px;align-items:center;touch-action:manipulation}
+.step .sn{grid-row:1/3;width:32px;height:32px;border-radius:50%;background:var(--cell-a);display:grid;place-items:center;font:700 14px var(--f-mono)}
+.step b{font-size:15px}
+.step .sd{grid-column:2;color:var(--muted);font-size:13.5px;line-height:1.35}
+.step[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.step[aria-pressed=true] .sn{background:var(--ink);color:var(--ink-inv)}
+.opts{margin-top:8px;align-items:center}
+.more{margin-top:12px;font-size:14px;color:var(--muted)}
+.more summary{cursor:pointer;font-weight:600;color:var(--ink);min-height:40px;display:flex;align-items:center;gap:8px;list-style:none}
+.more summary::-webkit-details-marker{display:none}
+.more summary::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
+.more[open] summary::before{transform:rotate(45deg)}
+.more p{margin:4px 0 0}
+
 /* Grille */
 .bar{display:grid;grid-template-columns:50px repeat(var(--cols),minmax(0,1fr));gap:4px;margin-top:12px}
 .bar:first-child{margin-top:0}
@@ -105,11 +133,12 @@ h3{font:700 15px/1.3 var(--f-body);margin:20px 0 8px}
 .cell.lv3::after{content:"";position:absolute;left:50%;top:4px;width:0;height:0;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--ink-inv)}
 .cell.now{outline:2px solid var(--ink);outline-offset:-2px}
 .bars{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
-.bars .lab{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+
 .bn{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:9px;min-width:38px;min-height:38px;padding:0 10px;font:600 14px var(--f-mono);cursor:pointer;touch-action:manipulation}
 .bn[aria-pressed="true"]{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
 .bn.sil{border-style:dashed;color:var(--muted)}
 .bn.act{font-size:17px;line-height:1}
+.bn.txt{font-family:var(--f-body);font-size:13.5px}
 .bn:disabled{opacity:.4;cursor:default}
 
 /* Lecture */
@@ -137,7 +166,8 @@ textarea{resize:vertical;min-height:64px}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--edge)}
 .btn:disabled{opacity:.4;cursor:default}
 .btn.live[aria-pressed="true"]{background:var(--err);border-color:var(--err);color:var(--ink-inv)}
-.msg{min-height:1.4em;margin:8px 0 0;font-size:14px;color:var(--muted)}
+.msg{margin:8px 0 0;font-size:14px;color:var(--muted)}
+.msg:empty{margin:0}
 .msg.err{color:var(--err)}
 .file{position:relative;cursor:pointer}
 .file input{position:absolute;opacity:0;width:1px;height:1px}
@@ -195,7 +225,15 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px}
 .kv-word{font:800 clamp(22px,7vw,34px)/1 var(--f-display);color:var(--muted);transition:color .12s;overflow-wrap:anywhere;min-width:0}
 .kv-word.hot{color:var(--ink)}
-.kv-score{font:500 12px/1.3 var(--f-mono);color:var(--muted);margin:0;min-height:1.3em}
+.kv-line{display:flex;align-items:center;gap:10px;min-height:22px}
+.kv-beats{display:flex;gap:6px;flex:none}
+.kv-beats i{width:12px;height:12px;border-radius:50%;background:var(--cell-b);display:block;transition:background .05s}
+.kv-beats i.on{background:var(--ink)}
+.kv-beats i.on.one{background:var(--err)}
+.kv-score{font:500 12px/1.3 var(--f-mono);color:var(--muted);margin:0;min-width:0}
+.kv-read{display:flex;flex-wrap:wrap;gap:4px 6px;font:500 12px/1.35 var(--f-mono)}
+.kv-read .pg{padding:2px 5px;gap:3px}
+.kv-read .tk{padding:0 2px}
 .kv-pads{flex:1;min-height:0;display:grid;gap:7px;grid-template-columns:repeat(6,1fr);grid-template-rows:1fr 1fr 1.05fr .95fr;
   grid-template-areas:"psch psch tchaa tchaa tss tss" "doum doum doum toum toum toum" "tchak tchak tchak tchak tchak tchak" "poum poum poum poum poum poum"}
 .pad{appearance:none;border:1px solid var(--edge);border-radius:14px;background:color-mix(in srgb,var(--c) 13%,var(--surface));
@@ -223,7 +261,9 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .tog[aria-pressed="true"]::before{background:var(--ink);border-color:var(--ink)}
 .bpm{display:flex;align-items:center;gap:2px;margin-left:auto}
 .bpm button{width:38px;padding:0;font-size:18px}
-.bpm output{min-width:44px;text-align:center;font:600 18px var(--f-mono)}
+.bpm input{width:58px;min-height:46px;text-align:center;font:600 18px var(--f-mono);color:var(--ink);background:transparent;border:0;border-radius:8px;padding:0;-moz-appearance:textfield;appearance:textfield}
+.bpm input::-webkit-inner-spin-button,.bpm input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.bpm input:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
 .tapb{padding:0 12px}
 .tapb.hit{background:var(--cell-b)}
 .play{appearance:none;border:0;background:var(--ink);color:var(--ink-inv);border-radius:12px;min-height:46px;padding:0 16px;font-weight:700;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;touch-action:manipulation}
@@ -232,7 +272,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .dock-in{gap:6px}
   .tog,.tapb{padding:0 10px}
   .bpm button{width:34px}
-  .bpm output{min-width:38px}
+  .bpm input{width:50px}
   .play{padding:0;width:46px;justify-content:center}
   .play span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
@@ -243,7 +283,8 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .ic .n{font-size:9.5px}
   .tog,.tapb{padding:0 8px}
   .bpm button{width:32px}
-  .bpm output{min-width:36px;font-size:16px}
+  .bpm input{width:44px;font-size:16px}
+  .tabs [role=tab]{font-size:13px}
 }
 @media (max-height:520px){.stage{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -277,85 +318,57 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 </header>
 
 <main class="in wrap" id="main" tabindex="-1">
-  <section aria-labelledby="h-play">
-    <h2 id="h-play">À jouer</h2>
+  <div class="tabs" role="tablist" aria-label="Rubriques">
+    <button type="button" role="tab" id="t-rythme" aria-controls="p-rythme" aria-selected="true">Rythme</button>
+    <button type="button" role="tab" id="t-pratique" aria-controls="p-pratique" aria-selected="false" tabindex="-1">Pratique</button>
+    <button type="button" role="tab" id="t-ecoute" aria-controls="p-ecoute" aria-selected="false" tabindex="-1">Écoute</button>
+    <button type="button" role="tab" id="t-mots" aria-controls="p-mots" aria-selected="false" tabindex="-1">Mots</button>
+  </div>
+
+  <!-- Rythme : écrire et lire la mesure -->
+  <section class="panel" role="tabpanel" id="p-rythme" aria-labelledby="t-rythme">
+    <h2 class="sr">Rythme</h2>
     <div class="ctrl">
       <div class="seg" id="meterSeg" role="group" aria-label="Mesure"></div>
       <div class="seg" id="swingSeg" role="group" aria-label="Balancement">
         <button type="button" data-v="0">Droit</button>
         <button type="button" data-v="1">Ternaire</button>
       </div>
-      <label class="rng" for="bpmRange"><span>Tempo</span><input type="range" id="bpmRange" min="40" max="220" value="100"></label>
-    </div>
-    <div class="ctrl">
-      <div class="seg" id="brushSeg" role="group" aria-label="Force de la frappe posée dans la grille">
-        <button type="button" data-v="1">Faible</button>
-        <button type="button" data-v="2">Normal</button>
-        <button type="button" data-v="3">Fort</button>
-      </div>
-      <div class="seg" id="soundSeg" role="group" aria-label="Sons de la batterie">
+      <div class="seg" id="soundSeg" role="group" aria-label="Sons">
         <button type="button" data-v="synth">Synthé</button>
         <button type="button" data-v="kit">Batterie</button>
       </div>
-      <button type="button" class="btn" id="kitBtn">Jouer sur l'écran</button>
     </div>
     <p class="msg" id="soundMsg" role="status"></p>
     <div class="chips" id="patterns" role="group" aria-label="Modèles de rythme"></div>
     <div class="card">
       <div class="bars" id="barBar" role="group" aria-label="Mesures de l'enchaînement"></div>
-      <p class="sr" id="barLive" role="status"></p>
+      <div class="tool">
+        <span class="lab" id="lab-brush">Frappe</span>
+        <div class="seg small" id="brushSeg" role="group" aria-labelledby="lab-brush">
+          <button type="button" data-v="1">Faible</button>
+          <button type="button" data-v="2">Normale</button>
+          <button type="button" data-v="3">Forte</button>
+        </div>
+      </div>
       <div id="grid"></div>
     </div>
     <div class="read">
       <div class="rlab">Onomatopées</div>
       <div class="phrase" id="phrase"></div>
       <div class="rlab-row">
-        <div class="rlab">Solfège rythmique</div>
-        <div class="seg small" id="solfSeg" role="group" aria-label="Système de solfège rythmique">
+        <div class="rlab" id="lab-solf">Solfège rythmique</div>
+        <div class="seg small" id="solfSeg" role="group" aria-labelledby="lab-solf">
           <button type="button" data-v="kodaly">Kodály</button>
           <button type="button" data-v="takadimi">Takadimi</button>
           <button type="button" data-v="konnakol">Konnakol</button>
         </div>
       </div>
       <div class="phrase" id="solf"></div>
-      <div class="rlab-row" style="margin-top:14px">
-        <div class="rlab" id="h-drill">Parle-le avant de le jouer</div>
-        <div class="seg small" id="drillSeg" role="group" aria-labelledby="h-drill">
-          <button type="button" data-v="listen">1 Écouter</button>
-          <button type="button" data-v="speak">2 Parler</button>
-          <button type="button" data-v="tap">3 Taper</button>
-        </div>
-      </div>
-      <p class="hint" id="drillTxt">Écoute la mesure, dis-la à voix haute avec le clic, puis joue-la : le micro la compare.</p>
-      <p class="msg" id="drillMsg" role="status"></p>
     </div>
-  </section>
 
-  <section aria-labelledby="h-work">
-    <h2 id="h-work">Travailler</h2>
-    <label class="chk"><input type="checkbox" id="rampOn"><span>Tempo progressif : accélérer tout seul pendant que tu joues</span></label>
-    <div class="row" style="margin-top:8px;align-items:center">
-      <label class="opt" for="rampAdd">Monter de
-        <select class="sm" id="rampAdd"><option value="1">1 BPM</option><option value="2">2 BPM</option><option value="5">5 BPM</option></select>
-      </label>
-      <label class="opt" for="rampEvery">toutes les
-        <select class="sm" id="rampEvery"><option value="1">1 mesure</option><option value="2">2 mesures</option><option value="4">4 mesures</option><option value="8">8 mesures</option></select>
-      </label>
-    </div>
-    <p class="hint" style="margin-top:8px">Le tempo repart à sa valeur de départ quand tu arrêtes, et monte jusqu'à 220 BPM au plus.</p>
-    <label class="chk"><input type="checkbox" id="silOn"><span>Mesures muettes : couper le son par moments pour tester ton horloge interne</span></label>
-    <div class="row" style="margin-top:8px">
-      <label class="opt" for="silEvery">Couper
-        <select class="sm" id="silEvery"><option value="2">une mesure sur deux</option><option value="4">une mesure sur quatre</option><option value="8">une mesure sur huit</option></select>
-      </label>
-    </div>
-    <p class="hint" style="margin-top:8px">Pendant la mesure muette, la grille continue de défiler : à toi de garder le tempo.</p>
-    <p class="msg" id="workMsg" role="status"></p>
-  </section>
-
-  <section aria-labelledby="h-groove">
-    <h2 id="h-groove">Mes grooves</h2>
-    <p class="hint">Enregistre l'enchaînement en cours sur cet appareil, ou copie un lien pour l'envoyer à quelqu'un. Le lien contient la mesure, les accents et le tempo, pas ton dictionnaire.</p>
+    <h3>Mes grooves</h3>
+    <p class="hint">Garde l'enchaînement en cours sur cet appareil, ou copie un lien pour l'envoyer : il contient les mesures, les accents et le tempo.</p>
     <div class="row">
       <input type="text" id="grooveName" placeholder="Nom du groove" maxlength="40" autocomplete="off" aria-label="Nom du groove" style="flex:1 1 180px;width:auto">
       <button type="button" class="btn" id="grooveSave">Enregistrer</button>
@@ -365,26 +378,59 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <p class="msg" id="grooveMsg" role="status"></p>
   </section>
 
-  <section aria-labelledby="h-listen">
-    <h2 id="h-listen">Écouter</h2>
-    <p class="hint">Le micro capte la batterie ou la musique autour de toi. Les graves deviennent des poum, les médiums des tchak, les aigus des tss. Tu peux aussi charger un fichier audio (45 secondes analysées au plus).</p>
+  <!-- Pratique : jouer et travailler -->
+  <section class="panel" role="tabpanel" id="p-pratique" aria-labelledby="t-pratique" hidden>
+    <h2 class="sr">Pratique</h2>
+    <div class="cta">
+      <button type="button" class="btn xl" id="kitBtn">Jouer sur l'écran</button>
+      <p class="hint">La batterie en plein écran, à jouer avec les doigts. Lance la lecture en bas : chaque frappe est comparée à la grille.</p>
+    </div>
+
+    <h3 id="h-drill">Parle-le avant de le jouer</h3>
+    <p class="hint">Quatre étapes sur la mesure en cours. Touche une étape pour la lancer, retouche-la pour l'arrêter.</p>
+    <ol class="steps" id="drillSteps" aria-labelledby="h-drill">
+      <li><button type="button" class="step" data-v="listen"><span class="sn" aria-hidden="true">1</span><b>Écouter</b><span class="sd">La mesure joue : suis les syllabes.</span></button></li>
+      <li><button type="button" class="step" data-v="speak"><span class="sn" aria-hidden="true">2</span><b>Dire</b><span class="sd">Le clic seul : dis les syllabes à voix haute.</span></button></li>
+      <li><button type="button" class="step" data-v="screen"><span class="sn" aria-hidden="true">3</span><b>Jouer sur l'écran</b><span class="sd">Le clic seul : joue la mesure avec les doigts, l'appli te note.</span></button></li>
+      <li><button type="button" class="step" data-v="mic"><span class="sn" aria-hidden="true">4</span><b>Jouer sur ta batterie</b><span class="sd">Le micro écoute et compare à la grille (en 4/4).</span></button></li>
+    </ol>
+    <p class="msg" id="drillMsg" role="status"></p>
+
+    <h3>Tempo progressif</h3>
+    <label class="chk"><input type="checkbox" id="rampOn"><span>Accélérer tout seul pendant la lecture</span></label>
+    <div class="row opts">
+      <span class="opt"><label for="rampAdd">Monter de</label>
+        <select class="sm" id="rampAdd"><option value="1">1 BPM</option><option value="2">2 BPM</option><option value="5">5 BPM</option></select></span>
+      <span class="opt"><label for="rampEvery">toutes les</label>
+        <select class="sm" id="rampEvery"><option value="1">1 mesure</option><option value="2">2 mesures</option><option value="4">4 mesures</option><option value="8">8 mesures</option></select></span>
+    </div>
+    <p class="hint">À l'arrêt, le tempo revient à sa valeur de départ. Il ne dépasse pas 220 BPM.</p>
+
+    <h3>Mesures muettes</h3>
+    <label class="chk"><input type="checkbox" id="silOn"><span>Couper le son par moments pour tester ton horloge interne</span></label>
+    <div class="row opts">
+      <span class="opt"><label for="silEvery">Couper</label>
+        <select class="sm" id="silEvery"><option value="2">une mesure sur deux</option><option value="4">une mesure sur quatre</option><option value="8">une mesure sur huit</option></select></span>
+    </div>
+    <p class="hint">Pendant la mesure muette, la grille continue de défiler.</p>
+    <p class="msg" id="workMsg" role="status"></p>
+  </section>
+
+  <!-- Écoute : micro, fichier, calibration -->
+  <section class="panel" role="tabpanel" id="p-ecoute" aria-labelledby="t-ecoute" hidden>
+    <h2 class="sr">Écoute</h2>
+    <p class="hint">Le micro capte ta batterie ou la musique autour de toi et trouve le tempo. Tu peux aussi charger un fichier audio : 45 secondes au plus sont analysées.</p>
     <div class="row">
       <button type="button" class="btn live" id="liveBtn" aria-pressed="false">Écouter en direct</button>
       <label class="btn ghost file"><input type="file" id="file" accept="audio/*"><span>Charger un morceau</span></label>
     </div>
-    <label class="chk" id="followRow" hidden><input type="checkbox" id="follow" checked><span>Régler le tempo automatiquement sur ce que j'entends</span></label>
+    <label class="chk" id="followRow" hidden><input type="checkbox" id="follow" checked><span>Régler le tempo sur ce que j'entends</span></label>
     <div class="lv" id="lv" hidden aria-hidden="true">
       <span>poum<b><i id="lvLow" style="--c:var(--c-poum)"></i></b></span>
       <span>tchak<b><i id="lvMid" style="--c:var(--c-tchak)"></i></b></span>
       <span>tss<b><i id="lvHigh" style="--c:var(--c-tss)"></i></b></span>
     </div>
     <p class="msg" id="listenMsg" role="status"></p>
-    <h3>Calibrer sur ta batterie</h3>
-    <p class="hint">Sans calibration, l'appli range ce qu'elle entend en trois familles : graves, médiums, aigus. Apprends-lui le son de tes fûts et elle les reconnaîtra un par un, toms et cymbales compris. Choisis un fût, frappe-le trois fois, assez fort et bien séparément, puis passe au suivant. Deux fûts suffisent pour commencer.</p>
-    <p class="hint">Une fois calibrée, l'appli nomme un seul fût par frappe : si tu joues grosse caisse et charleston ensemble, elle retient le plus fort. Deux fûts qui sonnent pareil, comme la grosse caisse et le tom basse, peuvent encore être confondus : elle te prévient quand c'est le cas.</p>
-    <div class="chips" id="calPick" role="group" aria-label="Fûts à apprendre"></div>
-    <div class="row"><button type="button" class="btn ghost" id="calForget">Tout oublier</button></div>
-    <p class="msg" id="calMsg" role="status"></p>
     <div class="card" id="result" hidden>
       <div class="big" id="resBpm"></div>
       <div class="sub" id="resSub"></div>
@@ -393,48 +439,57 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
         <button type="button" class="btn ghost" id="octDown">Tempo ÷ 2</button>
         <button type="button" class="btn ghost" id="octUp">Tempo × 2</button>
         <button type="button" class="btn ghost" id="keepTempo">Garder le tempo</button>
-        <button type="button" class="btn" id="applyRhythm">Appliquer le rythme</button>
+        <button type="button" class="btn" id="applyRhythm">Mettre dans la grille</button>
       </div>
     </div>
+
+    <h3>Calibrer sur ta batterie</h3>
+    <p class="hint">Sans calibration, l'appli range ce qu'elle entend en trois familles : graves, médiums, aigus. Pour qu'elle reconnaisse tes fûts un par un, choisis-en un et frappe-le trois fois, bien séparément. Deux fûts suffisent pour commencer.</p>
+    <div class="chips" id="calPick" role="group" aria-label="Fûts à apprendre"></div>
+    <div class="row"><button type="button" class="btn ghost" id="calForget">Tout oublier</button></div>
+    <p class="msg" id="calMsg" role="status"></p>
+    <details class="more">
+      <summary>Ce que fait la calibration</summary>
+      <p>Une fois calibrée, l'appli nomme un seul fût par frappe : si tu joues grosse caisse et charleston ensemble, elle retient le plus fort. Deux fûts qui sonnent pareil, comme la grosse caisse et le tom basse, peuvent être confondus ; elle te prévient quand c'est le cas.</p>
+    </details>
   </section>
 
-  <section aria-labelledby="h-trad">
-    <h2 id="h-trad">Traduire</h2>
-    <p class="hint">Écris un rythme en mots ou en solfège, la grille se remplit. Les mots viennent du dictionnaire plus bas, « + » reste accepté et « . » est un silence.</p>
+  <!-- Mots : traduire et dictionnaire -->
+  <section class="panel" role="tabpanel" id="p-mots" aria-labelledby="t-mots" hidden>
+    <h2 class="sr">Mots</h2>
+    <h3 class="first">Traduire</h3>
+    <p class="hint">Écris un rythme en mots ou en solfège : la mesure affichée se remplit. « . » est un silence, MAJUSCULES pour un accent, (parenthèses) pour une ghost note.</p>
     <label class="f" for="txtPhrase">Onomatopées, un mot par pas</label>
     <textarea id="txtPhrase" rows="3" autocapitalize="none" autocomplete="off" spellcheck="false"></textarea>
     <div class="row" style="margin-top:8px"><button type="button" class="btn" id="applyPhrase">Mettre dans la grille</button></div>
     <label class="f" for="txtSolf">Solfège rythmique, un mot par temps</label>
     <input type="text" id="txtSolf" autocapitalize="none" autocomplete="off" spellcheck="false">
-    <div class="row" style="margin-top:8px">
-      <select id="solfDrum" aria-label="Fût qui joue ce rythme" style="flex:1 1 150px;width:auto"></select>
-      <button type="button" class="btn" id="applySolf">Jouer ce rythme</button>
-    </div>
+    <label class="f" for="solfDrum">Fût qui joue ce rythme</label>
+    <select id="solfDrum"></select>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn" id="applySolf">Mettre dans la grille</button></div>
     <p class="msg" id="msg" role="status"></p>
-  </section>
 
-  <section aria-labelledby="h-dict">
-    <h2 id="h-dict">Dictionnaire</h2>
-    <p class="hint">Chaque fût a un mot principal (l'étoile) et des synonymes reconnus à la saisie. Ouvre un fût pour changer ses mots, ajouter les tiens et noter leur source. Tout est gardé sur cet appareil.</p>
+    <h3>Dictionnaire</h3>
+    <p class="hint">Chaque fût a un mot principal (l'étoile) et des synonymes reconnus à la saisie. Ouvre un fût pour changer ses mots et noter leur source.</p>
     <p class="sr" id="dmsg" role="status"></p>
     <div class="refs" id="dictDrums"></div>
 
-    <h3>Frappes simultanées</h3>
-    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot, comme « pak » pour grosse caisse + caisse claire. Chaque ligne indique les fûts qu'elle remplace. Sans mot, la frappe s'écrit avec « + ».</p>
+    <h3>Mots fondus</h3>
+    <p class="hint">Plusieurs fûts frappés ensemble se disent en un seul mot, comme « pak » pour grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + ».</p>
     <div class="refs"><details class="ref" id="combosDet">
-      <summary data-k="combos"><span class="rw">Mots fondus</span><span class="rn">frappes simultanées</span><span class="rc" id="comboCount"></span></summary>
+      <summary data-k="combos"><span class="rw">Voir et modifier</span><span class="rc" id="comboCount"></span></summary>
       <div class="ents" id="dictCombos"></div>
       <div class="pick" id="comboPick" role="group" aria-label="Fûts de la nouvelle frappe"></div>
       <div class="addrow">
-        <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot pour la frappe simultanée">
-        <input type="text" id="comboSrc" placeholder="Source" maxlength="60" autocomplete="off" aria-label="Source du nouveau mot">
-        <button type="button" class="btn" id="comboAdd" aria-label="Ajouter le mot aux fûts choisis">Ajouter</button>
+        <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot fondu">
+        <input type="text" id="comboSrc" placeholder="Source" maxlength="60" autocomplete="off" aria-label="Source du nouveau mot fondu">
+        <button type="button" class="btn" id="comboAdd">Ajouter</button>
       </div>
       <p class="msg dm" data-k="combos"></p>
     </details></div>
 
-    <h3>Mon dictionnaire</h3>
-    <p class="hint">Exporte-le pour le partager, par exemple avec ton prof, ou colle un dictionnaire reçu pour le charger.</p>
+    <h3>Partager le dictionnaire</h3>
+    <p class="hint">Exporte-le pour l'envoyer, par exemple à ton prof, ou colle un dictionnaire reçu pour le charger.</p>
     <label class="f" for="dictJson">Dictionnaire au format JSON</label>
     <textarea id="dictJson" rows="4" spellcheck="false" autocapitalize="none" autocomplete="off"></textarea>
     <div class="row" style="margin-top:8px">
@@ -459,9 +514,10 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
         <p>poum do, tchak ré, doum mi, toum fa, tss sol, tchaa la, psch si. Un mémo pour retenir les sept fûts, sans rapport avec leur hauteur réelle.</p></article>
     </div>
   </section>
-  <footer>
-    <p class="hint">Sons de batterie : Web Audio Samples de l'équipe Chrome Web Audio, sous licence Apache 2.0.</p>
+
+  <footer class="foot">
     <p class="hint" id="offlineMsg">Ouvre cette page une fois avec du réseau : elle restera disponible ensuite, même sans connexion.</p>
+    <p class="hint">Sons de batterie : Web Audio Samples de l'équipe Chrome Web Audio, sous licence Apache 2.0.</p>
   </footer>
 </main>
 
@@ -470,19 +526,23 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <div class="kv-word" id="kvWord">poum tchak</div>
     <button type="button" class="btn ghost" id="kvClose">Fermer</button>
   </div>
-  <p class="kv-score" id="kvScore" role="status"></p>
+  <div class="kv-line">
+    <div class="kv-beats" id="kvBeats" aria-hidden="true"></div>
+    <p class="kv-score" id="kvScore" role="status"></p>
+  </div>
+  <div class="kv-read" id="kvRead" aria-hidden="true"></div>
   <div class="kv-pads" id="kvPads"></div>
 </section>
 
-<nav class="dock" aria-label="Transport">
+<nav class="dock" aria-label="Lecture">
   <div class="dock-in">
     <button type="button" class="tog" id="clic" aria-pressed="true">Clic</button>
     <div class="bpm">
-      <button type="button" id="bpmDown" aria-label="Ralentir d'un battement par minute">−</button>
-      <output id="bpmOut" aria-live="off">100</output>
-      <button type="button" id="bpmUp" aria-label="Accélérer d'un battement par minute">+</button>
+      <button type="button" id="bpmDown" aria-label="Ralentir">−</button>
+      <input type="number" id="bpmIn" inputmode="numeric" min="40" max="220" step="1" value="100" aria-label="Tempo en BPM">
+      <button type="button" id="bpmUp" aria-label="Accélérer">+</button>
     </div>
-    <button type="button" class="tapb" id="tap" aria-label="Tap, tempo">Tap</button>
+    <button type="button" class="tapb" id="tap" aria-label="Tap : tape en rythme pour régler le tempo">Tap</button>
     <button type="button" class="play" id="play"></button>
   </div>
 </nav>
@@ -909,7 +969,7 @@ const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
 const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bars:[emptyGrid(METERS['44'])],bar:0,
-  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',
+  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
 const MAXBARS=8;
@@ -921,11 +981,15 @@ function saveStore(){
   try{
     const m=M();
     localStorage.setItem(STORE_KEY,JSON.stringify({v:3,entries:dict,bpm:state.bpm,meter:state.meter,swing:state.swing,
-      click:state.click,solf:state.solf,pattern:state.pattern,brush:state.brush,ramp:state.ramp,sil:state.sil,sound:state.sound,
+      click:state.click,solf:state.solf,pattern:state.pattern,brush:state.brush,ramp:state.ramp,sil:state.sil,sound:state.sound,tab:state.tab,
       grooves,cal,bars:state.bars.map(g=>packGrid(g,m))}));
   }catch(e){}
 }
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(saveStore,250);}
+/* Ne rien perdre si la page se ferme pendant l'attente. */
+function flushSave(){if(saveTimer){clearTimeout(saveTimer);saveTimer=null;saveStore();}}
+window.addEventListener('pagehide',flushSave);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSave();});
 function loadStore(){
   let s=null;
   try{s=JSON.parse(localStorage.getItem(STORE_KEY)||'null');}catch(e){}
@@ -940,6 +1004,7 @@ function loadStore(){
   state.pattern=PATTERNS.some(p=>p.id===s.pattern)?s.pattern:null;
   if([1,2,3].includes(s.brush))state.brush=s.brush;
   if(s.sound==='kit'||s.sound==='synth')state.sound=s.sound;
+  if(['rythme','pratique','ecoute','mots'].includes(s.tab))state.tab=s.tab;
   if(s.ramp&&typeof s.ramp==='object'){
     state.ramp.on=!!s.ramp.on;
     if([1,2,5].includes(s.ramp.add))state.ramp.add=s.ramp.add;
@@ -1140,6 +1205,7 @@ function hit(id){
 /* ---------- Lecture en cours ---------- */
 let cellsByStep=[],headByStep=[],tokByStep=[],lastNow=-1;
 function setNow(step){
+  kitNow(lastNow,step);
   if(lastNow>=0){
     (cellsByStep[lastNow]||[]).forEach(c=>c.classList.remove('now'));
     if(headByStep[lastNow])headByStep[lastNow].classList.remove('now');
@@ -1267,24 +1333,34 @@ $('#grid').addEventListener('click',e=>{
   state.pattern=null;refreshText();updateControls();
 });
 function renderBars(){
-  const host=$('#barBar');host.innerHTML='';
+  const host=$('#barBar');
+  const ae=document.activeElement;
+  const keep=ae&&host.contains(ae)?ae.dataset.act:null;
+  const wasSil=$('#silFlag')&&!$('#silFlag').hidden;
+  host.innerHTML='';
   host.appendChild(el('span','lab','Mesure'));
   state.bars.forEach((g,i)=>{
-    const b=el('button','bn',String(i+1));b.type='button';
+    const b=el('button','bn',String(i+1));b.type='button';b.dataset.act='bar'+i;
     b.setAttribute('aria-pressed',String(i===state.bar));
     b.setAttribute('aria-label','Mesure '+(i+1)+' sur '+state.bars.length);
     b.addEventListener('click',()=>showBar(i));
     host.appendChild(b);
   });
-  const mkb=(txt,lab,fn,off)=>{
-    const b=el('button','bn act',txt);b.type='button';b.setAttribute('aria-label',lab);
+  const mkb=(act,txt,lab,fn,off,cls)=>{
+    const b=el('button',cls||'bn act',txt);b.type='button';b.dataset.act=act;b.setAttribute('aria-label',lab);
     b.disabled=!!off;b.addEventListener('click',fn);host.appendChild(b);
   };
   const full=state.bars.length>=MAXBARS;
-  mkb('+','Ajouter une mesure vide',()=>{state.bars.push(emptyGrid(M()));state.pattern=null;showBar(state.bars.length-1);save();},full);
-  mkb('⧉','Dupliquer cette mesure',()=>{state.bars.splice(state.bar+1,0,copyGrid(G()));state.pattern=null;showBar(state.bar+1);save();},full);
-  mkb('×','Supprimer cette mesure',()=>{state.bars.splice(state.bar,1);state.pattern=null;showBar(Math.min(state.bar,state.bars.length-1));save();},state.bars.length<2);
-  const f=el('span','flag','muet');f.id='silFlag';f.hidden=true;host.appendChild(f);
+  mkb('add','+','Ajouter une mesure vide',()=>{state.bars.push(emptyGrid(M()));state.pattern=null;showBar(state.bars.length-1);save();},full);
+  mkb('dup','⧉','Dupliquer cette mesure',()=>{state.bars.splice(state.bar+1,0,copyGrid(G()));state.pattern=null;showBar(state.bar+1);save();},full);
+  mkb('del','×','Supprimer cette mesure',()=>{state.bars.splice(state.bar,1);state.pattern=null;showBar(Math.min(state.bar,state.bars.length-1));save();},state.bars.length<2);
+  mkb('clr','Vider','Vider cette mesure',()=>{state.bars[state.bar]=emptyGrid(M());state.pattern=null;renderAll();},false,'bn txt');
+  const f=el('span','flag','muet');f.id='silFlag';f.hidden=!wasSil;host.appendChild(f);
+  if(keep){
+    let t=host.querySelector('[data-act="'+keep+'"]');
+    if(!t||t.disabled)t=host.querySelector('[data-act="bar'+state.bar+'"]');
+    if(t)t.focus();
+  }
 }
 function showBar(i){
   state.bar=Math.max(0,Math.min(state.bars.length-1,i));
@@ -1314,20 +1390,45 @@ function refreshText(){
   });
   if(document.activeElement!==$('#txtPhrase'))$('#txtPhrase').value=phraseText(toks);
   if(document.activeElement!==$('#txtSolf'))$('#txtSolf').value=labs.map(l=>l.tk||l.t).join(' ');
+  renderKitRead();
 }
 
-/* ---------- Parle-le : écouter, parler, taper ---------- */
+/* ---------- Parle-le : écouter, dire, jouer ---------- */
 let drill=null;
-const DRILL_TXT={
-  listen:'Écoute la mesure en suivant les syllabes.',
-  speak:'Les sons sont coupés, le clic reste. Dis les syllabes à voix haute, une par pas, avec le clic.',
-  tap:'Joue la mesure sur tes pads ou ta batterie. Le micro la compare à la grille (4/4, au moins 6 secondes).'
+const DRILL_MSG={
+  listen:'Écoute : suis les syllabes de la mesure.',
+  speak:'Dis les syllabes à voix haute, une par pas, avec le clic.',
+  screen:'Joue la mesure sur la batterie de l\'écran, avec le clic.',
+  mic:'Joue la mesure sur ta batterie, en boucle : le micro compare toutes les deux secondes.'
 };
+const dmsgEl=()=>$('#drillMsg');
 function updateDrillUI(){
-  if(!state.playing&&!state.live){drill=null;state.mute=false;}
-  [...$('#drillSeg').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===drill)));
-  $('#drillTxt').textContent=drill?DRILL_TXT[drill]:'Écoute la mesure, dis-la à voix haute avec le clic, puis joue-la : le micro la compare.';
+  if(drill&&drill!=='mic'&&!state.playing){drill=null;state.mute=false;}
+  if(drill==='mic'&&!state.live)drill=null;
+  document.querySelectorAll('#drillSteps .step').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===drill)));
 }
+async function startDrill(v){
+  const was=drill;
+  drill=null;state.mute=false;
+  if(state.live)stopLive();
+  if(state.playing)stop();
+  if(kvOpen&&was==='screen')closeKit(true);
+  if(was===v){dmsgEl().textContent='';updateDrillUI();return;}
+  if(v==='mic'){
+    await startLive();
+    if(state.live){drill='mic';$('#follow').checked=false;dmsgEl().textContent=DRILL_MSG.mic;}
+    updateDrillUI();return;
+  }
+  play();
+  if(!state.playing){updateDrillUI();return;}
+  state.mute=v!=='listen';
+  drill=v;dmsgEl().textContent=DRILL_MSG[v];
+  updateDrillUI();
+  if(v==='screen')openKit();
+}
+$('#drillSteps').addEventListener('click',e=>{
+  const b=e.target.closest('.step');if(b)startDrill(b.dataset.v);
+});
 function band(g,ids,s){return ids.some(id=>g[id][s]);}
 function scoreTap(g){
   const m=METERS['44'];
@@ -1351,25 +1452,39 @@ function scoreTap(g){
   const pct=tot?Math.round(100*ok/tot):0;
   $('#drillMsg').textContent=pct+' % de coups justes : '+ok+' bons, '+miss+' manqués, '+extra+' en trop.'+note;
 }
-$('#drillSeg').addEventListener('click',async e=>{
-  const b=e.target.closest('button');if(!b)return;
-  const v=b.dataset.v;
-  if(drill===v){if(state.live)stopLive();stop();updateDrillUI();$('#drillMsg').textContent='';return;}
-  $('#drillMsg').textContent='';
-  if(v==='tap'){
-    stop();
-    await startLive();
-    if(state.live){drill='tap';$('#follow').checked=false;}
-    updateDrillUI();return;
-  }
-  stopLive();
-  play();
-  state.mute=(v==='speak');
-  drill=v;updateDrillUI();
-});
 
 /* ---------- Jouer sur l'écran ---------- */
-const kvPads=$('#kvPads'),kvScore=$('#kvScore');
+const kvPads=$('#kvPads'),kvScore=$('#kvScore'),kvBeats=$('#kvBeats'),kvRead=$('#kvRead');
+let kvTok=[],kvDots=[];
+function renderKitRead(){
+  if(!kvOpen)return;
+  const m=M();
+  kvBeats.innerHTML='';kvDots=[];
+  for(let i=0;i<m.beats;i++){const d=el('i');kvDots.push(d);kvBeats.appendChild(d);}
+  const toks=phraseTokens(G(),m,dict);
+  kvRead.innerHTML='';kvTok=[];
+  for(let b=0;b<m.beats;b++){
+    const grp=el('span','pg');
+    for(let k=0;k<m.perBeat;k++){
+      const st=b*m.perBeat+k;if(st>=m.steps)break;
+      const tk=toks[st];
+      const t=el('span','tk'+(!tk.lv?' rest':tk.lv===3?' ac':tk.lv===1?' gh':''),tk.lv?showLevel(tk.w,tk.lv):'.');
+      kvTok[st]=t;grp.appendChild(t);
+    }
+    kvRead.appendChild(grp);
+  }
+}
+function kitNow(prev,step){
+  if(!kvOpen)return;
+  if(prev>=0&&kvTok[prev])kvTok[prev].classList.remove('now');
+  if(step<0){kvDots.forEach(d=>{d.className='';});return;}
+  if(kvTok[step])kvTok[step].classList.add('now');
+  const m=M();
+  if(step%m.perBeat===0){
+    const bt=Math.floor(step/m.perBeat);
+    kvDots.forEach((d,i)=>{d.className=i===bt?(bt===0?'on one':'on'):'';});
+  }
+}
 const PAD_ORDER=['psch','tchaa','tss','doum','toum','tchak','poum'];
 const padEls={};
 let kvOpen=false,kvReturn=null;
@@ -1433,21 +1548,52 @@ function updateScore(){
   kvScore.textContent=t;
 }
 function openKit(){
+  if(kvOpen)return;
   kvReturn=document.activeElement;
   kvOpen=true;$('#kitView').hidden=false;
   document.body.style.overflow='hidden';
-  refreshPads();resetScore();ensureAudio();keepAwake(true);
+  refreshPads();renderKitRead();ensureAudio();keepAwake(true);
+  if(!state.playing)resetScore();else updateScore();
   $('#kvClose').focus();
 }
-function closeKit(){
+function closeKit(silent){
+  if(!kvOpen)return;
+  const summary=(jHits||jExtra)?kvScore.textContent:'';
   kvOpen=false;$('#kitView').hidden=true;
   document.body.style.overflow='';
+  if(drill==='screen'&&!silent){
+    stop();
+    if(summary)$('#drillMsg').textContent='Dernier passage : '+summary+'.';
+  }
   if(!state.playing&&!state.live)keepAwake(false);
-  if(kvReturn&&kvReturn.focus)kvReturn.focus();
+  if(kvReturn&&kvReturn.focus&&document.contains(kvReturn))kvReturn.focus();
 }
 $('#kitBtn').addEventListener('click',openKit);
-$('#kvClose').addEventListener('click',closeKit);
+$('#kvClose').addEventListener('click',()=>closeKit());
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&kvOpen)closeKit();});
+
+/* ---------- Rubriques ---------- */
+const TABS=['rythme','pratique','ecoute','mots'];
+function showTab(name,focus){
+  if(!TABS.includes(name))name='rythme';
+  state.tab=name;
+  TABS.forEach(t=>{
+    const on=t===name,b=$('#t-'+t);
+    b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;
+    $('#p-'+t).hidden=!on;
+  });
+  if(focus)$('#t-'+name).focus();
+  save();
+}
+$('.tabs').addEventListener('click',e=>{const b=e.target.closest('[role=tab]');if(b)showTab(b.id.slice(2));});
+$('.tabs').addEventListener('keydown',e=>{
+  const i=TABS.indexOf(state.tab);let j=-1;
+  if(e.key==='ArrowRight')j=(i+1)%TABS.length;
+  else if(e.key==='ArrowLeft')j=(i+TABS.length-1)%TABS.length;
+  else if(e.key==='Home')j=0;
+  else if(e.key==='End')j=TABS.length-1;
+  if(j>=0){e.preventDefault();showTab(TABS[j],true);}
+});
 
 /* ---------- Commandes ---------- */
 const meterSeg=$('#meterSeg');
@@ -1460,11 +1606,6 @@ PATTERNS.forEach(p=>{
   const b=el('button','chip',p.label);b.type='button';b.dataset.v=p.id;
   b.addEventListener('click',()=>applyPattern(p));patHost.appendChild(b);
 });
-{
-  const b=el('button','chip','Vider');b.type='button';b.dataset.v='clear';
-  b.addEventListener('click',()=>{state.bars[state.bar]=emptyGrid(M());state.pattern=null;renderAll();});
-  patHost.appendChild(b);
-}
 $('#swingSeg').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
   state.swing=b.dataset.v==='1';state.pattern=null;updateControls();
@@ -1503,15 +1644,41 @@ function applyPattern(p){
 }
 function setBpm(v){
   state.bpm=Math.max(40,Math.min(220,Math.round(v)));
-  $('#bpmOut').textContent=String(state.bpm);
-  $('#bpmRange').value=String(state.bpm);
+  const inp=$('#bpmIn');
+  if(document.activeElement!==inp)inp.value=String(state.bpm);
   updateControls();
 }
-$('#bpmRange').addEventListener('input',e=>setBpm(+e.target.value));
-$('#bpmDown').addEventListener('click',()=>setBpm(state.bpm-1));
-$('#bpmUp').addEventListener('click',()=>setBpm(state.bpm+1));
+{
+  const inp=$('#bpmIn');
+  inp.addEventListener('change',()=>{const v=parseInt(inp.value,10);if(isFinite(v))setBpm(v);inp.value=String(state.bpm);});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}});
+  inp.addEventListener('blur',()=>{inp.value=String(state.bpm);});
+  inp.addEventListener('focus',()=>{try{inp.select();}catch(e){}});
+}
+/* Appui long sur − et + : le tempo défile, de plus en plus vite. */
+function holdRepeat(btn,delta){
+  let t1=0,t2=0,n=0;
+  const once=()=>setBpm(state.bpm+delta*(n>10?5:1));
+  const end=()=>{clearTimeout(t1);clearTimeout(t2);};
+  btn.addEventListener('pointerdown',e=>{
+    if(e.button>0)return;
+    e.preventDefault();n=0;once();end();
+    t1=setTimeout(function rep(){n++;once();t2=setTimeout(rep,n>10?70:120);},420);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,end));
+  btn.addEventListener('click',e=>{if(e.detail===0)setBpm(state.bpm+delta);});
+  btn.addEventListener('contextmenu',e=>e.preventDefault());
+}
+holdRepeat($('#bpmDown'),-1);holdRepeat($('#bpmUp'),1);
 $('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
-$('#play').addEventListener('click',()=>{state.playing?stop():play();state.mute=false;if(drill){drill=null;}updateDrillUI();});
+$('#play').addEventListener('click',()=>{
+  const wasDrill=drill;
+  drill=null;state.mute=false;
+  if(wasDrill==='mic'&&state.live)stopLive();
+  if(state.playing)stop();else play();
+  if(wasDrill)$('#drillMsg').textContent='';
+  updateDrillUI();
+});
 
 const taps=[];
 function tapTempo(){
@@ -1654,6 +1821,7 @@ function readHash(){
   history.replaceState(null,'',location.pathname+location.search);
   if(!gr){gmsg('Ce lien ne contient pas de groove lisible.',true);return false;}
   if(!loadGroove(gr))return false;
+  showTab('rythme');
   gmsg('Groove reçu par le lien : « '+gr.n+' ». Enregistre-le pour le garder.');
   return true;
 }
@@ -2206,7 +2374,7 @@ function liveAnalyze(){
   }
   res={from:'live',bpm,clarity,grid};
   showResult();setListen('');
-  if(drill==='tap')scoreTap(grid);
+  if(drill==='mic')scoreTap(grid);
   if(bpm!=null&&clarity>=0.25&&$('#follow').checked)setBpm(effBpm(res));
 }
 function stopLive(){
@@ -2228,12 +2396,18 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();sto
 
 /* ---------- Démarrage ---------- */
 const restored=loadStore();
+showTab(state.tab);
 fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();renderCal();
 setBpm(state.bpm);
 if(restored)renderAll();else applyPattern(PATTERNS[0]);
 readHash();
+window.addEventListener('hashchange',readHash);
 updateLiveButton();
-if(state.sound==='kit')setSound('kit',true);
+/* Les sons de batterie sont dans un script placé après celui-ci : on attend qu'il soit lu. */
+if(state.sound==='kit'){
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setSound('kit',true));
+  else setSound('kit',true);
+}
 })();
 </script>
 <script id="kit-data">/* Sons de batterie : Web Audio Samples, Chrome Web Audio Team, licence Apache 2.0.
