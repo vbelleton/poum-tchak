@@ -243,6 +243,13 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-pct{font:800 clamp(18px,5.4vw,26px)/1 var(--f-display);text-align:right}
 .kv-pct.ok{color:var(--ok)}.kv-pct.warn{color:var(--warn)}.kv-pct.bad{color:var(--err)}
 .kv-pct small{display:block;font:500 10px/1.2 var(--f-mono);color:var(--muted);text-align:right}
+.kv-pct b{display:block;font:inherit;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){.kv-pct.bump b{animation:pop .2s ease-out}}
+.kv-pads{position:relative}
+.fly{position:absolute;transform:translate(-50%,-50%);font:800 22px/1 var(--f-display);pointer-events:none;z-index:5;white-space:nowrap;
+  text-shadow:0 0 4px var(--surface),0 0 8px var(--surface);animation:fly .75s ease-out forwards}
+.fly.ok{color:var(--ok)}.fly.warn{color:var(--warn)}
+@keyframes fly{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-52px}}
 .kv-lay{display:grid;gap:6px}
 .kv-lay .kv-row .lab{min-width:0}
 .kv-card.win{border-color:var(--ok)}
@@ -1979,7 +1986,7 @@ function drawFall(){
     fallCol.line=cs.getPropertyValue('--line').trim()||'#ccc';fallCol.ok=cs.getPropertyValue('--ok').trim()||'#2a2';
   }
   const ids=zones(),n=ids.length,gap=7,cw=(w-gap*(n-1))/n,hitY=h-22,top=4;
-  const now=ctx?ctx.currentTime:0,HZ=Math.min(3.2,Math.max(1.4,3*60/state.bpm));
+  const now=ctx?ctx.currentTime:0,HZ=Math.min(2.0,Math.max(0.9,2*60/state.bpm));
   const yOf=t=>hitY-(t-now)/HZ*(hitY-top);
   /* couloirs */
   ids.forEach((id,i)=>{
@@ -1988,6 +1995,14 @@ function drawFall(){
     c.globalAlpha=1;
   });
   const {out,beats}=upcoming(now,HZ);
+  const mineSet=chal.on?new Set(chalMine()):null;
+  if(chal.on&&state.playing&&chal.ph==='count'){
+    c.globalAlpha=.55;c.fillStyle=fallCol.ink;c.textAlign='center';c.textBaseline='middle';
+    c.font='800 '+Math.round(Math.min(64,h*.3))+'px system-ui,sans-serif';
+    c.fillText(kvCount.textContent,w/2,hitY*.45);
+    c.font='700 14px system-ui,sans-serif';c.fillText('PRÉPARE-TOI',w/2,hitY*.45+Math.min(48,h*.2));
+    c.globalAlpha=1;
+  }
   /* temps */
   beats.forEach(b=>{
     const y=yOf(b.t);if(y<top||y>hitY)return;
@@ -2001,9 +2016,10 @@ function drawFall(){
   const note=(id,t,v,state_)=>{
     const i=ids.indexOf(id);if(i<0)return;
     const y=yOf(t);if(y<-20||y>h+10)return;
-    const bw=cw*(v===3?.94:v===1?.5:.78),bh=v===3?20:v===1?10:16,x=i*(cw+gap)+(cw-bw)/2;
+    const bw=cw*(v===3?.94:v===1?.5:.78),bh=v===3?14:v===1?7:11,x=i*(cw+gap)+(cw-bw)/2;
     c.globalAlpha=state_==='hit'?.95:state_==='past'?Math.max(0,1-(y-hitY)/40):1;
     if(v===1)c.globalAlpha*=.6;
+    if(mineSet&&!mineSet.has(id))c.globalAlpha*=.3;
     c.fillStyle=state_==='hit'?fallCol.ok:fallCol[id];
     c.beginPath();c.roundRect(x,y-bh/2,bw,bh,bh/2.4);c.fill();
     if(v===3){c.strokeStyle=fallCol.surf;c.lineWidth=2;c.stroke();}
@@ -2117,13 +2133,15 @@ function guide(e){
    En « Utiles », les fûts choisis sont notés dès le départ. Ailleurs, un fût
    n'est noté qu'une fois frappé : tu peux ne jouer que grosse caisse et caisse
    claire, le reste ne te sera pas reproché. */
-const sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set()};
+const sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set(),pts:0};
+/* Le combo : ×2 dès 8 coups justes d'affilée, ×3 dès 16, ×4 dès 24. */
+const combo=()=>Math.min(4,1+Math.floor(sc.streak/8));
 /* Le son met du temps à sortir du téléphone : ce que tu entends arrive après l'instant programmé.
    On compense la latence de sortie, plus un décalage réglable dans les réglages de la vue. */
 const latency=()=>((ctx&&(ctx.outputLatency||ctx.baseLatency))||0)+(state.kvl.off||0)/1000;
 const judgeWin=()=>Math.min(0.18,(60/state.bpm)/M().perBeat*0.9);
 function resetScore(){
-  Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],
+  Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],pts:0,
     mine:new Set(state.kvl.layout==='utiles'?myDrums():[])});
   recent.forEach(e=>{e.done=true;});
   setVerdict(kvOpen&&!state.playing?'Prêt':'','');updateScore();updateHint();
@@ -2137,6 +2155,14 @@ function setVerdict(txt,kind,ttl){
   if(txt&&state.playing){void v.offsetWidth;v.classList.add('pop');}
   clearTimeout(verdictTimer);
   if(txt&&state.playing)verdictTimer=setTimeout(()=>{v.textContent='';v.className='kv-verdict';},ttl||650);
+}
+/* Les points s'envolent du pad frappé. */
+function flyPts(id,txt,kind){
+  const p=padEls[id];if(!p||p.hidden)return;
+  const r=p.getBoundingClientRect(),z=kvPads.getBoundingClientRect();
+  const f=el('span','fly '+kind,txt);f.setAttribute('aria-hidden','true');
+  f.style.left=(r.left-z.left+r.width/2)+'px';f.style.top=(r.top-z.top+r.height*0.3)+'px';
+  kvPads.appendChild(f);setTimeout(()=>f.remove(),800);
 }
 function padFeedback(id,kind,txt){
   const p=padEls[id];if(!p)return;
@@ -2161,9 +2187,12 @@ function judge(id){
     best.hit[id]=true;
     const ms=bd*1000,a=Math.abs(ms);
     sc.offs.push(ms);if(sc.offs.length>12)sc.offs.shift();
-    if(a<=40){sc.perfect++;sc.streak++;setVerdict('Parfait','ok');padFeedback(id,'ok','Parfait');}
-    else if(a<=85){sc.good++;sc.streak++;setVerdict('Bien','ok');padFeedback(id,'ok','Bien');}
-    else{const w=ms<0?'Tôt':'Tard';sc.approx++;setVerdict(w,'warn');padFeedback(id,'warn',w);}
+    let gain;
+    if(a<=40){sc.perfect++;sc.streak++;gain=100;setVerdict('Parfait','ok');padFeedback(id,'ok','Parfait');}
+    else if(a<=85){sc.good++;sc.streak++;gain=60;setVerdict('Bien','ok');padFeedback(id,'ok','Bien');}
+    else{const w=ms<0?'Tôt':'Tard';sc.approx++;gain=25;setVerdict(w,'warn');padFeedback(id,'warn',w);}
+    gain*=combo();sc.pts+=gain;
+    flyPts(id,'+'+gain,a<=85?'ok':'warn');
     if(sc.streak>sc.best)sc.best=sc.streak;
     if([5,10,20,30,50].includes(sc.streak))setVerdict('Série de '+sc.streak+' !','ok',1100);
   }else{
@@ -2204,8 +2233,11 @@ function updateScore(){
   const n=judged();
   $('#offAuto2').hidden=false;
   const kp=$('#kvPct');
-  kp.innerHTML=n?pct()+' %<small>précision</small>':'';
-  kp.className='kv-pct'+(n?(pct()>=85?' ok':pct()>=60?' warn':' bad'):'');
+  const before=kp.dataset.pts||'0';
+  kp.innerHTML=n?'<b>'+sc.pts.toLocaleString('fr-FR')+'</b><small>'+pct()+' %'+(combo()>1?' · combo ×'+combo():' · précision')+'</small>':'';
+  kp.dataset.pts=String(sc.pts);
+  if(n&&String(sc.pts)!==before){kp.classList.remove('bump');void kp.offsetWidth;}
+  kp.className='kv-pct'+(n?(pct()>=85?' ok':pct()>=60?' warn':' bad'):'')+(n&&String(sc.pts)!==before?' bump':'');
   $('#kvStreak').textContent=sc.streak>1?'série '+sc.streak:'';
   drawMeter();
   if(!state.playing){

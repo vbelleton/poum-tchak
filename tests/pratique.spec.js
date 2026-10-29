@@ -368,3 +368,14 @@ test.describe('Un vrai toucher', () => {
     await expect(page.locator('#kvScore')).not.toContainText('3 en trop');
   });
 });
+
+test('chaque frappe juste rapporte des points qui s\'envolent du pad', async ({ page }) => {
+  await rubrique(page, 'Pratique');
+  await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+  await page.locator('#play').click();
+  await frapperEnRythme(page, 'tchak', 1, 0);
+  await expect(page.locator('#kvPads .fly')).toHaveCount(1);
+  await expect(page.locator('#kvPads .fly')).toHaveText(/^\+\d+$/);
+  await expect(page.locator('#kvPct b')).toHaveText(/^[1-9]\d*$/);
+  await expect(page.locator('#kvPads .fly')).toHaveCount(0, { timeout: 2000 });
+});
