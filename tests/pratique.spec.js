@@ -34,7 +34,11 @@ test.describe("Jouer sur l'écran", () => {
     await page.locator('#kvLayout').getByRole('button', { name: 'Utiles' }).click();
     await expect(page.locator('.pad:visible')).toHaveCount(3);
     await expect(page.locator('#kvMineRow')).toBeVisible();
-    await page.locator('#kvLayout').getByRole('button', { name: 'Toutes' }).click();
+    await page.locator('#kvLayout').getByRole('button', { name: 'Cascade' }).click();
+    await expect(page.locator('#kvFall')).toBeVisible();
+    await expect(page.locator('.pad:visible')).toHaveCount(3);
+    await page.locator('#kvLayout').getByRole('button', { name: 'Batterie' }).click();
+    await expect(page.locator('#kvFall')).toBeHidden();
     await expect(page.locator('.pad:visible')).toHaveCount(7);
     await page.locator('#play').click();
     await expect(page.locator('#kvStaff .ks-c.now')).toHaveCount(1);
@@ -231,5 +235,46 @@ test.describe('Défi : écoute, puis joue', () => {
     await page.locator('#play').click();
     await expect(page.locator('#bpmIn')).toHaveValue('100');
     await expect(page.locator('#kvChal')).toContainText('record 100');
+  });
+});
+
+test.describe('Cascade', () => {
+  test('des barres colorées tombent vers la ligne, et chaque couloir se frappe', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    await page.locator('#kvLayout').getByRole('button', { name: 'Cascade' }).click();
+    await page.locator('#play').click();
+    await page.waitForTimeout(1500);
+    const pixels = await page.evaluate(() => {
+      const cv = document.querySelector('#kvFall');
+      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let n = 0;
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 200) n++;
+      return n;
+    });
+    expect(pixels).toBeGreaterThan(500);
+    const pads = await page.locator('.pad:visible').count();
+    expect(pads).toBe(3);
+    for (let i = 0; i < pads; i++) {
+      const b = await page.locator('.pad:visible').nth(i).boundingBox();
+      expect(b.width).toBeGreaterThanOrEqual(44);
+      expect(b.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('la batterie dessinée : sept disques assez grands, sans se recouvrir trop', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    const boxes = [];
+    for (const id of ['poum', 'tchak', 'doum', 'toum', 'tss', 'tchaa', 'psch']) {
+      const b = await page.locator(`.pad[data-id="${id}"]`).boundingBox();
+      expect(b.width, id).toBeGreaterThanOrEqual(44);
+      boxes.push({ id, ...b });
+    }
+    const dedans = await page.evaluate(() => {
+      const z = document.querySelector('#kvPads').getBoundingClientRect();
+      return [...document.querySelectorAll('.pad')].every((p) => { const r = p.getBoundingClientRect(); return r.left >= z.left - 1 && r.right <= z.right + 1 && r.top >= z.top - 1 && r.bottom <= z.bottom + 1; });
+    });
+    expect(dedans).toBe(true);
   });
 });

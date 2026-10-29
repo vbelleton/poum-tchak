@@ -281,8 +281,30 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-hint{grid-area:1/1;margin:0;font:700 13.5px/1.25 var(--f-body);letter-spacing:.04em;text-transform:uppercase;color:var(--ink);max-width:34ch}
 .kv-verdict:not(:empty)+.kv-hint{visibility:hidden}
 .kv-pads{flex:1;min-height:0;display:grid;gap:7px}
-.kv-pads.l-kit{grid-template-columns:repeat(6,1fr);grid-template-rows:1fr 1fr 1.05fr .95fr;
-  grid-template-areas:"psch psch tchaa tchaa tss tss" "doum doum doum toum toum toum" "tchak tchak tchak tchak tchak tchak" "poum poum poum poum poum poum"}
+/* La batterie dessinée : des disques à toucher, posés comme sur une vraie batterie vue d'en haut. */
+.kv-pads.l-kit{display:block;position:relative;container-type:size;overflow:hidden;border-radius:18px;border:1px solid var(--line);
+  background:radial-gradient(ellipse at 50% 62%,color-mix(in srgb,var(--ink) 9%,var(--surface)),var(--surface) 72%)}
+.l-kit .pad{--x:50;--y:50;--s:28;position:absolute;left:calc(var(--x)*1%);top:calc(var(--y)*1%);width:calc(var(--s)*1cqmin);height:calc(var(--s)*1cqmin);
+  transform:translate(-50%,-50%);border-radius:50%;padding:0;gap:1px;border-width:2px;border-color:var(--c);
+  background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--c) 10%,#fff) 0,color-mix(in srgb,var(--c) 26%,var(--surface)) 100%)}
+.l-kit .pad::before{content:"";position:absolute;inset:15%;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent);pointer-events:none}
+.l-kit .pad svg{display:none}
+.l-kit .pad .pw{font-size:calc(var(--s)*.16cqmin);position:relative}
+.l-kit .pad .pdn{font-size:max(9px,calc(var(--s)*.1cqmin));position:relative;max-width:88%}
+.l-kit .pad .pv{bottom:auto;top:50%;transform:translateY(-50%)}
+.l-kit .pad.on{transform:translate(-50%,-50%) scale(.95)}
+.l-kit .pad[data-id=doum],.l-kit .pad[data-id=toum],.l-kit .pad[data-id=tchak],.l-kit .pad[data-id=poum]{border-width:6px;background:radial-gradient(circle at 38% 32%,#fff 0,color-mix(in srgb,var(--c) 14%,var(--surface)) 100%)}
+.l-kit .pad[data-id=doum]::before,.l-kit .pad[data-id=toum]::before,.l-kit .pad[data-id=tchak]::before,.l-kit .pad[data-id=poum]::before{inset:12%}
+.l-kit .pad[data-id=tchaa]{--x:17;--y:17;--s:28}
+.l-kit .pad[data-id=tss]{--x:14;--y:46;--s:26}
+.l-kit .pad[data-id=doum]{--x:42;--y:19;--s:26}
+.l-kit .pad[data-id=psch]{--x:82;--y:16;--s:32}
+.l-kit .pad[data-id=tchak]{--x:40;--y:50;--s:31}
+.l-kit .pad[data-id=toum]{--x:83;--y:50;--s:31}
+.l-kit .pad[data-id=poum]{--x:56;--y:76;--s:36}
+/* La cascade : des barres tombent dans chaque couloir, on frappe quand elles touchent la ligne. */
+.kv-fall{grid-area:1/1/2/-1;width:100%;height:100%;min-height:0;display:block;border-radius:14px;background:var(--cell-a)}
+.kv-fall[hidden]{display:none}
 .pad{position:relative;appearance:none;border:1px solid var(--edge);border-radius:16px;background:color-mix(in srgb,var(--c) 13%,var(--surface));
   color:var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:0;padding:4px;overflow:hidden;
   touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer;
@@ -640,7 +662,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <div class="kv-row"><span class="lab" id="lab-zones">Zones</span>
       <div class="seg small" id="kvLayout" role="group" aria-labelledby="lab-zones">
         <button type="button" data-v="kit">Batterie</button>
-        <button type="button" data-v="toutes">Toutes</button>
+        <button type="button" data-v="chute">Cascade</button>
         <button type="button" data-v="utiles">Utiles</button>
       </div>
     </div>
@@ -648,7 +670,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <div class="pick" id="kvMine" role="group" aria-labelledby="lab-mine"></div>
     </div>
   </div>
-  <div class="kv-pads l-kit" id="kvPads"></div>
+  <div class="kv-pads l-kit" id="kvPads"><canvas class="kv-fall" id="kvFall" hidden aria-hidden="true"></canvas></div>
 </section>
 
 <nav class="dock" aria-label="Lecture">
@@ -1123,7 +1145,7 @@ function loadStore(){
   if(s.sound==='kit'||s.sound==='synth')state.sound=s.sound;
   if(['rythme','pratique','ecoute','mots'].includes(s.tab))state.tab=s.tab;
   if(s.kvl&&typeof s.kvl==='object'){
-    if(['kit','toutes','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
+    if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
     state.kvl.mine=Array.isArray(s.kvl.mine)?s.kvl.mine.filter(id=>DRUMS.some(d=>d.id===id)):null;
   }
   if(s.ramp&&typeof s.ramp==='object'){
@@ -1352,17 +1374,17 @@ const chalPhaseAt=abs=>{const k=abs%chalLen();return k<chal.nb?'listen':k===chal
 const chalBarAt=abs=>{const k=abs%chalLen();return k<chal.nb?k:k===chal.nb?0:k-chal.nb-1;};
 const isSilentBar=abs=>state.sil.on&&abs%state.sil.every===state.sil.every-1;
 function scheduleStep(bar,step,abs,t){
-  const m=M();const g=state.bars[bar]||state.bars[0];const ids=[];
+  const m=M();const g=state.bars[bar]||state.bars[0];const ids=[],vals={};
   const ph=chal.on?chalPhaseAt(abs):'';
   const silent=!chal.on&&isSilentBar(abs);
   /* Qui se tait : tout en mode muet ; en défi, rien pendant le décompte et tes fûts pendant ton tour ;
      en « Utiles », les fûts que tu joues. */
   const hush=id=>state.mute||(chal.on?(ph==='play'&&chalMine().includes(id)):(kvOpen&&kvMutes.has(id)));
-  if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);if(!silent&&!hush(d.id))voice(d.id,t,VEL[v]);}});
+  if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);vals[d.id]=v;if(!silent&&!hush(d.id))voice(d.id,t,VEL[v]);}});
   const clk=chal.on?(ph!=='listen'||state.click):(state.click||state.mute);
   if(!silent&&clk&&step%m.perBeat===0)clickSound(t,step===0);
-  queue.push({t,step,bar,abs,ids,lv:levelOf(g,ids,step),silent,ph});
-  if(ids.length){recent.push({t,ids,hit:{},done:!!ph&&ph!=='play',ph});if(recent.length>96)recent.shift();}
+  queue.push({t,step,bar,abs,ids,vals,lv:levelOf(g,ids,step),silent,ph});
+  if(ids.length){recent.push({t,ids,vals,hit:{},done:!!ph&&ph!=='play',ph});if(recent.length>96)recent.shift();}
 }
 function tick(){
   const m=M();
@@ -1614,7 +1636,7 @@ function scoreTap(g){
 /* Une carte de lecture (le temps en gros, la mesure en mots, la précision),
    une consigne, et des zones à frapper. Trois dispositions : la batterie,
    toutes les zones en bandes, ou seulement les fûts utiles au rythme. */
-const kvPads=$('#kvPads'),kvScore=$('#kvScore'),kvRead=$('#kvRead'),kvStaff=$('#kvStaff'),kvCount=$('#kvCount');
+const kvPads=$('#kvPads'),kvFall=$('#kvFall'),kvScore=$('#kvScore'),kvRead=$('#kvRead'),kvStaff=$('#kvStaff'),kvCount=$('#kvCount');
 const PAD_ORDER=['psch','tchaa','tss','doum','toum','tchak','poum'];
 const padEls={};
 let kvOpen=false,kvReturn=null,kvTok=[],kvCol=[],kvMutes=new Set(),counting=false;
@@ -1651,14 +1673,28 @@ function myDrums(){
   const mine=Array.isArray(state.kvl.mine)?state.kvl.mine.filter(id=>used.includes(id)):[];
   return mine.length?mine:used;
 }
-const zones=()=>state.kvl.layout==='utiles'?myDrums():PAD_ORDER.slice();
+const CASC_ORDER=['poum','toum','doum','tchak','tss','tchaa','psch'];
+const zones=()=>{
+  const lay=state.kvl.layout;
+  if(lay==='utiles')return myDrums();
+  if(lay==='chute'){const u=usedDrums();return CASC_ORDER.filter(id=>!u.length||u.includes(id));}
+  return PAD_ORDER.slice();
+};
 function applyLayout(){
   const lay=state.kvl.layout,z=zones();
   PAD_ORDER.forEach(id=>{padEls[id].hidden=!z.includes(id);});
   kvPads.classList.toggle('l-kit',lay==='kit');
+  kvPads.classList.toggle('l-fall',lay==='chute');
   kvPads.classList.toggle('big',lay==='utiles'&&z.length<=2);
+  PAD_ORDER.forEach(id=>{padEls[id].style.gridArea=id;});
+  kvFall.hidden=lay!=='chute';
   if(lay==='kit'){kvPads.style.gridTemplateAreas=kvPads.style.gridTemplateColumns=kvPads.style.gridTemplateRows='';}
-  else if(lay==='utiles'&&z.length===2){
+  else if(lay==='chute'){
+    kvPads.style.gridTemplateAreas='';
+    kvPads.style.gridTemplateColumns='repeat('+z.length+',minmax(0,1fr))';kvPads.style.gridTemplateRows='minmax(0,1fr) minmax(64px,22%)';
+    z.forEach((id,i)=>{padEls[id].style.gridArea='2 / '+(i+1)+' / 3 / '+(i+2);});
+    fallStart();
+  }else if(lay==='utiles'&&z.length===2){
     kvPads.style.gridTemplateColumns='1fr 1fr';kvPads.style.gridTemplateRows='1fr';
     kvPads.style.gridTemplateAreas='"'+z.join(' ')+'"';
   }else{
@@ -1717,7 +1753,8 @@ function updateHint(){
   if(state.kvl.layout==='utiles'){
     const mine=myDrums(),rest=usedDrums().filter(id=>!mine.includes(id));
     h.textContent='Frappe '+list(mine)+(state.mute?' avec le clic':(rest.length?', l\'appli joue '+list(rest):' avec le clic'));
-  }else h.textContent='Frappe les zones qui s\'allument';
+  }else if(state.kvl.layout==='chute')h.textContent='Frappe sur la ligne';
+  else h.textContent='Frappe les zones qui s\'allument';
 }
 
 /* La partition : une ligne par fût du rythme, les notes en pastilles
@@ -1795,6 +1832,89 @@ function padHit(id){
   p.classList.add('on');clearTimeout(p._t);p._t=setTimeout(()=>p.classList.remove('on'),110);
   hit(id);
   judge(id);
+}
+
+/* ---------- Cascade ---------- */
+let fallRaf=0,fallFrameN=0,fallCol={};
+function fallStart(){if(!fallRaf)fallRaf=requestAnimationFrame(fallFrame);}
+function fallFrame(){
+  fallRaf=0;
+  if(!kvOpen||state.kvl.layout!=='chute')return;
+  drawFall();
+  fallRaf=requestAnimationFrame(fallFrame);
+}
+/* Les notes à venir : celles déjà programmées, puis celles que le moteur programmera au tempo actuel. */
+function upcoming(now,horizon){
+  const out=[],beats=[],m=M();
+  queue.forEach(e=>{
+    e.ids.forEach(id=>out.push({t:e.t,id,v:(e.vals||{})[id]||2}));
+    if(e.step%m.perBeat===0)beats.push({t:e.t,first:e.step===0});
+  });
+  if(!state.playing)return {out,beats};
+  let t=nextTime,st=sched,ab=absBar,sb=schedBar,n=0;
+  while(t<now+horizon&&n++<200){
+    if(st>=m.steps)st=0;
+    const ph=chal.on?chalPhaseAt(ab):'';
+    const bar=chal.on?chalBarAt(ab):(sb>=state.bars.length?0:sb);
+    const g=state.bars[bar]||state.bars[0];
+    if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][st];if(v)out.push({t,id:d.id,v});});
+    if(st%m.perBeat===0)beats.push({t,first:st===0});
+    const nxt=(st+1)%m.steps;
+    t+=(nxt===0?m.beats*60/state.bpm:stepOffset(nxt,m,state.bpm,state.swing))-stepOffset(st,m,state.bpm,state.swing);
+    st=nxt;
+    if(nxt===0){ab++;sb=(sb+1)%state.bars.length;}
+  }
+  return {out,beats};
+}
+function drawFall(){
+  const cv=kvFall,dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(!w||!h)return;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const c=cv.getContext('2d');
+  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  if(fallFrameN++%30===0){
+    const cs=getComputedStyle(document.documentElement);
+    PAD_ORDER.forEach(id=>{fallCol[id]=cs.getPropertyValue('--c-'+id).trim()||'#888';});
+    fallCol.ink=cs.getPropertyValue('--ink').trim()||'#000';fallCol.surf=cs.getPropertyValue('--surface').trim()||'#fff';
+    fallCol.line=cs.getPropertyValue('--line').trim()||'#ccc';fallCol.ok=cs.getPropertyValue('--ok').trim()||'#2a2';
+  }
+  const ids=zones(),n=ids.length,gap=7,cw=(w-gap*(n-1))/n,hitY=h-22,top=4;
+  const now=ctx?ctx.currentTime:0,HZ=Math.min(3.2,Math.max(1.4,3*60/state.bpm));
+  const yOf=t=>hitY-(t-now)/HZ*(hitY-top);
+  /* couloirs */
+  ids.forEach((id,i)=>{
+    const x=i*(cw+gap);
+    c.globalAlpha=.1;c.fillStyle=fallCol[id];c.beginPath();c.roundRect(x,0,cw,h,10);c.fill();
+    c.globalAlpha=1;
+  });
+  const {out,beats}=upcoming(now,HZ);
+  /* temps */
+  beats.forEach(b=>{
+    const y=yOf(b.t);if(y<top||y>hitY)return;
+    c.globalAlpha=b.first?.5:.22;c.strokeStyle=fallCol.line;c.lineWidth=b.first?2:1;
+    c.beginPath();c.moveTo(0,y);c.lineTo(w,y);c.stroke();
+  });
+  c.globalAlpha=1;
+  /* ligne de frappe */
+  c.strokeStyle=fallCol.ink;c.globalAlpha=.55;c.lineWidth=3;
+  c.beginPath();c.moveTo(0,hitY);c.lineTo(w,hitY);c.stroke();c.globalAlpha=1;
+  const note=(id,t,v,state_)=>{
+    const i=ids.indexOf(id);if(i<0)return;
+    const y=yOf(t);if(y<-20||y>h+10)return;
+    const bw=cw*(v===3?.94:v===1?.5:.78),bh=v===3?20:v===1?10:16,x=i*(cw+gap)+(cw-bw)/2;
+    c.globalAlpha=state_==='hit'?.95:state_==='past'?Math.max(0,1-(y-hitY)/40):1;
+    if(v===1)c.globalAlpha*=.6;
+    c.fillStyle=state_==='hit'?fallCol.ok:fallCol[id];
+    c.beginPath();c.roundRect(x,y-bh/2,bw,bh,bh/2.4);c.fill();
+    if(v===3){c.strokeStyle=fallCol.surf;c.lineWidth=2;c.stroke();}
+    c.globalAlpha=1;
+  };
+  out.forEach(o=>note(o.id,o.t,o.v,'next'));
+  /* celles qui viennent de passer : vertes si frappées */
+  recent.forEach(r=>{
+    if(now-r.t>0.5||r.t>now)return;
+    r.ids.forEach(id=>note(id,r.t,(r.vals||{})[id]||2,r.hit[id]?'hit':'past'));
+  });
 }
 
 /* ---------- Défi ---------- */

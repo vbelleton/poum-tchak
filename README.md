@@ -25,7 +25,8 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   tôt, tard, raté, en trop), avec la précision en pourcentage, la série, une
   jauge avance/retard et un bilan à l'arrêt. Seuls les fûts que tu joues sont
   notés. Une partition défilante en haut montre les fûts du rythme, et l'on
-  choisit d'afficher la batterie, toutes les zones ou seulement les fûts utiles.
+  choisit la batterie dessinée, la cascade (des barres colorées qui tombent vers
+  la ligne de frappe, façon Rock Band) ou seulement les fûts utiles.
   Le **défi** : l'appli joue le rythme, compte une mesure, puis c'est à toi de
   le taper. À 80 % de précision le tempo monte ; sinon il ralentit, autant de
   fois qu'il faut. Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
