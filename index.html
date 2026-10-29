@@ -1944,7 +1944,12 @@ function ringFrame(){
   const allowed=chal.on?(chal.ph==='play'?chalMine():chal.ph==='listen'?null:[]):null;
   const lead={};
   out.forEach(o=>{
-    if(allowed&&!allowed.includes(o.id))return;
+    if(chal.on){
+      /* Un anneau ne s'allume que pour une note de ton tour ; ceux de la mesure d'écoute suivante restent éteints. */
+      if(o.ph==='play'){if(!chalMine().includes(o.id)||(chal.ph!=='play'&&chal.ph!=='count'))return;}
+      else if(o.ph==='listen'){if(chal.ph!=='listen')return;}
+      else return;
+    }else if(allowed&&!allowed.includes(o.id))return;
     const d=o.t-now;
     if(d<-0.02||d>RING_LEAD)return;
     if(lead[o.id]===undefined||d<lead[o.id])lead[o.id]=d;
@@ -1976,7 +1981,7 @@ function fallFrame(){
 function upcoming(now,horizon){
   const out=[],beats=[],m=M();
   queue.forEach(e=>{
-    e.ids.forEach(id=>out.push({t:e.t,id,v:(e.vals||{})[id]||2}));
+    e.ids.forEach(id=>out.push({t:e.t,id,v:(e.vals||{})[id]||2,ph:e.ph}));
     if(e.step%m.perBeat===0)beats.push({t:e.t,first:e.step===0});
   });
   if(!state.playing)return {out,beats};
@@ -1986,7 +1991,7 @@ function upcoming(now,horizon){
     const ph=chal.on?chalPhaseAt(ab):'';
     const bar=chal.on?chalBarAt(ab):(sb>=state.bars.length?0:sb);
     const g=state.bars[bar]||state.bars[0];
-    if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][st];if(v)out.push({t,id:d.id,v});});
+    if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][st];if(v)out.push({t,id:d.id,v,ph});});
     if(st%m.perBeat===0)beats.push({t,first:st===0});
     const nxt=(st+1)%m.steps;
     t+=(nxt===0?m.beats*60/state.bpm:stepOffset(nxt,m,state.bpm,state.swing))-stepOffset(st,m,state.bpm,state.swing);
@@ -2020,7 +2025,7 @@ function drawFall(){
   const mineSet=chal.on?new Set(chalMine()):null;
   /* couloirs : ils s'éclairent quand une note arrive sur la ligne */
   const near=new Set();
-  out.forEach(o=>{if(Math.abs(o.t-now)<.1&&(!mineSet||mineSet.has(o.id)))near.add(o.id);});
+  out.forEach(o=>{if(Math.abs(o.t-now)<.1&&(!mineSet||mineSet.has(o.id))&&!(chal.on&&o.ph&&o.ph!==chal.ph&&!(chal.ph==='count'&&o.ph==='play')))near.add(o.id);});
   recent.forEach(r=>{if(Math.abs(r.t-now)<.1)r.ids.forEach(id=>{if(!r.hit[id]&&(!mineSet||mineSet.has(id)))near.add(id);});});
   ids.forEach((id,i)=>{
     const x=i*(cw+gap);
@@ -2048,19 +2053,22 @@ function drawFall(){
   /* ligne de frappe */
   c.strokeStyle=fallCol.ink;c.globalAlpha=.55;c.lineWidth=3;
   c.beginPath();c.moveTo(0,hitY);c.lineTo(w,hitY);c.stroke();c.globalAlpha=1;
-  const note=(id,t,v,state_)=>{
+  /* En défi, une note qui n'appartient pas à la phase en cours (la mesure d'écoute qui suit ton tour) n'est pas à toi : on la grise. */
+  const foreign=ph=>chal.on&&!!ph&&ph!==chal.ph&&!(chal.ph==='count'&&ph==='play');
+  const note=(id,t,v,state_,ph)=>{
     const i=ids.indexOf(id);if(i<0)return;
     const y=yOf(t);if(y<-20||y>h+10)return;
     const bw=cw*(v===3?.94:v===1?.5:.78),bh=v===3?14:v===1?7:11,x=i*(cw+gap)+(cw-bw)/2;
     c.globalAlpha=state_==='hit'?.95:state_==='miss'?Math.max(0,1-(y-hitY)/60):state_==='past'?Math.max(0,1-(y-hitY)/40):1;
     if(v===1)c.globalAlpha*=.6;
     if(mineSet&&!mineSet.has(id))c.globalAlpha*=.3;
+    if(state_==='next'&&foreign(ph))c.globalAlpha*=.28;
     c.fillStyle=state_==='hit'?fallCol.ok:state_==='miss'?fallCol.err:fallCol[id];
     c.beginPath();c.roundRect(x,y-bh/2,bw,bh,bh/2.4);c.fill();
     if(v===3){c.strokeStyle=fallCol.surf;c.lineWidth=2;c.stroke();}
     c.globalAlpha=1;
   };
-  out.forEach(o=>note(o.id,o.t,o.v,'next'));
+  out.forEach(o=>note(o.id,o.t,o.v,'next',o.ph));
   /* celles qui viennent de passer : vertes si frappées */
   recent.forEach(r=>{
     if(now-r.t>0.5||r.t>now)return;
@@ -2129,7 +2137,7 @@ function chalEvaluate(){
     const down=Math.max(40,old-Math.max(3,Math.round(old*0.1)));
     setBpm(down);
     if(!n)chal.res='Rien joué : écoute bien, puis tape à ton tour.';
-    else chal.res=p+' % · '+(p>=60?'presque ! ':'pas grave, ')+(down<old?'on ralentit à '+down+' BPM pour mieux se caler.':'on réécoute.');
+    else chal.res=p+' % · '+(p>=60?'presque ! ':'pas grave, ')+(down<old?'on ralentit à '+down+' BPM.':'on réécoute.');
     chal.resKind='warn';
     setVerdict(!n?'On réécoute':p>=60?'Presque !':'Pas grave','warn',2400);
   }
@@ -2249,6 +2257,8 @@ function judge(id){
     if([5,10,20,30,50].includes(sc.streak))setVerdict('Série de '+sc.streak+' !','ok',1100);
   }else{
     if(chal.on&&chal.ph!=='play')return;
+    /* Tu as tapé tout près d'une note de la mesure d'écoute qui suit : ce n'est pas une faute. */
+    if(chal.on&&recent.some(e=>e.ph!=='play'&&e.ids.indexOf(id)>=0&&Math.abs(now-e.t)<=win))return;
     if(best&&Math.abs(bd)<=0.45&&autoCale(bd))return;
     sc.extra++;sc.streak=0;setVerdict('En trop','bad');padFeedback(id,'bad','En trop');addTap(id,now,'bad','En trop');
   }

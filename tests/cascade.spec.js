@@ -414,3 +414,46 @@ test.describe('Cascade : voir où on a frappé', () => {
     expect(rouge, 'repère rouge (Oups) dans un couloir').toBeGreaterThan(40);
   });
 });
+
+test.describe('Cascade : la mesure d\'écoute qui suit ton tour', () => {
+  test.beforeEach(({}, info) => test.skip(info.project.name !== 'telephone', 'long : projet téléphone seulement'));
+
+  test('une frappe juste avant la mesure suivante n\'est pas « en trop », et ses notes sont grisées', async ({ page }) => {
+    await ouvrir(page, { defi: true });
+    await expect(page.locator('#kvHint')).toContainText('À toi', { timeout: 20000 });
+    // tout se passe dans la page, sans aller-retour : dernier pas de la mesure, puis on regarde le poum de la mesure
+    // d'écoute et on tape dessus 90 ms avant lui
+    const vif = await page.evaluate(() => new Promise((ok) => {
+      const iv = setInterval(() => {
+        if (!document.querySelector('#grid .cell.now[data-s="15"]')) return;
+        clearInterval(iv);
+        // un pas dure 60000 / BPM / 4 ms : on tape 90 ms avant la fin du dernier pas, quel que soit le tempo
+        const pas = 60000 / (+document.querySelector('#bpmIn').value || 60) / 4;
+        setTimeout(() => {
+          const cv = document.querySelector('#kvFall'), dpr = cv.width / cv.clientWidth;
+          const pad = document.querySelector('.pad[data-id="poum"]'), r = pad.getBoundingClientRect(), cr = cv.getBoundingClientRect();
+          const x0 = Math.round((r.left - cr.left) * dpr), x1 = Math.round((r.right - cr.left) * dpr), hit = Math.round((cv.clientHeight - 22) * dpr);
+          const t = document.createElement('canvas'); t.width = t.height = 1;
+          const g = t.getContext('2d'); g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--c-poum').trim(); g.fillRect(0, 0, 1, 1);
+          const [cr0, cg0, cb0] = g.getImageData(0, 0, 1, 1).data;
+          const d = cv.getContext('2d').getImageData(x0, hit - Math.round(14 * dpr), x1 - x0, Math.round(28 * dpr)).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && Math.abs(d[i] - cr0) < 45 && Math.abs(d[i + 1] - cg0) < 45 && Math.abs(d[i + 2] - cb0) < 45) n++;
+          pad.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, bubbles: true, cancelable: true, pressure: 1 }));
+          ok(n);
+        }, Math.max(20, pas - 90));
+      }, 2);
+    }));
+    await page.waitForTimeout(700);
+    expect(vif, 'la note de la mesure d\'écoute est grisée, pas en couleur vive').toBe(0);
+    await expect(page.locator('#kvScore')).not.toContainText('en trop');
+    await expect(page.locator('#kvVerdict')).not.toHaveText('En trop');
+  });
+
+  test('le message de fin de manche tient dans son cadre', async ({ page }) => {
+    await ouvrir(page, { defi: true });
+    await expect(page.locator('#kvChal')).toContainText(/pas grave|presque/, { timeout: 25000 });
+    const coupe = await page.locator('#kvChal').evaluate((e) => e.scrollHeight > e.clientHeight + 1);
+    expect(coupe, 'texte coupé').toBe(false);
+  });
+});
