@@ -181,6 +181,35 @@ test.describe('Parle-le avant de le jouer', () => {
     await expect(etape(page, "Jouer sur l'écran")).toHaveAttribute('aria-pressed', 'false');
   });
 
+  test('étape 4 : micro refusé, le message s\'affiche ici et pas dans un autre onglet', async ({ page }) => {
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('refus', 'NotAllowedError'));
+    });
+    await page.reload();
+    await rubrique(page, 'Pratique');
+    await etape(page, 'Jouer sur ta batterie').click();
+    await expect(page.locator('#drillMsg')).toContainText('Micro refusé');
+    await expect(page.locator('#drillMsg')).toBeInViewport();
+    await expect(etape(page, 'Jouer sur ta batterie')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('étape 4 : le micro qui démarre se voit tout de suite', async ({ page }) => {
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = () => new Promise(() => {});
+    });
+    await page.reload();
+    await rubrique(page, 'Pratique');
+    await etape(page, 'Jouer sur ta batterie').click();
+    await expect(page.locator('#drillMsg')).toContainText('Allumage du micro');
+  });
+
+  test('étape 4 hors 4/4 : on le dit tout de suite', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: '3/4' }).first().click();
+    await etape(page, 'Jouer sur ta batterie').click();
+    await expect(page.locator('#drillMsg')).toContainText('qu\'en 4/4');
+  });
+
   test('le bouton Jouer du bas sort de l\'étape en cours', async ({ page }) => {
     await rubrique(page, 'Pratique');
     await etape(page, 'Dire').click();
@@ -378,4 +407,37 @@ test('chaque frappe juste rapporte des points qui s\'envolent du pad', async ({ 
   await expect(page.locator('#kvPads .fly')).toHaveText(/^\+\d+$/);
   await expect(page.locator('#kvPct b')).toHaveText(/^[1-9]\d*$/);
   await expect(page.locator('#kvPads .fly')).toHaveCount(0, { timeout: 2000 });
+});
+
+test.describe('Son en retard (écouteurs Bluetooth)', () => {
+  test('si toutes les frappes tombent avec le même retard, l\'appli se cale toute seule', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.locator('#play').click();
+    await page.evaluate(() => {
+      window.__cale = '';
+      new MutationObserver(() => {
+        const t = document.querySelector('#kvScore').textContent;
+        if (t.includes('calé')) window.__cale = t;
+      }).observe(document.querySelector('#kvScore'), { childList: true, characterData: true, subtree: true });
+    });
+    await frapperEnRythme(page, 'poum', 5, 260);
+    expect(await page.evaluate(() => window.__cale)).toMatch(/calé à \+2\d\d ms/);
+    const off = await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.v2')).kvl.off);
+    expect(off).toBeGreaterThan(200);
+    expect(off).toBeLessThan(320);
+    await frapperEnRythme(page, 'poum', 3, 260);
+    await expect(page.locator('#kvScore')).toContainText(/^[2-9] justes/);
+    await expect(page.locator('#kvScore')).not.toContainText('en trop');
+  });
+
+  test('des frappes au hasard ne déclenchent pas le calage', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.locator('#play').click();
+    for (const d of [250, 30, 380, 120, 300, 200]) {
+      await page.waitForTimeout(d);
+      await page.locator('.pad[data-id="poum"]').dispatchEvent('pointerdown', { pointerId: 7, pressure: 1 });
+    }
+    await page.waitForTimeout(300);
+    await expect(page.locator('#kvScore')).not.toContainText('calé');
+  });
 });

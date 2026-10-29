@@ -193,14 +193,24 @@ test.describe('Cascade : ce qui est dessiné', () => {
     await ouvrir(page);
     await page.locator('#play').click();
     await page.waitForTimeout(900);
-    const a = (await analyser(page)).find((v) => v.id === 'tss');
-    await page.waitForTimeout(150);
-    const b = (await analyser(page)).find((v) => v.id === 'tss');
+    // deux images très proches : le décalage reste bien plus petit que l'écart entre deux barres
+    const [a, b] = await page.evaluate(() => new Promise((ok) => {
+      const lignes = () => {
+        const cv = document.querySelector('#kvFall'), dpr = cv.width / cv.clientWidth;
+        const pad = document.querySelector('.pad[data-id="tss"]').getBoundingClientRect(), cr = cv.getBoundingClientRect();
+        const x0 = Math.round((pad.left - cr.left) * dpr), x1 = Math.round((pad.right - cr.left) * dpr), hit = Math.round((cv.clientHeight - 22) * dpr);
+        const d = cv.getContext('2d').getImageData(x0, 0, x1 - x0, hit).data, w = x1 - x0, out = [];
+        for (let y = 0; y < hit; y++) { let n = 0; for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 200) n++; out.push(n > w * 0.3 ? 1 : 0); }
+        return out;
+      };
+      const premiere = lignes();
+      setTimeout(() => requestAnimationFrame(() => ok([premiere, lignes()])), 60);
+    }));
     // le décalage qui superpose le mieux l'image d'avant sur celle d'après doit être vers le bas
     let meilleur = 0, score = -1;
-    for (let s = 0; s <= 60; s++) {
+    for (let s = 0; s <= 40; s++) {
       let ok = 0;
-      for (let y = 0; y + s < b.lignes.length && y < a.lignes.length; y++) if (a.lignes[y] && b.lignes[y + s]) ok++;
+      for (let y = 0; y + s < b.length && y < a.length; y++) if (a[y] && b[y + s]) ok++;
       if (ok > score) { score = ok; meilleur = s; }
     }
     expect(meilleur).toBeGreaterThan(2);

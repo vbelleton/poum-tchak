@@ -1635,7 +1635,7 @@ const DRILL_MSG={
   listen:'Écoute : suis les syllabes de la mesure.',
   speak:'Dis les syllabes à voix haute, une par pas, avec le clic.',
   screen:'Joue la mesure sur la batterie de l\'écran, avec le clic.',
-  mic:'Joue la mesure sur ta batterie, en boucle : le micro compare toutes les deux secondes.'
+  mic:'Micro allumé. Joue la mesure en boucle sur ta batterie : premier résultat dans 6 secondes environ.'
 };
 const dmsgEl=()=>$('#drillMsg');
 function updateDrillUI(){
@@ -1651,8 +1651,11 @@ async function startDrill(v){
   if(kvOpen&&was==='screen')closeKit(true);
   if(was===v){dmsgEl().textContent='';updateDrillUI();return;}
   if(v==='mic'){
+    if(state.meter!=='44'){dmsgEl().textContent='La comparaison au micro ne marche qu\'en 4/4 : passe la grille en 4/4.';updateDrillUI();return;}
+    dmsgEl().textContent='Allumage du micro… autorise-le si le téléphone le demande.';
     await startLive();
     if(state.live){drill='mic';$('#follow').checked=false;dmsgEl().textContent=DRILL_MSG.mic;}
+    else dmsgEl().textContent=listenMsg.textContent||'Le micro n\'a pas pu démarrer.';
     updateDrillUI();return;
   }
   if(v==='screen'){state.kvl.mode='libre';leaveChal();}
@@ -1670,7 +1673,7 @@ function band(g,ids,s){return ids.some(id=>g[id][s]);}
 function scoreTap(g){
   const m=METERS['44'];
   if(state.meter!=='44'){$('#drillMsg').textContent='La comparaison ne marche qu\'en 4/4.';return;}
-  if(!g){$('#drillMsg').textContent='Écoute en cours, joue la mesure en boucle.';return;}
+  if(!g){$('#drillMsg').textContent='Je n\'entends pas encore de rythme régulier : joue la mesure en boucle, assez fort, téléphone près de la batterie.';return;}
   let groups,note;
   if(calOn()){
     const known=IDS.filter(id=>cal[id]);
@@ -1807,7 +1810,7 @@ $('#kvSetBtn').addEventListener('click',()=>{
   p.hidden=!open;$('#kvSetBtn').setAttribute('aria-expanded',String(open));
 });
 function showOff(){$('#offVal').textContent=(state.kvl.off>0?'+':'')+state.kvl.off+' ms';}
-function setOff(v){state.kvl.off=Math.max(-150,Math.min(150,Math.round(v)));showOff();save();}
+function setOff(v){state.kvl.off=Math.max(-200,Math.min(400,Math.round(v)));showOff();save();}
 $('#offDown').addEventListener('click',()=>setOff(state.kvl.off-10));
 $('#offUp').addEventListener('click',()=>setOff(state.kvl.off+10));
 /* Recaler : on corrige du retard moyen mesuré sur tes dernières frappes. */
@@ -2224,6 +2227,7 @@ function judge(id){
     if(Math.abs(d)<Math.abs(bd)){bd=d;best=e;}
   }
   if(best&&Math.abs(bd)<=win){
+    farOffs.length=0;
     best.hit[id]=true;
     const ms=bd*1000,a=Math.abs(ms);
     sc.offs.push(ms);if(sc.offs.length>12)sc.offs.shift();
@@ -2237,9 +2241,27 @@ function judge(id){
     if([5,10,20,30,50].includes(sc.streak))setVerdict('Série de '+sc.streak+' !','ok',1100);
   }else{
     if(chal.on&&chal.ph!=='play')return;
+    if(best&&Math.abs(bd)<=0.45&&autoCale(bd))return;
     sc.extra++;sc.streak=0;setVerdict('En trop','bad');padFeedback(id,'bad','En trop');addTap(id,now,'bad','En trop');
   }
   updateScore();
+}
+/* Écouteurs Bluetooth, téléphone lent : si tes frappes tombent toutes à côté avec le même écart,
+   ce n'est pas toi, c'est le délai du son. On se cale dessus tout seul. */
+const farOffs=[];
+function autoCale(d){
+  farOffs.push(d*1000);if(farOffs.length>4)farOffs.shift();
+  if(farOffs.length<4)return false;
+  const mn=Math.min(...farOffs),mx=Math.max(...farOffs);
+  if(mx-mn>70)return false;
+  const mean=farOffs.reduce((a,b)=>a+b,0)/farOffs.length;
+  farOffs.length=0;
+  const was=state.kvl.off;setOff(was+mean);
+  if(state.kvl.off===was)return false;
+  Object.assign(sc,{miss:0,extra:0,streak:0});
+  setVerdict('Je me cale','ok',1500);
+  $('#kvScore').textContent='Son en retard sur ce téléphone : calé à '+(state.kvl.off>0?'+':'')+state.kvl.off+' ms. Continue !';
+  return true;
 }
 function checkMisses(){
   if(!kvOpen||!state.playing||!ctx)return;
@@ -3123,6 +3145,7 @@ function liveAnalyze(){
   const hopS=HOP/ctx.sampleRate;
   if(have<need){
     setListen('Écoute en cours, encore '+Math.ceil((need-have)*hopS)+' s pour estimer le tempo.');
+    if(drill==='mic')$('#drillMsg').textContent='Micro allumé, joue la mesure en boucle : résultat dans '+Math.ceil((need-have)*hopS)+' s.';
     return;
   }
   const Wn=Math.min(have,1300),off=have-Wn,absStart=L.base+off;

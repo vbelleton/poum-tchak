@@ -42,7 +42,7 @@ test.describe('Micro @lent', () => {
   test('l\'étape 4 note la mesure jouée sur la batterie', async ({ page }) => {
     await rubrique(page, 'Pratique');
     await page.locator('#drillSteps').getByRole('button', { name: /Jouer sur ta batterie/ }).click();
-    await expect(page.locator('#drillMsg')).toContainText('le micro compare');
+    await expect(page.locator('#drillMsg')).toContainText('Micro allumé');
     await expect(page.locator('#drillMsg')).toHaveText(/^\d+ % de coups justes/, { timeout: 45_000 });
     await page.locator('#drillSteps').getByRole('button', { name: /Jouer sur ta batterie/ }).click();
     await expect(page.locator('#liveBtn')).toHaveAttribute('aria-pressed', 'false');
