@@ -112,6 +112,13 @@ test.describe('Cascade : mise en place', () => {
     }
     const pad = await page.locator('.pad[data-id="poum"]').boundingBox();
     expect(pad.y, 'les pads sont sous la cascade').toBeGreaterThanOrEqual(cv.y + cv.height - 1);
+    // la ligne de frappe est au bas du canvas : il doit finir juste au-dessus des pads, pas derrière
+    expect(pad.y - (cv.y + cv.height), 'écart entre la ligne de frappe et les pads').toBeLessThan(14);
+    const sous = await page.evaluate(() => {
+      const c = document.querySelector('#kvFall').getBoundingClientRect(), p = document.querySelector('.pad[data-id="poum"]').getBoundingClientRect();
+      return c.bottom - p.top;
+    });
+    expect(sous, 'le canvas ne passe pas sous les pads').toBeLessThanOrEqual(1);
   });
 
   for (const rythme of ['rock', 'funk', 'disco', 'bossa', 'valse', '68']) {

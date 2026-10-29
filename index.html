@@ -319,7 +319,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .l-kit .pad[data-id=toum]{--x:83;--y:50;--s:31}
 .l-kit .pad[data-id=poum]{--x:56;--y:76;--s:36}
 /* La cascade : des barres tombent dans chaque couloir, on frappe quand elles touchent la ligne. */
-.kv-fall{grid-area:1/1/2/-1;width:100%;height:100%;min-height:0;display:block;border-radius:14px;background:var(--cell-a)}
+.kv-fall{position:absolute;left:0;top:0;width:100%;height:60%;min-height:0;display:block;border-radius:14px;background:var(--cell-a)}
 .kv-fall[hidden]{display:none}
 .pad{position:relative;appearance:none;border:1px solid var(--edge);border-radius:16px;background:color-mix(in srgb,var(--c) 13%,var(--surface));
   color:var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;min-height:0;padding:4px;overflow:hidden;
@@ -1996,7 +1996,12 @@ function upcoming(now,horizon){
   return {out,beats};
 }
 function drawFall(){
-  const cv=kvFall,dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  const cv=kvFall,dpr=window.devicePixelRatio||1;
+  /* La cascade s'arrête juste au-dessus des pads. On le mesure plutôt que de laisser la mise en page
+     le deviner : Safari sur iPhone étirait le canvas derrière les pads, et la ligne de frappe tombait dessous. */
+  const first=zones().map(id=>padEls[id]).find(p=>p&&!p.hidden);
+  if(first){const hh=Math.max(40,first.offsetTop-7);if(cv._hh!==hh){cv._hh=hh;cv.style.height=hh+'px';}}
+  const w=cv.clientWidth,h=cv.clientHeight;
   if(!w||!h)return;
   if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
   const c=cv.getContext('2d');
