@@ -212,7 +212,8 @@ test.describe('Défi : écoute, puis joue', () => {
     await expect(page.locator('#kvHint')).toHaveText('Écoute le rythme…');
     await expect(page.locator('#kvHint')).toHaveText('Prépare-toi…', { timeout: 9000 });
     await expect(page.locator('#kvCount')).toHaveClass(/pre/);
-    await expect(page.locator('#kvHint')).toHaveText('À toi : tape le rythme', { timeout: 9000 });
+    await expect(page.locator('#kvHint')).toHaveText('À toi : poum et tchak', { timeout: 9000 });
+    await expect(page.locator('#kvMine .chip[aria-pressed="true"]')).toHaveCount(2);
     await expect(page.locator('.pad.cible')).toHaveCount(0);
   });
 

@@ -248,6 +248,9 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-card.win{border-color:var(--ok)}
 @media (prefers-reduced-motion:no-preference){.kv-card.win{animation:win 1.5s ease-out}}
 @keyframes win{0%{box-shadow:0 0 0 0 var(--ok);background:color-mix(in srgb,var(--ok) 24%,var(--surface))}30%{box-shadow:0 0 0 6px color-mix(in srgb,var(--ok) 40%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
+.off{display:flex;align-items:center;gap:8px}
+.off output{font:600 13px var(--f-mono);min-width:7ch;text-align:center}
+.off .ib{min-width:44px}
 .kv-chal{margin:0;font:500 12px/16px var(--f-mono);color:var(--muted);text-align:center;height:32px;overflow:hidden}
 .kv-chal b{color:var(--ink)}
 .kv-chal small{display:block;font:700 12px/16px var(--f-mono);color:var(--ink)}
@@ -632,6 +635,14 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <button type="button" class="ib" id="kvSetBtn" aria-label="Réglages de la vue" aria-expanded="false" aria-controls="kvSet"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="8" r="1.5"/><circle cx="12.5" cy="12" r="1.5"/></svg></button>
   </div>
   <div class="kv-set" id="kvSet" hidden>
+    <div class="kv-row"><span class="lab" id="lab-off">Décalage</span>
+      <div class="off" role="group" aria-labelledby="lab-off">
+        <button type="button" class="ib" id="offDown" aria-label="Avancer la frappe de 10 millisecondes">−</button>
+        <output id="offVal" aria-live="polite">0 ms</output>
+        <button type="button" class="ib" id="offUp" aria-label="Retarder la frappe de 10 millisecondes">+</button>
+        <button type="button" class="chip" id="offAuto">Recaler</button>
+      </div>
+    </div>
     <div class="kv-row"><span class="lab" id="lab-snd">Sons</span>
       <div class="seg small" id="kvSound" role="group" aria-labelledby="lab-snd">
         <button type="button" data-v="synth">Synthé</button>
@@ -1114,7 +1125,7 @@ const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
 const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bars:[emptyGrid(METERS['44'])],bar:0,
-  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre'},
+  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre',off:0},
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
 const MAXBARS=8;
@@ -1152,6 +1163,7 @@ function loadStore(){
   if(['rythme','pratique','ecoute','mots'].includes(s.tab))state.tab=s.tab;
   if(s.kvl&&typeof s.kvl==='object'){
     if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
+    if(typeof s.kvl.off==='number')state.kvl.off=Math.max(-150,Math.min(150,Math.round(s.kvl.off)));
     state.kvl.mine=Array.isArray(s.kvl.mine)?s.kvl.mine.filter(id=>DRUMS.some(d=>d.id===id)):null;
   }
   if(s.ramp&&typeof s.ramp==='object'){
@@ -1678,7 +1690,13 @@ function myDrums(){
   const used=usedDrums();
   if(!used.length)return PAD_ORDER.slice();
   const mine=Array.isArray(state.kvl.mine)?state.kvl.mine.filter(id=>used.includes(id)):[];
-  return mine.length?mine:used;
+  if(mine.length)return mine;
+  /* En défi, par défaut : la grosse caisse et la caisse claire. L'appli joue le reste. */
+  if(state.kvl.mode==='defi'&&used.length>2){
+    const core=['poum','tchak'].filter(id=>used.includes(id));
+    return core.length?core:used.slice(0,2);
+  }
+  return used;
 }
 const CASC_ORDER=['poum','toum','doum','tchak','tss','tchaa','psch'];
 const zones=()=>{
@@ -1718,7 +1736,7 @@ function applyLayout(){
 }
 function renderMine(){
   const row=$('#kvMineRow'),host=$('#kvMine');
-  row.hidden=state.kvl.layout!=='utiles';
+  row.hidden=state.kvl.layout!=='utiles'&&state.kvl.mode!=='defi';
   host.innerHTML='';
   const used=usedDrums(),mine=myDrums();
   used.forEach(id=>{
@@ -1728,7 +1746,7 @@ function renderMine(){
     b.addEventListener('click',()=>{
       let next=mine.includes(id)?mine.filter(x=>x!==id):mine.concat(id);
       if(!next.length)return;
-      state.kvl.mine=next.length===used.length?null:next;
+      state.kvl.mine=next.length===used.length&&state.kvl.mode!=='defi'?null:next;
       save();applyLayout();resetScore();
       const again=[...$('#kvMine').children].find(c=>c.textContent===W(id));if(again)again.focus();
     });
@@ -1743,6 +1761,17 @@ $('#kvSetBtn').addEventListener('click',()=>{
   const p=$('#kvSet'),open=p.hidden;
   p.hidden=!open;$('#kvSetBtn').setAttribute('aria-expanded',String(open));
 });
+function showOff(){$('#offVal').textContent=(state.kvl.off>0?'+':'')+state.kvl.off+' ms';}
+function setOff(v){state.kvl.off=Math.max(-150,Math.min(150,Math.round(v)));showOff();save();}
+$('#offDown').addEventListener('click',()=>setOff(state.kvl.off-10));
+$('#offUp').addEventListener('click',()=>setOff(state.kvl.off+10));
+/* Recaler : on corrige du retard moyen mesuré sur tes dernières frappes. */
+$('#offAuto').addEventListener('click',()=>{
+  if(sc.offs.length<4){$('#kvScore').textContent='Joue quelques frappes d\'abord, puis recale.';return;}
+  const mean=sc.offs.reduce((a,b)=>a+b,0)/sc.offs.length;
+  setOff(state.kvl.off+mean);
+  $('#kvScore').textContent='Décalage réglé sur '+(state.kvl.off>0?'+':'')+state.kvl.off+' ms.';
+});
 $('#kvSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
 
 /* La consigne, en une phrase, selon la situation. */
@@ -1751,7 +1780,7 @@ function updateHint(){
   const h=$('#kvHint');
   if(!kvOpen)return;
   if(chal.on&&state.playing){
-    h.textContent=chal.ph==='play'?'À toi : tape le rythme':counting?'Prépare-toi…':'Écoute le rythme…';
+    h.textContent=chal.ph==='play'?'À toi : '+list(myDrums()):counting?'Prépare-toi…':'Écoute le rythme…';
     return;
   }
   if(!state.playing&&state.kvl.mode==='defi'){h.textContent='Appuie sur ▶ : écoute, décompte, puis à toi.';return;}
@@ -1772,7 +1801,7 @@ function renderStaff(){
   const ids=usedDrums();
   kvStaff.hidden=!ids.length;
   if(!ids.length)return;
-  const m=M(),g=G(),mine=state.kvl.layout==='utiles'?myDrums():ids;
+  const m=M(),g=G(),mine=state.kvl.layout==='utiles'||state.kvl.mode==='defi'?myDrums():ids;
   const lab=el('div','ks-lab');
   ids.forEach(id=>{const s=el('span','',W(id));s.style.setProperty('--c','var(--c-'+id+')');lab.appendChild(s);});
   const body=el('div','ks-body');
@@ -1925,7 +1954,7 @@ function drawFall(){
 }
 
 /* ---------- Défi ---------- */
-const chalMine=()=>state.kvl.layout==='utiles'?myDrums():usedDrums();
+const chalMine=()=>myDrums();
 function chalText(){
   const p=$('#kvChal');
   if(!p)return;
@@ -2025,6 +2054,9 @@ function guide(e){
    n'est noté qu'une fois frappé : tu peux ne jouer que grosse caisse et caisse
    claire, le reste ne te sera pas reproché. */
 const sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set()};
+/* Le son met du temps à sortir du téléphone : ce que tu entends arrive après l'instant programmé.
+   On compense la latence de sortie, plus un décalage réglable dans les réglages de la vue. */
+const latency=()=>((ctx&&(ctx.outputLatency||ctx.baseLatency))||0)+(state.kvl.off||0)/1000;
 const judgeWin=()=>Math.min(0.18,(60/state.bpm)/M().perBeat*0.9);
 function resetScore(){
   Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],
@@ -2051,8 +2083,9 @@ function padFeedback(id,kind,txt){
 }
 function judge(id){
   if(!kvOpen||!state.playing||!ctx||(chal.on&&chal.ph==='listen'))return;
+  if(chal.on&&!chalMine().includes(id))return;
   sc.mine.add(id);
-  const now=ctx.currentTime,win=judgeWin();
+  const now=ctx.currentTime-latency(),win=judgeWin();
   let best=null,bd=1e9;
   for(let i=0;i<recent.length;i++){
     const e=recent[i];
@@ -2064,8 +2097,8 @@ function judge(id){
     best.hit[id]=true;
     const ms=bd*1000,a=Math.abs(ms);
     sc.offs.push(ms);if(sc.offs.length>12)sc.offs.shift();
-    if(a<=35){sc.perfect++;sc.streak++;setVerdict('Parfait','ok');padFeedback(id,'ok','Parfait');}
-    else if(a<=70){sc.good++;sc.streak++;setVerdict('Bien','ok');padFeedback(id,'ok','Bien');}
+    if(a<=40){sc.perfect++;sc.streak++;setVerdict('Parfait','ok');padFeedback(id,'ok','Parfait');}
+    else if(a<=85){sc.good++;sc.streak++;setVerdict('Bien','ok');padFeedback(id,'ok','Bien');}
     else{const w=ms<0?'Tôt':'Tard';sc.approx++;setVerdict(w,'warn');padFeedback(id,'warn',w);}
     if(sc.streak>sc.best)sc.best=sc.streak;
     if([5,10,20,30,50].includes(sc.streak))setVerdict('Série de '+sc.streak+' !','ok',1100);
@@ -2130,7 +2163,7 @@ function openKit(){
   kvReturn=document.activeElement;
   kvOpen=true;$('#kitView').hidden=false;
   document.body.style.overflow='hidden';
-  refreshPads();fillKitPat();renderKitRead();applyLayout();ensureAudio();keepAwake(true);
+  showOff();refreshPads();fillKitPat();renderKitRead();applyLayout();ensureAudio();keepAwake(true);
   kvCount.textContent='1';kvCount.className='kv-count';
   resetScore();
   $('#kvClose').focus();
