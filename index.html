@@ -328,6 +328,11 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-pads.big .pad .pdn{font-size:14px}
 .kv-pads.big .pad .pv{font-size:22px;bottom:14px}
 .pad.on{transform:scale(.985)}
+/* L'anneau d'approche : grand, il rétrécit jusqu'à se confondre avec le pad au moment de frapper. */
+.pad::after{content:"";position:absolute;inset:0;border-radius:inherit;border:3px solid var(--c);pointer-events:none;opacity:0;transform:scale(var(--ring,1));will-change:transform}
+.pad.ring::after{opacity:.85}
+.l-kit .pad{overflow:visible}
+.l-kit .pad.ring{z-index:2}
 .pad.proche{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--c) 50%,transparent)}
 .pad.cible{box-shadow:inset 0 0 0 6px var(--c);background:color-mix(in srgb,var(--c) 30%,var(--surface))}
 .pad.fb-ok{background:var(--ok);box-shadow:none}
@@ -1467,6 +1472,7 @@ function play(){
   if(state.bars.length>1&&state.bar!==0)showBar(0);
   timer=setInterval(tick,25);tick();
   rafId=requestAnimationFrame(frame);
+  ringStart();
   keepAwake(true);updateControls();
 }
 function stop(){
@@ -1887,6 +1893,38 @@ function padHit(id){
   judge(id);
 }
 
+/* ---------- Anneau d'approche ---------- */
+const RING_LEAD=0.6;
+let ringRaf=0;
+function ringStart(){if(!ringRaf)ringRaf=requestAnimationFrame(ringFrame);}
+function ringFrame(){
+  ringRaf=0;
+  if(!kvOpen||!state.playing||!ctx){
+    PAD_ORDER.forEach(id=>{const p=padEls[id];if(p._ring){p._ring=0;p.classList.remove('ring');}});
+    return;
+  }
+  const now=ctx.currentTime;
+  const {out}=upcoming(now,RING_LEAD+0.05);
+  /* En défi, seuls les coups qui sont à toi comptent : pas d'anneau pendant l'écoute ni le décompte. */
+  const allowed=chal.on?(chal.ph==='play'?chalMine():[]):null;
+  const lead={};
+  out.forEach(o=>{
+    if(allowed&&!allowed.includes(o.id))return;
+    const d=o.t-now;
+    if(d<-0.02||d>RING_LEAD)return;
+    if(lead[o.id]===undefined||d<lead[o.id])lead[o.id]=d;
+  });
+  PAD_ORDER.forEach(id=>{
+    const p=padEls[id];
+    if(lead[id]===undefined){if(p._ring){p._ring=0;p.classList.remove('ring');}return;}
+    /* De 1,9 fois la taille du pad (loin) jusqu'à 1 (au moment de frapper). */
+    const k=1+Math.max(0,lead[id])/RING_LEAD*0.9;
+    p.classList.add('ring');
+    if(p._ring!==k){p._ring=k;p.style.setProperty('--ring',k.toFixed(3));}
+  });
+  ringRaf=requestAnimationFrame(ringFrame);
+}
+
 /* ---------- Cascade ---------- */
 let fallRaf=0,fallFrameN=0,fallCol={};
 function fallStart(){if(!fallRaf)fallRaf=requestAnimationFrame(fallFrame);}
@@ -2181,7 +2219,7 @@ function openKit(){
   kvReturn=document.activeElement;
   kvOpen=true;$('#kitView').hidden=false;
   document.body.style.overflow='hidden';
-  showOff();refreshPads();fillKitPat();renderKitRead();applyLayout();ensureAudio();keepAwake(true);
+  showOff();refreshPads();fillKitPat();renderKitRead();applyLayout();ensureAudio();keepAwake(true);ringStart();
   kvCount.textContent='1';kvCount.className='kv-count';
   resetScore();
   $('#kvClose').focus();

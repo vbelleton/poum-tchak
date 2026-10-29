@@ -318,3 +318,17 @@ test('Recaler apparaît quand toutes les frappes sont en retard, et corrige le d
   await page.getByRole('button', { name: 'Réglages de la vue' }).click();
   await expect(page.locator('#offVal')).not.toHaveText('0 ms');
 });
+
+test.describe("Anneau d'approche", () => {
+  test('un anneau se resserre sur le pad à frapper, et disparaît après le coup', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    await page.locator('#play').click();
+    await expect(page.locator('#kvPads .pad.ring').first()).toBeVisible({ timeout: 6000 });
+    const k = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#kvPads .pad.ring')).getPropertyValue('--ring')));
+    expect(k).toBeGreaterThanOrEqual(1);
+    expect(k).toBeLessThanOrEqual(2);
+    await page.locator('#play').click();
+    await expect(page.locator('#kvPads .pad.ring')).toHaveCount(0);
+  });
+});
