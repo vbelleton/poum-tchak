@@ -1234,7 +1234,7 @@ function noise(t,dur,peak,opt){
 }
 /* Deux voix possibles : la synthèse, qui ne pèse rien, ou les échantillons
    d'une vraie batterie, décodés une fois puis gardés en mémoire. */
-const SGAIN={poum:1,tchak:0.92,doum:0.88,toum:0.88,tss:0.5,tchaa:0.5,psch:0.55};
+const SGAIN={poum:1,tchak:0.92,doum:0.88,toum:0.88,tss:0.5,tchaa:0.5,psch:0.4};
 let kitBufs=null,kitState='';
 function loadKit(done){
   if(kitBufs||kitState==='load')return;
@@ -1263,14 +1263,24 @@ function sampleVoice(id,t,k){
   const b=kitBufs[id];
   const s=ctx.createBufferSource();s.buffer=b;
   const g=ctx.createGain();g.gain.value=Math.min(1.5,k)*SGAIN[id];
+  /* L'échantillon de crash monte lentement et sonne sourd : on le raccourcit, la synthèse lui donne l'attaque. */
+  if(id==='psch'){g.gain.setValueAtTime(g.gain.value,t);g.gain.setTargetAtTime(0.0001,t+0.25,0.55);}
   s.connect(g);g.connect(master);
   s.start(t);
+  if(id==='psch')s.stop(t+2.2);
   return true;
 }
 function voice(id,t,vel){
   if(!ctx)return;
   const k=vel==null?1:vel;
-  if(state.sound==='kit'&&kitBufs&&kitBufs[id])return void sampleVoice(id,t,k);
+  if(state.sound==='kit'&&kitBufs&&kitBufs[id]){
+    sampleVoice(id,t,k);
+    if(id==='psch')synthVoice(id,t,k*0.85);
+    return;
+  }
+  synthVoice(id,t,k);
+}
+function synthVoice(id,t,k){
   const T=(f0,f1,dur,peak,type)=>tone(t,f0,f1,dur,peak*k,type);
   const N=(dur,peak,opt)=>noise(t,dur,peak*k,opt);
   switch(id){
