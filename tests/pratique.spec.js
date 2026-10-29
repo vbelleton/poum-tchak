@@ -332,3 +332,39 @@ test.describe("Anneau d'approche", () => {
     await expect(page.locator('#kvPads .pad.ring')).toHaveCount(0);
   });
 });
+
+test.describe('Un vrai toucher', () => {
+  test('un doigt posé sur un pad compte pour une seule frappe', async ({ page, hasTouch }) => {
+    test.skip(!hasTouch, 'toucher réel : projet téléphone seulement');
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    await page.locator('#play').click();
+    await page.waitForTimeout(800);
+    const b = await page.locator('.pad[data-id="psch"]').boundingBox();
+    await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+    await expect(page.locator('#kvScore')).toContainText('1 en trop');
+    await page.waitForTimeout(500);
+    await expect(page.locator('#kvScore')).not.toContainText('2 en trop');
+    await expect(page.locator('#kvScore')).not.toContainText('3 en trop');
+  });
+
+  test('un doigt qui glisse sur un autre pad le frappe, sans doubler le premier', async ({ page, hasTouch }) => {
+    test.skip(!hasTouch, 'toucher réel : projet téléphone seulement');
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    await page.locator('#play').click();
+    await page.waitForTimeout(600);
+    const a = await page.locator('.pad[data-id="psch"]').boundingBox();
+    const c = await page.locator('.pad[data-id="toum"]').boundingBox();
+    await page.evaluate(([ax, ay, cx, cy]) => {
+      const mk = (type, x, y, target) => target.dispatchEvent(new PointerEvent(type, { pointerId: 9, pointerType: 'touch', bubbles: true, cancelable: true, pressure: 0.5, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y }));
+      const pa = document.querySelector('.pad[data-id="psch"]'), pc = document.querySelector('.pad[data-id="toum"]');
+      mk('pointerenter', ax, ay, pa); mk('pointerdown', ax, ay, pa);
+      mk('pointerenter', cx, cy, pc);
+      mk('pointerup', cx, cy, pc);
+    }, [a.x + 5, a.y + 5, c.x + 5, c.y + 5]);
+    await expect(page.locator('#kvScore')).toContainText('2 en trop');
+    await page.waitForTimeout(400);
+    await expect(page.locator('#kvScore')).not.toContainText('3 en trop');
+  });
+});
