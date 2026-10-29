@@ -103,7 +103,7 @@ test.describe("Jouer sur l'écran", () => {
   test('une frappe en retard est signalée, une frappe sans note est en trop', async ({ page }) => {
     await ouvrirBatterie(page);
     await page.locator('#play').click();
-    await frapperEnRythme(page, 'tchak', 1, 130);
+    await frapperEnRythme(page, 'tchak', 1, 110);
     await expect(page.locator('#kvScore')).toContainText('1 tôt ou tard');
     await frapperPad(page, 'psch');
     await expect(page.locator('#kvVerdict')).toHaveText('En trop');
@@ -420,14 +420,43 @@ test.describe('Son en retard (écouteurs Bluetooth)', () => {
         if (t.includes('calé')) window.__cale = t;
       }).observe(document.querySelector('#kvScore'), { childList: true, characterData: true, subtree: true });
     });
-    await frapperEnRythme(page, 'poum', 5, 260);
+    // Le joueur frappe sur le SON, qui arrive 260 ms après son départ. L'image, elle, suit le décalage réglé :
+    // on frappe donc (260 - décalage) ms après que le pad s'allume.
+    const surLeSon = (nombre) => page.evaluate((nombre) => new Promise((ok) => {
+      let n = 0, derniere = document.querySelector('#grid .cell.on.now[data-id="poum"]');
+      const iv = setInterval(() => {
+        const c = document.querySelector('#grid .cell.on.now[data-id="poum"]');
+        if (derniere && !derniere.classList.contains('now')) derniere = null;
+        if (c && c !== derniere) {
+          derniere = c; n++;
+          const off = (JSON.parse(localStorage.getItem('poumtchak.v2') || '{}').kvl || {}).off || 0;
+          setTimeout(() => document.querySelector('.pad[data-id="poum"]').dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, bubbles: true, cancelable: true, pressure: 1 })), Math.max(0, 260 - off));
+          if (n >= nombre) { clearInterval(iv); setTimeout(() => ok(n), 320); }
+        }
+      }, 4);
+    }), nombre);
+    await surLeSon(5);
     expect(await page.evaluate(() => window.__cale)).toMatch(/calé à \+2\d\d ms/);
     const off = await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.v2')).kvl.off);
     expect(off).toBeGreaterThan(200);
     expect(off).toBeLessThan(320);
-    await frapperEnRythme(page, 'poum', 3, 260);
+    await surLeSon(3);
     await expect(page.locator('#kvScore')).toContainText(/^[2-9] justes/);
     await expect(page.locator('#kvScore')).not.toContainText('en trop');
+  });
+
+  test('avec un retard réglé, l\'image suit le son entendu : frapper quand le pad s\'allume est juste', async ({ page }) => {
+    await ouvrirBatterie(page);
+    await page.locator('#kvSetBtn').click();
+    for (let i = 0; i < 30; i++) await page.locator('#offUp').click();
+    await expect(page.locator('#offVal')).toHaveText('+300 ms');
+    await page.locator('#kvSetBtn').click();
+    await page.locator('#play').click();
+    // on frappe pile quand la grille et le pad s'allument : sans décalage de l'image, ce serait 300 ms trop tôt
+    await frapperEnRythme(page, 'poum', 4, 0);
+    await expect(page.locator('#kvScore')).toContainText(/^4 justes/);
+    await expect(page.locator('#kvScore')).not.toContainText('en trop');
+    expect((await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.v2')).kvl.off))).toBe(300);
   });
 
   test('des frappes au hasard ne déclenchent pas le calage', async ({ page }) => {
