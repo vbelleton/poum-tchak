@@ -68,6 +68,23 @@ function analyser(page) {
   });
 }
 
+
+/** Pixels d'une couleur du thème dans un couloir, entre deux hauteurs (en px CSS ; négatif = depuis la ligne de frappe). */
+const compter = (page, id, variable, de, a) => page.evaluate(([id, variable, de, a]) => {
+  const cv = document.querySelector('#kvFall'), dpr = cv.width / cv.clientWidth;
+  const pad = document.querySelector(`.pad[data-id="${id}"]`).getBoundingClientRect(), cr = cv.getBoundingClientRect();
+  const x0 = Math.round((pad.left - cr.left) * dpr), x1 = Math.round((pad.right - cr.left) * dpr);
+  const hit = cv.clientHeight - 22;
+  const y0 = Math.max(0, Math.round((hit + de) * dpr)), y1 = Math.min(cv.height, Math.round((hit + a) * dpr));
+  const t = document.createElement('canvas'); t.width = t.height = 1;
+  const g = t.getContext('2d'); g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(variable).trim(); g.fillRect(0, 0, 1, 1);
+  const [r, gg, b] = g.getImageData(0, 0, 1, 1).data;
+  const d = cv.getContext('2d').getImageData(x0, y0, x1 - x0, y1 - y0).data;
+  let n = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 120 && Math.abs(d[i] - r) < 45 && Math.abs(d[i + 1] - gg) < 45 && Math.abs(d[i + 2] - b) < 45) n++;
+  return n;
+}, [id, variable, de, a]);
+
 const enregistrer = (page, ms) => page.evaluate((ms) => new Promise((fin) => {
   const traces = [];
   const iv = setInterval(() => traces.push({
@@ -325,5 +342,58 @@ test.describe('Cascade : le défi', () => {
     await expect(page.locator('#kvVerdict')).toContainText(/Bravo|Bien joué|Superbe|Tu l/);
     // pas de fausse note : tout ce qui a été frappé était juste
     await expect(page.locator('#kvPct small')).toContainText('100 %');
+  });
+});
+
+test.describe('Cascade : voir où on a frappé', () => {
+  test('la zone de frappe est dessinée autour de la ligne', async ({ page }) => {
+    await ouvrir(page);
+    const opacite = (de, a) => page.evaluate(([de, a]) => {
+      const cv = document.querySelector('#kvFall'), dpr = cv.width / cv.clientWidth, hit = cv.clientHeight - 22;
+      const pad = document.querySelector('.pad[data-id="poum"]').getBoundingClientRect(), cr = cv.getBoundingClientRect();
+      const x0 = Math.round((pad.left - cr.left) * dpr), x1 = Math.round((pad.right - cr.left) * dpr);
+      const y0 = Math.round((hit + de) * dpr), y1 = Math.round((hit + a) * dpr);
+      const d = cv.getContext('2d').getImageData(x0, y0, x1 - x0, y1 - y0).data;
+      let n = 0;
+      for (let i = 3; i < d.length; i += 4) n += d[i];
+      return n / (d.length / 4);
+    }, [de, a]);
+    const dans = await opacite(-4, 4), loin = await opacite(-120, -40);
+    expect(dans, 'la zone de frappe est plus marquée que le couloir').toBeGreaterThan(loin + 15);
+  });
+
+  test('le verdict de la frappe apparaît dans le couloir, au-dessus de la ligne', async ({ page }) => {
+    await ouvrir(page);
+    await page.locator('#play').click();
+    await page.evaluate(() => {
+      let derniere = null;
+      setInterval(() => {
+        const c = document.querySelector('#grid .cell.on.now[data-id="poum"]');
+        if (derniere && !derniere.classList.contains('now')) derniere = null;
+        if (c && c !== derniere) {
+          derniere = c;
+          document.querySelector('.pad[data-id="poum"]').dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, bubbles: true, cancelable: true, pressure: 1 }));
+        }
+      }, 4);
+    });
+    await page.waitForFunction(() => document.querySelector('#kvPct b')?.textContent.trim() !== '', null, { timeout: 8000 });
+    let vu = 0;
+    for (let i = 0; i < 60 && vu < 40; i++) {
+      vu = Math.max(vu, await compter(page, 'poum', '--ok', -70, -16));
+      await page.waitForTimeout(40);
+    }
+    expect(vu, 'texte du verdict dans le couloir').toBeGreaterThan(40);
+  });
+
+  test('en défi, une note qu\'on n\'a pas jouée passe au rouge dans le couloir', async ({ page }, info) => {
+    test.skip(info.project.name !== 'telephone', 'long : projet téléphone seulement');
+    await ouvrir(page, { defi: true });
+    await expect(page.locator('#kvHint')).toContainText('À toi', { timeout: 20000 });
+    let rouge = 0;
+    for (let i = 0; i < 150 && rouge < 40; i++) {
+      rouge = Math.max(rouge, await compter(page, 'poum', '--err', -90, 60), await compter(page, 'tchak', '--err', -90, 60));
+      await page.waitForTimeout(60);
+    }
+    expect(rouge, 'repère rouge (Oups) dans un couloir').toBeGreaterThan(40);
   });
 });
