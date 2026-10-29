@@ -185,3 +185,51 @@ test.describe('Parle-le avant de le jouer', () => {
     await expect(page.locator('#play')).toHaveText('Jouer');
   });
 });
+
+test.describe('Défi : écoute, puis joue', () => {
+  /* Tape les notes du rythme, mais seulement quand la vue dit « À toi ». */
+  const jouerSonTour = (page, id) => page.evaluate((id) => {
+    let derniere = null;
+    window.__tour = setInterval(() => {
+      const c = document.querySelector(`#grid .cell.on.now[data-id="${id}"]`);
+      if (derniere && !derniere.classList.contains('now')) derniere = null;
+      if (c && c !== derniere && document.querySelector('#kvHint').textContent.startsWith('À toi')) {
+        derniere = c;
+        document.querySelector(`.pad[data-id="${id}"]`).dispatchEvent(new PointerEvent('pointerdown', { pointerId: 7, bubbles: true, cancelable: true, pressure: 1 }));
+      }
+    }, 4);
+  }, id);
+
+  test('le défi s\'ouvre depuis Pratique, écoute puis décompte puis ton tour', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.locator('#chalBtn').click();
+    await expect(page.locator('#kitView')).toBeVisible();
+    await expect(page.locator('#kvMode [data-v="defi"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#kvHint')).toHaveText('Écoute le rythme…');
+    await expect(page.locator('#kvHint')).toHaveText('Prépare-toi…', { timeout: 9000 });
+    await expect(page.locator('#kvCount')).toHaveClass(/pre/);
+    await expect(page.locator('#kvHint')).toHaveText('À toi : tape le rythme', { timeout: 9000 });
+    await expect(page.locator('.pad.cible')).toHaveCount(0);
+  });
+
+  test('sans rien jouer, le tempo ralentit', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.locator('#chalBtn').click();
+    await expect(page.locator('#kvChal')).toContainText('ralentit', { timeout: 20000 });
+    await expect(page.locator('#bpmIn')).toHaveValue('90');
+    await expect(page.locator('#kvChal')).toContainText('Manche 2');
+  });
+
+  test('en jouant juste, le tempo accélère', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.locator('#chalBtn').click();
+    await jouerSonTour(page, 'tchak');
+    await jouerSonTour(page, 'poum');
+    await jouerSonTour(page, 'tss');
+    await expect(page.locator('#kvChal')).toContainText('accélère', { timeout: 20000 });
+    await expect(page.locator('#bpmIn')).toHaveValue('106');
+    await page.locator('#play').click();
+    await expect(page.locator('#bpmIn')).toHaveValue('100');
+    await expect(page.locator('#kvChal')).toContainText('record 100');
+  });
+});

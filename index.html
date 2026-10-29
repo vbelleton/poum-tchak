@@ -245,6 +245,10 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-pct small{display:block;font:500 10px/1.2 var(--f-mono);color:var(--muted);text-align:right}
 .kv-lay{display:grid;gap:6px}
 .kv-lay .kv-row .lab{min-width:0}
+.kv-chal{margin:0;font:500 12px/1.35 var(--f-mono);color:var(--muted);text-align:center}
+.kv-chal b{color:var(--ink)}
+.kv-chal small{display:block;font:700 12px/1.35 var(--f-mono);color:var(--ink)}
+.kv-chal .ok{color:var(--ok)}.kv-chal .warn{color:var(--warn)}
 .kv-staff{--lh:24px;display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:start;border-top:1px solid var(--line);padding-top:7px}
 .kv-staff[hidden]{display:none}
 .ks-lab{display:grid;grid-auto-rows:var(--lh)}
@@ -301,7 +305,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .pad.fb-ok,.pad.fb-warn,.pad.fb-bad{color:var(--ink-inv)}
 .pad.fb-ok .pw,.pad.fb-warn .pw,.pad.fb-bad .pw,.pad.fb-ok .pdn,.pad.fb-warn .pdn,.pad.fb-bad .pdn{color:var(--ink-inv)}
 .pad.fb-ok .pv,.pad.fb-warn .pv,.pad.fb-bad .pv{opacity:1}
-.pad.fb-ok .pdn,.pad.fb-warn .pdn,.pad.fb-bad .pdn{visibility:hidden}
+.pad.fb-ok .pdn,.pad.fb-warn .pdn,.pad.fb-bad .pdn,.pad.fb-ok .pw,.pad.fb-warn .pw,.pad.fb-bad .pw{visibility:hidden}
 .pad.free:not(.fb-ok):not(.fb-warn):not(.fb-bad).on{background:var(--c);color:var(--ink-inv)}
 .pad.free.on .pw,.pad.free.on .pdn{color:var(--ink-inv)}
 @media (max-height:740px){
@@ -455,6 +459,8 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <div id="slot-pratique"></div>
     <div class="cta">
       <button type="button" class="btn xl" id="kitBtn">Jouer sur l'écran</button>
+      <button type="button" class="btn xl" id="chalBtn">Défi : écoute, puis joue</button>
+      <p class="hint">Le défi : l'appli joue le rythme, compte une mesure, puis c'est à toi de le taper. À 80 % de précision le tempo monte ; sinon il ralentit, autant de fois qu'il faut.</p>
       <p class="hint">La batterie en plein écran, à jouer avec les doigts. Les pads à frapper s'entourent au bon moment, et chaque frappe reçoit son verdict : parfait, bien, tôt, tard, raté.</p>
     </div>
 
@@ -611,6 +617,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <div class="kv-count" id="kvCount" aria-hidden="true">1</div>
       <div class="kv-pct" id="kvPct" aria-hidden="true"></div>
     </div>
+    <p class="kv-chal" id="kvChal" role="status" hidden></p>
     <div class="kv-staff" id="kvStaff" aria-hidden="true"></div>
     <div class="kv-read" id="kvRead" aria-hidden="true"></div>
     <div class="kv-meter" id="kvMeter" aria-hidden="true">
@@ -624,6 +631,12 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     <p class="kv-hint" id="kvHint"></p>
   </div>
   <div class="kv-lay">
+    <div class="kv-row"><span class="lab" id="lab-mode">Mode</span>
+      <div class="seg small" id="kvMode" role="group" aria-labelledby="lab-mode">
+        <button type="button" data-v="libre">Libre</button>
+        <button type="button" data-v="defi">Défi</button>
+      </div>
+    </div>
     <div class="kv-row"><span class="lab" id="lab-zones">Zones</span>
       <div class="seg small" id="kvLayout" role="group" aria-labelledby="lab-zones">
         <button type="button" data-v="kit">Batterie</button>
@@ -1073,7 +1086,7 @@ const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
 const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bars:[emptyGrid(METERS['44'])],bar:0,
-  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null},
+  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre'},
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
 const MAXBARS=8;
@@ -1330,21 +1343,32 @@ function setNow(step){
 /* ---------- Moteur de tempo ---------- */
 let timer=null,rafId=0,nextTime=0,sched=0,schedBar=0,absBar=0,rampBase=null;
 const queue=[],recent=[];
+/* Le défi : une écoute (toutes les mesures), une mesure de décompte, puis ton tour.
+   Précision à 80 % : le tempo monte. Sinon il baisse, et on recommence. */
+const chal={on:false,nb:1,ph:'',round:0,base:100,best:0,res:'',resKind:'',last:''};
+const CHAL_OK=80;
+const chalLen=()=>2*chal.nb+1;
+const chalPhaseAt=abs=>{const k=abs%chalLen();return k<chal.nb?'listen':k===chal.nb?'count':'play';};
+const chalBarAt=abs=>{const k=abs%chalLen();return k<chal.nb?k:k===chal.nb?0:k-chal.nb-1;};
 const isSilentBar=abs=>state.sil.on&&abs%state.sil.every===state.sil.every-1;
 function scheduleStep(bar,step,abs,t){
   const m=M();const g=state.bars[bar]||state.bars[0];const ids=[];
-  const silent=isSilentBar(abs);
-  const audible=!silent&&!state.mute;
-  DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);if(audible)voice(d.id,t,VEL[v]);}});
-  if(!silent&&(state.click||state.mute)&&step%m.perBeat===0)clickSound(t,step===0);
-  queue.push({t,step,bar,ids,lv:levelOf(g,ids,step),silent});
-  if(ids.length){recent.push({t,ids,hit:{},done:false});if(recent.length>96)recent.shift();}
+  const ph=chal.on?chalPhaseAt(abs):'';
+  const silent=!chal.on&&isSilentBar(abs);
+  /* Qui se tait : tout en mode muet ; en défi, rien pendant le décompte et tes fûts pendant ton tour ;
+     en « Utiles », les fûts que tu joues. */
+  const hush=id=>state.mute||(chal.on?(ph==='play'&&chalMine().includes(id)):(kvOpen&&kvMutes.has(id)));
+  if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);if(!silent&&!hush(d.id))voice(d.id,t,VEL[v]);}});
+  const clk=chal.on?(ph!=='listen'||state.click):(state.click||state.mute);
+  if(!silent&&clk&&step%m.perBeat===0)clickSound(t,step===0);
+  queue.push({t,step,bar,abs,ids,lv:levelOf(g,ids,step),silent,ph});
+  if(ids.length){recent.push({t,ids,hit:{},done:!!ph&&ph!=='play',ph});if(recent.length>96)recent.shift();}
 }
 function tick(){
   const m=M();
   while(nextTime<ctx.currentTime+0.12){
     if(sched>=m.steps)sched=0;
-    if(schedBar>=state.bars.length)schedBar=0;
+    if(chal.on)schedBar=chalBarAt(absBar);else if(schedBar>=state.bars.length)schedBar=0;
     scheduleStep(schedBar,sched,absBar,nextTime);
     const nxt=(sched+1)%m.steps;
     const end=nxt===0?m.beats*60/state.bpm:stepOffset(nxt,m,state.bpm,state.swing);
@@ -1352,7 +1376,7 @@ function tick(){
     sched=nxt;
     if(nxt===0){
       absBar++;schedBar=(schedBar+1)%state.bars.length;
-      if(state.ramp.on&&absBar%state.ramp.every===0&&state.bpm<220){
+      if(!chal.on&&state.ramp.on&&absBar%state.ramp.every===0&&state.bpm<220){
         setBpm(state.bpm+state.ramp.add);
         setWork('Tempo progressif : '+state.bpm+' BPM.');
       }
@@ -1366,6 +1390,7 @@ function frame(){
     if(e.bar!==state.bar&&state.bars.length>1)showBar(e.bar);
     if(e.step===0)$('#silFlag').hidden=!e.silent;
     setNow(e.step);flash(e.ids,e.lv);
+    if(chal.on)chalPop(e);
     guide(e);
   }
   checkMisses();
@@ -1376,6 +1401,15 @@ function play(){
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
   state.playing=true;sched=0;schedBar=0;absBar=0;nextTime=ctx.currentTime+0.08;queue.length=0;recent.length=0;resetScore();
   rampBase=state.ramp.on?state.bpm:null;
+  chal.on=kvOpen&&state.kvl.mode==='defi';
+  if(chal.on){
+    if(!usedDrums().length){
+      chal.on=false;state.playing=false;clearInterval(timer);cancelAnimationFrame(rafId);
+      chal.last='Ajoute d\'abord des notes dans la grille.';chalText();updateControls();return;
+    }
+    Object.assign(chal,{nb:state.bars.length,ph:'',round:0,base:state.bpm,best:0,res:'',resKind:'',last:''});
+    rampBase=null;sc.mine=new Set(chalMine());
+  }
   if(state.bars.length>1&&state.bar!==0)showBar(0);
   timer=setInterval(tick,25);tick();
   rafId=requestAnimationFrame(frame);
@@ -1391,7 +1425,16 @@ function stop(){
     const top=state.bpm;setBpm(rampBase);
     setWork('Tu es monté à '+top+' BPM. Retour à '+rampBase+' BPM.');
   }
-  rampBase=null;keepAwake(false);updateControls();
+  rampBase=null;
+  if(chal.on){
+    chal.on=false;chal.ph='';endCount();
+    if(chal.round){
+      chal.last='Fini : '+chal.round+(chal.round>1?' manches':' manche')+(chal.best?', record '+chal.best+' BPM':', pas encore de manche réussie')+'. Tempo remis à '+chal.base+'.';
+    }else chal.last='';
+    setBpm(chal.base);
+  }
+  chalText();
+  keepAwake(false);updateControls();
 }
 
 /* ---------- Grille et textes ---------- */
@@ -1532,6 +1575,7 @@ async function startDrill(v){
     if(state.live){drill='mic';$('#follow').checked=false;dmsgEl().textContent=DRILL_MSG.mic;}
     updateDrillUI();return;
   }
+  if(v==='screen')state.kvl.mode='libre';
   play();
   if(!state.playing){updateDrillUI();return;}
   state.mute=v!=='listen';
@@ -1624,6 +1668,8 @@ function applyLayout(){
   /* En « Utiles », l'appli se tait sur les fûts que tu joues : c'est ta partie. */
   kvMutes=lay==='utiles'?new Set(z):new Set();
   PAD_ORDER.forEach(id=>padEls[id].classList.toggle('free',lay!=='utiles'));
+  [...$('#kvMode').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.kvl.mode)));
+  chalText();
   [...$('#kvLayout').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===lay)));
   renderMine();renderStaff();updateHint();
 }
@@ -1661,6 +1707,11 @@ const list=ids=>ids.length<2?ids.map(W).join(''):ids.slice(0,-1).map(W).join(', 
 function updateHint(){
   const h=$('#kvHint');
   if(!kvOpen)return;
+  if(chal.on&&state.playing){
+    h.textContent=chal.ph==='play'?'À toi : tape le rythme':counting?'Prépare-toi…':'Écoute le rythme…';
+    return;
+  }
+  if(!state.playing&&state.kvl.mode==='defi'){h.textContent='Appuie sur ▶ : écoute, décompte, puis à toi.';return;}
   if(counting){h.textContent='Prépare-toi…';return;}
   if(!state.playing){h.textContent='Appuie sur ▶ en bas : une mesure de décompte, puis à toi.';return;}
   if(state.kvl.layout==='utiles'){
@@ -1746,15 +1797,74 @@ function padHit(id){
   judge(id);
 }
 
+/* ---------- Défi ---------- */
+const chalMine=()=>state.kvl.layout==='utiles'?myDrums():usedDrums();
+function chalText(){
+  const p=$('#kvChal');
+  if(!p)return;
+  p.hidden=state.kvl.mode!=='defi';
+  if(p.hidden)return;
+  if(!chal.on){p.textContent=chal.last||'Écoute, puis joue : à '+CHAL_OK+' % le tempo monte, sinon il baisse.';return;}
+  p.innerHTML='<b>Manche '+(chal.round+1)+'</b> · '+state.bpm+' BPM'+(chal.best?' · record '+chal.best:'')+
+    (chal.res?'<small class="'+chal.resKind+'">'+chal.res+'</small>':'');
+}
+function chalPop(e){
+  if(e.ph!==chal.ph){
+    const prev=chal.ph;chal.ph=e.ph;
+    if(prev==='play')chalEvaluate();
+    if(e.ph!=='count')endCount();
+    if(e.ph==='play'){
+      Object.assign(sc,{perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,offs:[],mine:new Set(chalMine())});
+      chal.res='';setVerdict('','');updateScore();
+    }
+    chalText();updateHint();
+  }
+  if(e.ph==='count')countBeat(e);
+}
+function chalEvaluate(){
+  checkMisses();
+  recent.forEach(r=>{
+    if(r.ph==='play'&&!r.done){r.done=true;r.ids.forEach(id=>{if(sc.mine.has(id)&&!r.hit[id])sc.miss++;});}
+  });
+  const n=judged(),p=pct(),old=state.bpm;
+  chal.round++;
+  if(n&&p>=CHAL_OK){
+    chal.best=Math.max(chal.best,old);
+    const up=Math.min(220,old+Math.max(2,Math.round(old*0.06)));
+    setBpm(up);
+    chal.res=p+' % : réussi'+(up>old?', on accélère à '+up+' BPM.':', tempo maximum.');chal.resKind='ok';
+    setVerdict('Réussi !','ok');
+  }else{
+    const down=Math.max(40,old-Math.max(3,Math.round(old*0.1)));
+    setBpm(down);
+    chal.res=(n?p+' % : pas encore':'Rien joué')+(down<old?', on ralentit à '+down+' BPM.':', déjà au plus lent.');chal.resKind='warn';
+    setVerdict(n?'Encore':'Rien joué','warn');
+  }
+}
+$('#kvMode').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(state.playing)stop();
+  state.kvl.mode=b.dataset.v;chal.last='';save();applyLayout();resetScore();
+});
+$('#chalBtn').addEventListener('click',()=>{
+  if(state.playing)stop();
+  state.kvl.mode='defi';chal.last='';
+  if(kvOpen){applyLayout();resetScore();}else openKit();
+  play();
+});
+
 /* Le guide : la zone qui doit sonner maintenant s'allume, celle qui vient s'annonce. */
 function guide(e){
   if(!kvOpen)return;
   PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
   if(!state.playing)return;
+  /* À ton tour, en défi, seule la partition te guide : les pads ne soufflent rien. */
+  if(chal.on&&e.ph!=='listen')return;
   e.ids.forEach(id=>padEls[id].classList.add('cible'));
   const m=M();
   let bar=e.bar,st=e.step+1;
-  if(st>=m.steps){st=0;bar=(bar+1)%state.bars.length;}
+  if(st>=m.steps){st=0;bar=chal.on?chalBarAt(e.abs+1):(bar+1)%state.bars.length;}
+  if(chal.on&&st===0&&e.step+1>=m.steps&&chalPhaseAt(e.abs+1)!=='listen')return;
   const g=state.bars[bar]||G();
   IDS.forEach(id=>{if(g[id][st]&&!e.ids.includes(id))padEls[id].classList.add('proche');});
 }
@@ -1791,13 +1901,13 @@ function padFeedback(id,kind,txt){
   clearTimeout(p._f);p._f=setTimeout(()=>p.classList.remove('fb-'+kind),260);
 }
 function judge(id){
-  if(!kvOpen||!state.playing||!ctx||counting)return;
+  if(!kvOpen||!state.playing||!ctx||(chal.on&&chal.ph==='listen'))return;
   sc.mine.add(id);
   const now=ctx.currentTime,win=judgeWin();
   let best=null,bd=1e9;
   for(let i=0;i<recent.length;i++){
     const e=recent[i];
-    if(e.hit[id]||e.ids.indexOf(id)<0)continue;
+    if(e.hit[id]||e.ids.indexOf(id)<0||(chal.on&&e.ph!=='play'))continue;
     const d=now-e.t;
     if(Math.abs(d)<Math.abs(bd)){bd=d;best=e;}
   }
@@ -1810,6 +1920,7 @@ function judge(id){
     else{const w=ms<0?'Tôt':'Tard';sc.approx++;setVerdict(w,'warn');padFeedback(id,'warn',w);}
     if(sc.streak>sc.best)sc.best=sc.streak;
   }else{
+    if(chal.on&&chal.ph!=='play')return;
     sc.extra++;sc.streak=0;setVerdict('En trop','bad');padFeedback(id,'bad','En trop');
   }
   updateScore();
@@ -1891,6 +2002,8 @@ function closeKit(silent){
   kvOpen=false;$('#kitView').hidden=true;
   document.body.style.overflow='';
   kvMutes=new Set();counting=false;
+  if(chal.on&&state.playing)stop();
+  chal.last='';
   PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));
   if(drill==='screen'&&!silent){
     stop();
@@ -1899,7 +2012,7 @@ function closeKit(silent){
   if(!state.playing&&!state.live)keepAwake(false);
   if(kvReturn&&kvReturn.focus&&document.contains(kvReturn))kvReturn.focus();
 }
-$('#kitBtn').addEventListener('click',openKit);
+$('#kitBtn').addEventListener('click',()=>{if(!kvOpen){state.kvl.mode='libre';chal.last='';}openKit();});
 $('#kvClose').addEventListener('click',()=>closeKit());
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&kvOpen)closeKit();});
 
