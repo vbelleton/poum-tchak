@@ -219,9 +219,10 @@ test.describe('Défi : écoute, puis joue', () => {
   test('sans rien jouer, le tempo ralentit', async ({ page }) => {
     await rubrique(page, 'Pratique');
     await page.locator('#chalBtn').click();
-    await expect(page.locator('#kvChal')).toContainText('ralentit', { timeout: 20000 });
-    await expect(page.locator('#bpmIn')).toHaveValue('90');
+    await expect(page.locator('#kvChal')).toContainText('ralentit', { timeout: 24000 });
+    await expect(page.locator('#bpmIn')).toHaveValue('54');
     await expect(page.locator('#kvChal')).toContainText('Manche 2');
+    await expect(page.locator('#kvChal')).toContainText('pas grave');
   });
 
   test('en jouant juste, le tempo accélère', async ({ page }) => {
@@ -230,11 +231,14 @@ test.describe('Défi : écoute, puis joue', () => {
     await jouerSonTour(page, 'tchak');
     await jouerSonTour(page, 'poum');
     await jouerSonTour(page, 'tss');
-    await expect(page.locator('#kvChal')).toContainText('accélère', { timeout: 20000 });
-    await expect(page.locator('#bpmIn')).toHaveValue('106');
+    await expect(page.locator('#kvChal')).toContainText('accélère', { timeout: 24000 });
+    await expect(page.locator('#bpmIn')).toHaveValue('65');
+    await expect(page.locator('#kvChal')).toContainText('★');
+    await expect(page.locator('#kvVerdict')).toContainText(/Bravo|Bien joué|Superbe|Tu l/);
+    await expect(page.locator('.kv-card')).toHaveClass(/win/);
     await page.locator('#play').click();
-    await expect(page.locator('#bpmIn')).toHaveValue('100');
-    await expect(page.locator('#kvChal')).toContainText('record 100');
+    await expect(page.locator('#bpmIn')).toHaveValue('60');
+    await expect(page.locator('#kvChal')).toContainText('record 60');
   });
 });
 
@@ -294,7 +298,7 @@ test.describe('Rien ne bouge pendant le jeu', () => {
         }, 16);
       });
       // des ratés (rien n'est joué) puis un bilan de manche
-      await page.waitForTimeout(bouton === "Jouer sur l'écran" ? 4500 : 10500);
+      await page.waitForTimeout(bouton === "Jouer sur l'écran" ? 4500 : 14500);
       expect(await page.evaluate(() => [...window.__pos])).toHaveLength(1);
     });
   }
