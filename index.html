@@ -666,7 +666,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <span>tôt</span><div class="kv-gauge" id="kvBar"><i class="mid"></i></div><span>tard</span>
       <b class="kv-streak" id="kvStreak"></b>
     </div>
-    <div class="kv-scorerow"><p class="kv-score" id="kvScore" role="status"></p><button type="button" class="chip" id="offAuto2" hidden>Recaler</button></div>
+    <div class="kv-scorerow"><p class="kv-score" id="kvScore" role="status"></p><button type="button" class="chip" id="offAuto2">Recaler</button></div>
   </div>
   <div class="kv-say">
     <div class="kv-verdict" id="kvVerdict" aria-hidden="true"></div>
@@ -1780,7 +1780,7 @@ $('#offDown').addEventListener('click',()=>setOff(state.kvl.off-10));
 $('#offUp').addEventListener('click',()=>setOff(state.kvl.off+10));
 /* Recaler : on corrige du retard moyen mesuré sur tes dernières frappes. */
 function recaler(){
-  if(sc.offs.length<4){$('#kvScore').textContent='Joue quelques frappes d\'abord, puis recale.';return;}
+  if(sc.offs.length<4){$('#kvScore').textContent='Frappe quelques notes, puis touche Recaler.';return;}
   const mean=sc.offs.reduce((a,b)=>a+b,0)/sc.offs.length;
   setOff(state.kvl.off+mean);
   sc.offs=[];drawMeter();
@@ -2155,7 +2155,7 @@ function tendency(){
 function updateScore(){
   if(!kvOpen)return;
   const n=judged();
-  {const o=sc.offs,mean=o.length>=6?o.reduce((a,b)=>a+b,0)/o.length:0;$('#offAuto2').hidden=Math.abs(mean)<=25;}
+  $('#offAuto2').hidden=false;
   const kp=$('#kvPct');
   kp.innerHTML=n?pct()+' %<small>précision</small>':'';
   kp.className='kv-pct'+(n?(pct()>=85?' ok':pct()>=60?' warn':' bad'):'');

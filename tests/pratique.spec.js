@@ -308,11 +308,10 @@ test.describe('Rien ne bouge pendant le jeu', () => {
 test('Recaler apparaît quand toutes les frappes sont en retard, et corrige le décalage', async ({ page }) => {
   await rubrique(page, 'Pratique');
   await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
-  await expect(page.locator('#offAuto2')).toBeHidden();
+  await expect(page.locator('#offAuto2')).toBeVisible();
   await page.locator('#play').click();
   const n = await frapperEnRythme(page, 'tss', 8, 90);
   expect(n).toBe(8);
-  await expect(page.locator('#offAuto2')).toBeVisible();
   await page.locator('#offAuto2').click();
   await expect(page.locator('#kvScore')).toContainText('Recalé');
   await expect(page.locator('#offAuto2')).toBeHidden();
