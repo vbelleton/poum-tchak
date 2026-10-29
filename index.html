@@ -245,9 +245,9 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-pct small{display:block;font:500 10px/1.2 var(--f-mono);color:var(--muted);text-align:right}
 .kv-lay{display:grid;gap:6px}
 .kv-lay .kv-row .lab{min-width:0}
-.kv-chal{margin:0;font:500 12px/1.35 var(--f-mono);color:var(--muted);text-align:center}
+.kv-chal{margin:0;font:500 12px/16px var(--f-mono);color:var(--muted);text-align:center;height:32px;overflow:hidden}
 .kv-chal b{color:var(--ink)}
-.kv-chal small{display:block;font:700 12px/1.35 var(--f-mono);color:var(--ink)}
+.kv-chal small{display:block;font:700 12px/16px var(--f-mono);color:var(--ink)}
 .kv-chal .ok{color:var(--ok)}.kv-chal .warn{color:var(--warn)}
 .kv-staff{--lh:24px;display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:start;border-top:1px solid var(--line);padding-top:7px}
 .kv-staff[hidden]{display:none}
@@ -271,7 +271,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-gauge i.last{opacity:1;width:4px;margin-left:-2px}
 .kv-gauge i.mid{left:50%;opacity:.5;width:1px;margin-left:0}
 .kv-streak{font:700 12px var(--f-mono);color:var(--ink);min-width:58px;text-align:right}
-.kv-score{font:500 12px/1.3 var(--f-mono);color:var(--muted);margin:0;text-align:center}
+.kv-score{font:500 12px/16px var(--f-mono);color:var(--muted);margin:0;text-align:center;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kv-say{display:grid;place-items:center;min-height:44px;text-align:center;overflow:hidden}
 .kv-verdict{grid-area:1/1;font:800 clamp(22px,7vw,32px)/1 var(--f-display);color:var(--muted)}
 .kv-verdict:empty{display:none}
@@ -333,6 +333,9 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 @media (max-height:740px){
   .kv-meter{display:none}
   .kv-staff{--lh:19px}
+  .kv-lay{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+  .kv-lay>.kv-row>.lab{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .kv-lay>#kvMineRow:not([hidden]){flex:1 1 100%}
   .kv-staff:not([hidden])~.kv-read{display:none}
   .kv-head{min-height:44px}
 }

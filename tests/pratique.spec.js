@@ -278,3 +278,24 @@ test.describe('Cascade', () => {
     expect(dedans).toBe(true);
   });
 });
+
+test.describe('Rien ne bouge pendant le jeu', () => {
+  for (const [nom, bouton, zone] of [['en libre, fûts utiles', "Jouer sur l'écran", 'Utiles'], ['en défi, batterie', 'Défi : écoute, puis joue', 'Batterie']]) {
+    test(`les pads gardent leur place malgré les verdicts (${nom})`, async ({ page }) => {
+      await rubrique(page, 'Pratique');
+      await page.getByRole('button', { name: bouton }).first().click();
+      await page.locator('#kvLayout').getByRole('button', { name: zone }).click();
+      if (bouton === "Jouer sur l'écran") await page.locator('#play').click();
+      await page.evaluate(() => {
+        window.__pos = new Set();
+        setInterval(() => {
+          const r = document.querySelector('#kvPads').getBoundingClientRect();
+          window.__pos.add(Math.round(r.top) + '/' + Math.round(r.height));
+        }, 16);
+      });
+      // des ratés (rien n'est joué) puis un bilan de manche
+      await page.waitForTimeout(bouton === "Jouer sur l'écran" ? 4500 : 10500);
+      expect(await page.evaluate(() => [...window.__pos])).toHaveLength(1);
+    });
+  }
+});
