@@ -277,7 +277,10 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-gauge i.last{opacity:1;width:4px;margin-left:-2px}
 .kv-gauge i.mid{left:50%;opacity:.5;width:1px;margin-left:0}
 .kv-streak{font:700 12px var(--f-mono);color:var(--ink);min-width:58px;text-align:right}
-.kv-score{font:500 12px/16px var(--f-mono);color:var(--muted);margin:0;text-align:center;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv-scorerow{display:flex;align-items:center;justify-content:center;gap:8px;min-height:30px}
+.kv-scorerow .chip{min-height:30px;padding:0 12px;font-size:12px}
+.kv-scorerow .chip[hidden]{display:inline-flex;visibility:hidden}
+.kv-score{flex:1 1 auto;min-width:0;font:500 12px/16px var(--f-mono);color:var(--muted);margin:0;text-align:center;height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kv-say{display:grid;place-items:center;min-height:44px;text-align:center;overflow:hidden}
 .kv-verdict{grid-area:1/1;font:800 clamp(22px,7vw,32px)/1 var(--f-display);color:var(--muted)}
 .kv-verdict:empty{display:none}
@@ -663,7 +666,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <span>tôt</span><div class="kv-gauge" id="kvBar"><i class="mid"></i></div><span>tard</span>
       <b class="kv-streak" id="kvStreak"></b>
     </div>
-    <p class="kv-score" id="kvScore" role="status"></p>
+    <div class="kv-scorerow"><p class="kv-score" id="kvScore" role="status"></p><button type="button" class="chip" id="offAuto2" hidden>Recaler</button></div>
   </div>
   <div class="kv-say">
     <div class="kv-verdict" id="kvVerdict" aria-hidden="true"></div>
@@ -1766,12 +1769,16 @@ function setOff(v){state.kvl.off=Math.max(-150,Math.min(150,Math.round(v)));show
 $('#offDown').addEventListener('click',()=>setOff(state.kvl.off-10));
 $('#offUp').addEventListener('click',()=>setOff(state.kvl.off+10));
 /* Recaler : on corrige du retard moyen mesuré sur tes dernières frappes. */
-$('#offAuto').addEventListener('click',()=>{
+function recaler(){
   if(sc.offs.length<4){$('#kvScore').textContent='Joue quelques frappes d\'abord, puis recale.';return;}
   const mean=sc.offs.reduce((a,b)=>a+b,0)/sc.offs.length;
   setOff(state.kvl.off+mean);
-  $('#kvScore').textContent='Décalage réglé sur '+(state.kvl.off>0?'+':'')+state.kvl.off+' ms.';
-});
+  sc.offs=[];drawMeter();
+  $('#offAuto2').hidden=true;
+  $('#kvScore').textContent='Recalé : décalage de '+(state.kvl.off>0?'+':'')+state.kvl.off+' ms.';
+}
+$('#offAuto').addEventListener('click',recaler);
+$('#offAuto2').addEventListener('click',recaler);
 $('#kvSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
 
 /* La consigne, en une phrase, selon la situation. */
@@ -2138,6 +2145,7 @@ function tendency(){
 function updateScore(){
   if(!kvOpen)return;
   const n=judged();
+  {const o=sc.offs,mean=o.length>=6?o.reduce((a,b)=>a+b,0)/o.length:0;$('#offAuto2').hidden=Math.abs(mean)<=25;}
   const kp=$('#kvPct');
   kp.innerHTML=n?pct()+' %<small>précision</small>':'';
   kp.className='kv-pct'+(n?(pct()>=85?' ok':pct()>=60?' warn':' bad'):'');
