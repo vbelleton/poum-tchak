@@ -1931,7 +1931,7 @@ function chalText(){
   if(!p)return;
   p.hidden=state.kvl.mode!=='defi';
   if(p.hidden)return;
-  if(!chal.on){p.textContent=chal.last||'Départ tout doux à '+state.bpm+' BPM. À '+CHAL_OK+' % le tempo monte, sinon il ralentit : pas de stress.';return;}
+  if(!chal.on){p.textContent=chal.last||'Départ tout doux à '+state.bpm+' BPM. À '+CHAL_OK+' % le tempo monte, sinon on y va plus doucement : pas de stress.';return;}
   p.innerHTML='<b>Manche '+(chal.round+1)+'</b> · '+state.bpm+' BPM'+(chal.best?' · record '+chal.best:'')+
     (chal.res?'<small class="'+chal.resKind+'">'+chal.res+'</small>':'');
 }
