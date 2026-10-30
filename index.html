@@ -251,13 +251,15 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .fly.ok{color:var(--ok)}.fly.warn{color:var(--warn)}
 @keyframes fly{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-52px}}
 .kv-lay{display:grid;gap:6px}
-.kv-mic{display:inline-flex;align-items:center;gap:6px}
-.kv-mic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.kv-mic[aria-pressed="true"]{background:var(--err);border-color:var(--err);color:#fff}
-.kv-mic[aria-pressed="true"] svg{animation:micpulse 1.2s ease-in-out infinite}
-@keyframes micpulse{50%{transform:scale(1.18)}}
-@media (prefers-reduced-motion:reduce){.kv-mic[aria-pressed="true"] svg{animation:none}}
-.kv-hear{font:600 12px var(--f-mono);color:var(--muted);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kv .kv-in svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.kv .kv-in[aria-pressed="true"]{background:var(--err);border-color:var(--err);color:#fff}
+#kvMidi[aria-pressed="true"]{background:var(--ok);border-color:var(--ok)}
+.kv .kv-in[aria-pressed="true"] svg{animation:micpulse 1.2s ease-in-out infinite}
+@keyframes micpulse{50%{transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.kv .kv-in[aria-pressed="true"] svg{animation:none}}
+.kv-hear{font:600 12px var(--f-mono);color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;min-width:0;overflow:hidden}
+.kv-hear .chip{min-height:30px;padding:0 10px}
+.kv-hear:not([hidden])~.kv-score:empty{display:none}
 .kv-hear b{color:var(--ink);font-size:14px}
 .kv-lay .kv-row .lab{min-width:0}
 .kv-card.win{border-color:var(--ok)}
@@ -327,7 +329,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .l-kit .pad::before{z-index:0}
 .l-kit .pad[data-id=tss]::before,.l-kit .pad[data-id=tchaa]::before,.l-kit .pad[data-id=psch]::before{display:none}
 .l-kit .pad svg{display:none}
-.l-kit .pad .pw{position:relative;z-index:1;font-size:max(12px,calc(var(--s)*.13cqmin));line-height:1;background:rgba(18,20,24,.78);color:#fff;border-radius:999px;padding:3px 8px}
+.l-kit .pad .pw{position:relative;z-index:1;max-width:none;white-space:nowrap;font-size:max(12px,calc(var(--s)*.13cqmin));line-height:1;background:rgba(18,20,24,.78);color:#fff;border-radius:999px;padding:3px 8px}
 .l-kit .pad .pdn{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .l-kit .pad .pv{bottom:auto;top:50%;transform:translateY(-50%);z-index:2}
 .l-kit .pad.on{transform:translate(-50%,-50%) scale(.95);filter:brightness(.88)}
@@ -352,7 +354,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   transition:background .08s,transform .06s,box-shadow .08s}
 .pad[hidden]{display:none!important}
 .pad svg{width:min(32px,6.5vw);height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.pad .pw{font:800 clamp(14px,4.4vw,22px)/1 var(--f-display);color:var(--ink);max-width:100%;overflow-wrap:anywhere;text-align:center}
+.pad .pw{font:800 clamp(14px,4.4vw,22px)/1 var(--f-display);color:var(--ink);max-width:100%;white-space:nowrap;text-align:center}
 .pad .pdn{font:500 11px/1.15 var(--f-body);color:var(--muted);text-align:center}
 .pad .pv{position:absolute;left:0;right:0;bottom:8px;font:800 15px/1 var(--f-display);color:var(--ink-inv);opacity:0;text-align:center;pointer-events:none}
 .kv-pads.big .pad svg{width:min(56px,12vw)}
@@ -382,11 +384,12 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .kv-lay{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
   .kv-lay>.kv-row>.lab{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .kv-lay>#kvMineRow:not([hidden]){flex:1 1 100%}
-  .kv-staff:not([hidden])~.kv-read{display:none}
+  .kv-read{font-size:11px;gap:2px 4px;padding-top:4px}
+  .kv-read .pg{padding:1px 3px}
+  .kv-count{font-size:40px}
   .kv-head{min-height:44px}
 }
 @media (max-height:620px){
-  .kv-read{display:none}
   .pad .pdn{display:none}
 }
 @media (max-height:460px){
@@ -402,7 +405,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .kv>.kv-bar1,.kv>.kv-set,.kv>.kv-card,.kv>.kv-say,.kv>.kv-lay{grid-column:1}
   .kv>.kv-pads{grid-column:2;grid-row:1 / -1;min-height:0}
   .kv>.kv-lay{grid-row:auto}
-  .kv-staff:not([hidden])~.kv-read,.kv-read,.kv-meter{display:none}
+  .kv-meter,.kv-staff:not([hidden])~.kv-read{display:none}
   .kv-head{min-height:34px}
   .kv-word{font-size:22px}
   .kv-count{font-size:30px}
@@ -685,6 +688,8 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   <div class="kv-bar1">
     <button type="button" class="ib" id="kvClose" aria-label="Fermer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
     <select class="sm" id="kvPat" aria-label="Rythme à jouer"></select>
+    <button type="button" class="ib kv-in" id="kvMidi" aria-pressed="false" aria-label="Brancher ma batterie électronique (MIDI)" title="Batterie électronique (MIDI)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="9.5" cy="8.5" r="1"/><circle cx="14.5" cy="8.5" r="1"/><circle cx="12" cy="7.3" r="1"/><path d="M10 17.5h4"/></svg></button>
+    <button type="button" class="ib kv-in" id="kvMic" aria-pressed="false" aria-label="Écouter ma vraie batterie au micro" title="Batterie au micro"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
     <button type="button" class="ib" id="kvSetBtn" aria-label="Réglages de la vue" aria-expanded="false" aria-controls="kvSet"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="8" r="1.5"/><circle cx="12.5" cy="12" r="1.5"/></svg></button>
   </div>
   <div class="kv-set" id="kvSet" hidden>
@@ -716,7 +721,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <span>tôt</span><div class="kv-gauge" id="kvBar"><i class="mid"></i></div><span>tard</span>
       <b class="kv-streak" id="kvStreak"></b>
     </div>
-    <div class="kv-scorerow"><p class="kv-score" id="kvScore" role="status"></p><button type="button" class="chip" id="offAuto2">Recaler</button></div>
+    <div class="kv-scorerow"><span class="kv-hear" id="kvHear" role="status" hidden><span id="kvHearTxt"></span> <button type="button" class="chip" id="kvTake" hidden>Prendre</button></span><p class="kv-score" id="kvScore" role="status"></p><button type="button" class="chip" id="offAuto2">Recaler</button></div>
   </div>
   <div class="kv-say">
     <div class="kv-verdict" id="kvVerdict" aria-hidden="true"></div>
@@ -735,10 +740,6 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
         <button type="button" data-v="chute">Cascade</button>
         <button type="button" data-v="utiles">Utiles</button>
       </div>
-    </div>
-    <div class="kv-row kv-microw"><span class="lab" id="lab-mic">Micro</span>
-      <button type="button" class="chip kv-mic" id="kvMic" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span>Ma vraie batterie</span></button>
-      <span class="kv-hear" id="kvHear" role="status" hidden><span id="kvHearTxt"></span> <button type="button" class="chip" id="kvTake" hidden>Prendre ce tempo</button></span>
     </div>
     <div class="kv-row" id="kvMineRow"><span class="lab" id="lab-mine">Je joue</span>
       <div class="pick" id="kvMine" role="group" aria-labelledby="lab-mine"></div>
@@ -1182,7 +1183,7 @@ const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
 const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bars:[emptyGrid(METERS['44'])],bar:0,
-  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre',off:0,micOff:0},
+  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre',off:0,micOff:0,midiOff:0},
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
 const MAXBARS=8;
@@ -1221,6 +1222,7 @@ function loadStore(){
   if(s.kvl&&typeof s.kvl==='object'){
     if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
     if(typeof s.kvl.off==='number')state.kvl.off=Math.max(-200,Math.min(400,Math.round(s.kvl.off)));
+    if(typeof s.kvl.midiOff==='number')state.kvl.midiOff=Math.max(-200,Math.min(500,Math.round(s.kvl.midiOff)));
     if(typeof s.kvl.micOff==='number')state.kvl.micOff=Math.max(-200,Math.min(500,Math.round(s.kvl.micOff)));
     state.kvl.mine=Array.isArray(s.kvl.mine)?s.kvl.mine.filter(id=>DRUMS.some(d=>d.id===id)):null;
   }
@@ -1466,9 +1468,9 @@ function scheduleStep(bar,step,abs,t){
   const silent=!chal.on&&isSilentBar(abs);
   /* Qui se tait : tout en mode muet ; en défi, rien pendant le décompte et tes fûts pendant ton tour ;
      en « Utiles », les fûts que tu joues. */
-  const hush=id=>state.mute||(chal.on?(ph==='play'&&chalMine().includes(id)):(kvOpen&&(kvMic||kvMutes.has(id))));
+  const hush=id=>state.mute||(chal.on?(ph==='play'&&chalMine().includes(id)):(kvOpen&&(extIn()||kvMutes.has(id))));
   if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);vals[d.id]=v;if(!silent&&!hush(d.id))voice(d.id,t,VEL[v]);}});
-  const clk=chal.on?(ph!=='listen'||state.click):(state.click||state.mute||(kvOpen&&kvMic));
+  const clk=chal.on?(ph!=='listen'||state.click):(state.click||state.mute||(kvOpen&&extIn()));
   if(!silent&&clk&&step%m.perBeat===0)clickSound(t,step===0);
   queue.push({t,step,bar,abs,ids,vals,lv:levelOf(g,ids,step),silent,ph});
   if(ids.length){recent.push({t,ids,vals,hit:{},done:!!ph&&ph!=='play',ph});if(recent.length>96)recent.shift();}
@@ -1854,7 +1856,7 @@ function recaler(){
   shiftOff(mean);
   sc.offs=[];drawMeter();
   $('#offAuto2').hidden=true;
-  $('#kvScore').textContent='Recalé'+(kvMic?' (micro)':'')+' : décalage de '+(curOff()>0?'+':'')+curOff()+' ms.';
+  $('#kvScore').textContent='Recalé'+(kvMidi?' (MIDI)':kvMic?' (micro)':'')+' : décalage de '+(curOff()>0?'+':'')+curOff()+' ms.';
 }
 $('#offAuto').addEventListener('click',recaler);
 $('#offAuto2').addEventListener('click',recaler);
@@ -1865,14 +1867,15 @@ const list=ids=>ids.length<2?ids.map(W).join(''):ids.slice(0,-1).map(W).join(', 
 function updateHint(){
   const h=$('#kvHint');
   if(!kvOpen)return;
+  hearRefresh();
   if(chal.on&&state.playing){
     h.textContent=chal.ph==='play'?'À toi : '+list(myDrums()):counting?'Prépare-toi…':'Écoute le rythme…';
     return;
   }
-  if(!state.playing&&state.kvl.mode==='defi'){h.textContent=kvMic?'Appuie sur ▶ : écoute, puis joue sur ta batterie.':'Appuie sur ▶ : écoute, décompte, puis à toi.';return;}
+  if(!state.playing&&state.kvl.mode==='defi'){h.textContent=extIn()?'Appuie sur ▶ : écoute, puis joue sur ta batterie.':'Appuie sur ▶ : écoute, décompte, puis à toi.';return;}
   if(counting){h.textContent='Prépare-toi…';return;}
-  if(!state.playing){h.textContent=kvMic?'Joue sur ta batterie : les pads s\'allument. ▶ pour être noté.':'Appuie sur ▶ en bas : une mesure de décompte, puis à toi.';return;}
-  if(kvMic){h.textContent='Joue sur ta batterie avec le clic';return;}
+  if(!state.playing){h.textContent=extIn()?'Joue sur ta batterie : les pads s\'allument. ▶ pour être noté.':'Appuie sur ▶ en bas : une mesure de décompte, puis à toi.';return;}
+  if(extIn()){h.textContent='Joue sur ta batterie avec le clic';return;}
   if(state.kvl.layout==='utiles'){
     const mine=myDrums(),rest=usedDrums().filter(id=>!mine.includes(id));
     h.textContent='Frappe '+list(mine)+(state.mute?' avec le clic':(rest.length?', l\'appli joue '+list(rest):' avec le clic'));
@@ -2124,28 +2127,38 @@ function drawFall(){
   });
 }
 
-/* ---------- Ta vraie batterie au micro ----------
-   Chaque coup entendu est reconnu (fûts appris dans Écoute, sinon grave / médium / aigu),
-   allume son pad et est noté comme une frappe sur l'écran. Le délai du micro a son propre réglage. */
-let kvMic=false,kvMicStarted=false;
+/* ---------- Ta vraie batterie : MIDI (batterie électronique) ou micro ----------
+   Chaque coup reçu allume son pad et est noté comme une frappe sur l'écran.
+   MIDI : le fût exact et l'heure exacte, par le câble USB de la batterie.
+   Micro : les coups entendus, reconnus par les fûts appris dans Écoute (sinon grave / médium / aigu).
+   Chaque entrée a son propre réglage de délai. */
+let kvMic=false,kvMicStarted=false,kvMidi=false,midiAcc=null;
+const extIn=()=>kvMic||kvMidi;
+const outLat=()=>(ctx&&(ctx.outputLatency||ctx.baseLatency))||0;
 const inLat=()=>{try{const t=live&&live.stream.getAudioTracks()[0],l=t&&t.getSettings&&t.getSettings().latency;return typeof l==='number'?l:0;}catch(e){return 0;}};
-const micLatency=()=>((ctx&&(ctx.outputLatency||ctx.baseLatency))||0)+inLat()+(state.kvl.micOff||0)/1000;
-const curOff=()=>kvMic?state.kvl.micOff:state.kvl.off;
+const micLatency=()=>outLat()+inLat()+(state.kvl.micOff||0)/1000;
+const midiLatency=()=>outLat()+(state.kvl.midiOff||0)/1000;
+const curOff=()=>kvMidi?state.kvl.midiOff:kvMic?state.kvl.micOff:state.kvl.off;
 function shiftOff(ms){
-  if(kvMic){state.kvl.micOff=Math.max(-200,Math.min(500,Math.round(state.kvl.micOff+ms)));save();}
+  const k=kvMidi?'midiOff':kvMic?'micOff':null;
+  if(k){state.kvl[k]=Math.max(-200,Math.min(500,Math.round((state.kvl[k]||0)+ms)));save();}
   else setOff(state.kvl.off+ms);
 }
-function hear(txt){$('#kvHear').hidden=false;$('#kvHearTxt').textContent=txt;}
-function micUI(){
-  const b=$('#kvMic');if(!b)return;
-  b.setAttribute('aria-pressed',String(kvMic));
-  b.querySelector('span').textContent=kvMic?'Micro allumé':'Ma vraie batterie';
-  if(!kvMic){$('#kvHear').hidden=true;$('#kvTake').hidden=true;}
+var hearTxt='';
+function hear(txt){hearTxt=txt;$('#kvHearTxt').textContent=txt;$('#kvHear').hidden=!txt||state.playing;}
+function extUI(){
+  $('#kvMic').setAttribute('aria-pressed',String(kvMic));
+  $('#kvMidi').setAttribute('aria-pressed',String(kvMidi));
+  if(!extIn()){hear('');$('#kvTake').hidden=true;}
   updateHint();
 }
+const micUI=extUI;
+/* Pendant la lecture, la rangée du bas montre le score ; à l'arrêt, ce que l'appli entend. */
+function hearRefresh(){$('#kvHear').hidden=!hearTxt||state.playing||!extIn();}
 async function setMic(on){
   if(on===kvMic)return;
   if(on){
+    if(kvMidi)setMidi(false);
     hear('Allumage du micro…');
     if(!state.live){
       await startLive();
@@ -2153,35 +2166,96 @@ async function setMic(on){
       kvMicStarted=true;
     }
     kvMic=true;if(live)live.pk=0;
-    hear('J\'écoute : joue sur ta batterie.');
+    hear('Micro : joue, les pads s\'allument.');
   }else{
     kvMic=false;
     if(kvMicStarted&&state.live)stopLive();
     kvMicStarted=false;
   }
-  micUI();
+  extUI();
 }
 $('#kvMic').addEventListener('click',()=>setMic(!kvMic));
 function showHeard(){
-  if(!res||res.bpm==null||res.clarity<0.12){hear('J\'écoute : pas encore de tempo net.');$('#kvTake').hidden=true;return;}
-  const b=Math.round(effBpm(res));
-  $('#kvHear').hidden=false;
-  $('#kvHearTxt').innerHTML='Tempo entendu <b>≈ '+b+' BPM</b>';
-  $('#kvTake').hidden=state.playing||res.clarity<0.25||Math.abs(b-state.bpm)<2;
+  if(!kvMic)return;
+  if(!res||res.bpm==null||res.clarity<0.12){hear('Micro : pas encore de tempo net.');$('#kvTake').hidden=true;return;}
+  showTempo(Math.round(effBpm(res)),res.clarity>=0.25);
 }
-$('#kvTake').addEventListener('click',()=>{if(res&&res.bpm!=null){setBpm(Math.round(effBpm(res)));$('#kvTake').hidden=true;}});
+let takeBpm=0;
+function showTempo(b,sure){
+  takeBpm=b;hearTxt='≈ '+b+' BPM';
+  $('#kvHearTxt').innerHTML='Tu joues à <b>≈ '+b+' BPM</b>';
+  hearRefresh();
+  $('#kvTake').hidden=state.playing||!sure||Math.abs(b-state.bpm)<2;
+}
+$('#kvTake').addEventListener('click',()=>{if(takeBpm){setBpm(takeBpm);$('#kvTake').hidden=true;}});
+function padFlash(id){
+  const p=padEls[id];
+  if(p&&!p.hidden){p.classList.add('on');clearTimeout(p._t);p._t=setTimeout(()=>p.classList.remove('on'),130);}
+}
 /* Un coup est retenu s'il est assez fort par rapport aux derniers : le haut-parleur du téléphone,
    plus faible que ta batterie, ne déclenche pas de fausses frappes. */
 function micHits(ids,t,strength){
   if(!kvOpen||!kvMic||!live)return;
   live.pk=Math.max(live.pk*0.97,strength);
   if(strength<0.3*live.pk)return;
-  ids.forEach(id=>{
-    const p=padEls[id];
-    if(p&&!p.hidden){p.classList.add('on');clearTimeout(p._t);p._t=setTimeout(()=>p.classList.remove('on'),130);}
-    judge(id,t-micLatency());
-  });
+  ids.forEach(id=>{padFlash(id);judge(id,t-micLatency());});
 }
+/* Les numéros de notes de batterie General MIDI, ceux des Alesis (Nitro, DM10) et de la plupart des batteries électroniques. */
+const GM_DRUM={35:'poum',36:'poum',37:'tchak',38:'tchak',39:'tchak',40:'tchak',
+  42:'tss',44:'tss',22:'tss',51:'tss',59:'tss',53:'tss',46:'tchaa',26:'tchaa',
+  48:'doum',50:'doum',47:'doum',45:'doum',43:'toum',41:'toum',58:'toum',
+  49:'psch',57:'psch',55:'psch',52:'psch',27:'psch'};
+const midiHitsT=[];
+function midiTempo(t){
+  midiHitsT.push(t);while(midiHitsT.length>16)midiHitsT.shift();
+  if(midiHitsT.length<8)return;
+  const ioi=[];for(let i=1;i<midiHitsT.length;i++){const d=midiHitsT[i]-midiHitsT[i-1];if(d>0.08)ioi.push(d);}
+  if(ioi.length<6)return;
+  /* chaque écart ramené dans une plage de un temps, puis la médiane */
+  const beats=ioi.map(d=>{while(d<0.4)d*=2;while(d>1.2)d/=2;return d;}).sort((a,b)=>a-b);
+  const med=beats[beats.length>>1];
+  const agree=beats.filter(d=>Math.abs(d-med)/med<0.08).length/beats.length;
+  if(agree>=0.6)showTempo(Math.round(60/med),true);
+}
+function midiMsg(e){
+  const [st,note,vel]=e.data;
+  if((st&0xf0)!==0x90||!vel)return;
+  const id=GM_DRUM[note];if(!id)return;
+  ensureAudio();
+  /* l'heure du coup, ramenée sur l'horloge du son */
+  let t=ctx.currentTime;
+  try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.performanceTime)t=o.contextTime+(e.timeStamp-o.performanceTime)/1000;else t=ctx.currentTime-(performance.now()-e.timeStamp)/1000;}catch(err){}
+  lightIcons([id]);showWord([id],vel>=110?3:vel<40?1:2);
+  if(!kvOpen)return;
+  padFlash(id);
+  if(!state.playing)midiTempo(t);
+  judge(id,t-midiLatency());
+}
+function midiInputs(){return midiAcc?[...midiAcc.inputs.values()]:[];}
+function midiBind(){
+  const ins=midiInputs();
+  ins.forEach(i=>{i.onmidimessage=kvMidi?midiMsg:null;});
+  if(!kvMidi)return;
+  if(!ins.length)hear('MIDI : branche la batterie (câble USB).');
+  else hear('MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓');
+}
+async function setMidi(on){
+  if(on===kvMidi)return;
+  if(on){
+    if(!navigator.requestMIDIAccess){
+      hear('Pas de MIDI dans ce navigateur.');
+      $('#kvScore').textContent='Sur iPhone : ouvre la page dans « Web MIDI Browser ». Sinon Chrome (Android, ordinateur).';
+      return;
+    }
+    if(kvMic)await setMic(false);
+    try{
+      if(!midiAcc){midiAcc=await navigator.requestMIDIAccess({sysex:false});midiAcc.onstatechange=()=>midiBind();}
+    }catch(err){hear('MIDI refusé par le navigateur.');return;}
+    kvMidi=true;midiHitsT.length=0;
+  }else kvMidi=false;
+  midiBind();extUI();
+}
+$('#kvMidi').addEventListener('click',()=>setMidi(!kvMidi));
 
 /* ---------- Défi ---------- */
 const chalMine=()=>myDrums();
@@ -2369,7 +2443,7 @@ function autoCale(d){
   if(curOff()===was)return false;
   Object.assign(sc,{miss:0,extra:0,streak:0});
   setVerdict('Je me cale','ok',1500);
-  $('#kvScore').textContent=(kvMic?'Micro en retard : calé à ':'Son en retard sur ce téléphone : calé à ')+(curOff()>0?'+':'')+curOff()+' ms. Continue !';
+  $('#kvScore').textContent=(kvMidi?'Batterie MIDI : calée à ':kvMic?'Micro en retard : calé à ':'Son en retard sur ce téléphone : calé à ')+(curOff()>0?'+':'')+curOff()+' ms. Continue !';
   return true;
 }
 function checkMisses(){
@@ -2450,6 +2524,7 @@ $('#kvPat').addEventListener('change',e=>{
 function closeKit(silent){
   if(!kvOpen)return;
   if(kvMic)setMic(false);
+  if(kvMidi)setMidi(false);
   const summary=judged()?pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():''):'';
   kvOpen=false;$('#kitView').hidden=true;
   document.body.style.overflow='';

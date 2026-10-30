@@ -29,7 +29,11 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   la ligne de frappe, façon Rock Band) ou seulement les fûts utiles.
   Le **défi** : l'appli joue le rythme, compte une mesure, puis c'est à toi de
   le taper. À 80 % de précision le tempo monte ; sinon il ralentit, autant de
-  fois qu'il faut. **Ma vraie batterie** : le micro entend chaque coup joué sur
+  fois qu'il faut. **Batterie électronique (MIDI)** : branchée en USB, chaque coup
+  arrive avec le fût et l'heure exacts, allume son pad et est noté ; le tempo joué
+  s'affiche. Chrome ou Edge (ordinateur, Android) ; sur iPhone, Safari ne gère pas
+  le MIDI : passer par une appli navigateur MIDI (Web MIDI Browser).
+  **Ma vraie batterie** : le micro entend chaque coup joué sur
   une vraie batterie, reconnaît le fût (grave, médium, aigu, ou les fûts appris
   par la calibration), allume le pad et le note comme une frappe sur l'écran,
   en libre comme en défi ; le tempo entendu s'affiche et peut être repris.

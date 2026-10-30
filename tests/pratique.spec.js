@@ -470,3 +470,21 @@ test.describe('Son en retard (écouteurs Bluetooth)', () => {
     await expect(page.locator('#kvScore')).not.toContainText('calé');
   });
 });
+
+test.describe('Petit écran (iPhone, barres de Safari)', () => {
+  test('les mots des pads restent entiers et les onomatopées du rythme restent visibles', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 664 });
+    await ouvrirBatterie(page);
+    await expect(page.locator('#kvRead')).toBeVisible();
+    await expect(page.locator('#kvRead .tk').first()).toBeInViewport();
+    const casses = await page.locator('.pad:not([hidden]) .pw').evaluateAll((l) => l
+      .filter((e) => e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 2)
+      .map((e) => e.textContent));
+    expect(casses, 'mots coupés sur deux lignes').toEqual([]);
+    for (const id of ['poum', 'tchak', 'tss']) {
+      const b = await page.locator(`.pad[data-id="${id}"]`).boundingBox();
+      expect(b.width, id).toBeGreaterThanOrEqual(44);
+    }
+  });
+});
+
