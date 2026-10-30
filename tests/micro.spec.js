@@ -47,4 +47,37 @@ test.describe('Micro @lent', () => {
     await page.locator('#drillSteps').getByRole('button', { name: /Jouer sur ta batterie/ }).click();
     await expect(page.locator('#liveBtn')).toHaveAttribute('aria-pressed', 'false');
   });
+
+  test('ma vraie batterie : les coups entendus allument les pads, et le tempo entendu s\'affiche', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    await page.evaluate(() => {
+      window.__allumes = new Set();
+      document.querySelectorAll('.pad').forEach((p) => new MutationObserver(() => {
+        if (p.classList.contains('on')) window.__allumes.add(p.dataset.id);
+      }).observe(p, { attributes: true, attributeFilter: ['class'] }));
+    });
+    await page.locator('#kvMic').click();
+    await expect(page.locator('#kvMic')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#kvHint')).toContainText('Joue sur ta batterie');
+    // le faux micro joue 3 grosses caisses, 3 caisses claires, 3 charlestons, puis un groove à 100 BPM
+    await expect.poll(() => page.evaluate(() => [...window.__allumes].sort()), { timeout: 15_000 }).toEqual(['poum', 'tchak', 'tss']);
+    await expect(page.locator('#kvHear')).toContainText(/≈ (99|100|101) BPM/, { timeout: 40_000 });
+    await page.locator('#kvTake').click();
+    await expect(page.locator('#bpmIn')).toHaveValue(/^(99|100|101)$/);
+    // fermer la vue éteint le micro
+    await page.getByRole('button', { name: 'Fermer' }).click();
+    await expect(page.locator('#liveBtn')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('ma vraie batterie : en jouant, chaque coup entendu est noté', async ({ page }) => {
+    await rubrique(page, 'Pratique');
+    await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
+    await page.locator('#kvMic').click();
+    await expect(page.locator('#kvMic')).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#play').click();
+    await expect(page.locator('#kvHint')).toContainText('Joue sur ta batterie', { timeout: 6000 });
+    await expect(page.locator('#kvScore')).toContainText(/juste|tôt ou tard|en trop/, { timeout: 20_000 });
+  });
 });
+

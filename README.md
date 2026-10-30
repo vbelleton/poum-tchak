@@ -29,7 +29,11 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   la ligne de frappe, façon Rock Band) ou seulement les fûts utiles.
   Le **défi** : l'appli joue le rythme, compte une mesure, puis c'est à toi de
   le taper. À 80 % de précision le tempo monte ; sinon il ralentit, autant de
-  fois qu'il faut. Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
+  fois qu'il faut. **Ma vraie batterie** : le micro entend chaque coup joué sur
+  une vraie batterie, reconnaît le fût (grave, médium, aigu, ou les fûts appris
+  par la calibration), allume le pad et le note comme une frappe sur l'écran,
+  en libre comme en défi ; le tempo entendu s'affiche et peut être repris.
+  Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
   sur l'écran, jouer sur sa batterie au micro. Tempo progressif et mesures
   muettes.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une

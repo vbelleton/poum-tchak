@@ -251,6 +251,14 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .fly.ok{color:var(--ok)}.fly.warn{color:var(--warn)}
 @keyframes fly{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-52px}}
 .kv-lay{display:grid;gap:6px}
+.kv-mic{display:inline-flex;align-items:center;gap:6px}
+.kv-mic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.kv-mic[aria-pressed="true"]{background:var(--err);border-color:var(--err);color:#fff}
+.kv-mic[aria-pressed="true"] svg{animation:micpulse 1.2s ease-in-out infinite}
+@keyframes micpulse{50%{transform:scale(1.18)}}
+@media (prefers-reduced-motion:reduce){.kv-mic[aria-pressed="true"] svg{animation:none}}
+.kv-hear{font:600 12px var(--f-mono);color:var(--muted);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kv-hear b{color:var(--ink);font-size:14px}
 .kv-lay .kv-row .lab{min-width:0}
 .kv-card.win{border-color:var(--ok)}
 @media (prefers-reduced-motion:no-preference){.kv-card.win{animation:win 1.5s ease-out}}
@@ -299,25 +307,42 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .kv-pads{flex:1;min-height:0;display:grid;gap:7px}
 /* La batterie dessinée : des disques à toucher, posés comme sur une vraie batterie vue d'en haut. */
 .kv-pads.l-kit{display:block;position:relative;container-type:size;overflow:hidden;border-radius:18px;border:1px solid var(--line);
-  background:radial-gradient(ellipse at 50% 62%,color-mix(in srgb,var(--ink) 9%,var(--surface)),var(--surface) 72%)}
+  --floor:#cfd2d8;--floor2:#e9ebef;
+  background:radial-gradient(ellipse at 50% 58%,var(--floor2),var(--floor) 75%)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kv-pads.l-kit{--floor:#16181d;--floor2:#2c3038}}
+:root[data-theme="dark"] .kv-pads.l-kit{--floor:#16181d;--floor2:#2c3038}
+/* Une vraie batterie vue de dessus : peaux blanches cerclées de chrome, cymbales en bronze. */
 .l-kit .pad{--x:50;--y:50;--s:28;position:absolute;left:calc(var(--x)*1%);top:calc(var(--y)*1%);width:calc(var(--s)*1cqmin);height:calc(var(--s)*1cqmin);
-  transform:translate(-50%,-50%);border-radius:50%;padding:0;gap:1px;border-width:2px;border-color:var(--c);
-  background:radial-gradient(circle at 38% 32%,color-mix(in srgb,var(--c) 10%,#fff) 0,color-mix(in srgb,var(--c) 26%,var(--surface)) 100%)}
-.l-kit .pad::before{content:"";position:absolute;inset:15%;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent);pointer-events:none}
+  transform:translate(-50%,-50%);border-radius:50%;padding:0;gap:1px;border:0;color:#1d1f24;
+  background:radial-gradient(circle,#fbfaf6 0 52%,#eeebe3 66%,#e0ddd4 78%,#c9c6bd 80%);
+  box-shadow:0 0 0 calc(var(--s)*.07cqmin) #c3c7cd,0 0 0 calc(var(--s)*.09cqmin) #7d828a,0 8px 18px rgba(0,0,0,.35)}
+.l-kit .pad::before{content:"";position:absolute;inset:11%;border-radius:50%;border:2px solid color-mix(in srgb,var(--c) 65%,transparent);pointer-events:none}
+.l-kit .pad[data-id=tchak]{background:radial-gradient(circle,#c7c4bc 0 3%,transparent 3.5%),radial-gradient(circle,transparent 0 30%,rgba(0,0,0,.18) 30.5% 31.5%,transparent 32%),radial-gradient(circle,#fbfaf6 0 52%,#eeebe3 66%,#e0ddd4 78%,#c9c6bd 80%)}
+.l-kit .pad[data-id=poum]{background:radial-gradient(circle,#2a2d33 0 9%,transparent 9.5%),radial-gradient(circle,#fbfaf6 0 52%,#eeebe3 66%,#e0ddd4 78%,#c9c6bd 80%)}
+.l-kit .pad[data-id=tss],.l-kit .pad[data-id=tchaa],.l-kit .pad[data-id=psch]{color:#3a2a0c;box-shadow:0 8px 18px rgba(0,0,0,.35);
+  background:radial-gradient(circle,#8a6a2e 0 7%,#d8b46a 7.5% 15%,rgba(0,0,0,.18) 15.5% 16.5%,transparent 17%),
+    conic-gradient(from 20deg,rgba(255,255,255,.32),rgba(255,255,255,0) 18%,rgba(255,255,255,.22) 40%,rgba(255,255,255,0) 62%,rgba(255,255,255,.3) 85%,rgba(255,255,255,.32)),
+    repeating-radial-gradient(circle,#d9b064 0 1.6%,#c49443 1.6% 3.2%),#c9993f}
+.l-kit .pad[data-id=tss],.l-kit .pad[data-id=tchaa],.l-kit .pad[data-id=psch]{outline:2px solid color-mix(in srgb,var(--c) 70%,transparent);outline-offset:-2px}
+.l-kit .pad::before{z-index:0}
+.l-kit .pad[data-id=tss]::before,.l-kit .pad[data-id=tchaa]::before,.l-kit .pad[data-id=psch]::before{display:none}
 .l-kit .pad svg{display:none}
-.l-kit .pad .pw{font-size:calc(var(--s)*.16cqmin);position:relative}
-.l-kit .pad .pdn{font-size:max(9px,calc(var(--s)*.1cqmin));position:relative;max-width:88%}
-.l-kit .pad .pv{bottom:auto;top:50%;transform:translateY(-50%)}
-.l-kit .pad.on{transform:translate(-50%,-50%) scale(.95)}
-.l-kit .pad[data-id=doum],.l-kit .pad[data-id=toum],.l-kit .pad[data-id=tchak],.l-kit .pad[data-id=poum]{border-width:6px;background:radial-gradient(circle at 38% 32%,#fff 0,color-mix(in srgb,var(--c) 14%,var(--surface)) 100%)}
-.l-kit .pad[data-id=doum]::before,.l-kit .pad[data-id=toum]::before,.l-kit .pad[data-id=tchak]::before,.l-kit .pad[data-id=poum]::before{inset:12%}
-.l-kit .pad[data-id=tchaa]{--x:17;--y:17;--s:28}
-.l-kit .pad[data-id=tss]{--x:14;--y:46;--s:26}
-.l-kit .pad[data-id=doum]{--x:42;--y:19;--s:26}
-.l-kit .pad[data-id=psch]{--x:82;--y:16;--s:32}
-.l-kit .pad[data-id=tchak]{--x:40;--y:50;--s:31}
-.l-kit .pad[data-id=toum]{--x:83;--y:50;--s:31}
-.l-kit .pad[data-id=poum]{--x:56;--y:76;--s:36}
+.l-kit .pad .pw{position:relative;z-index:1;font-size:max(12px,calc(var(--s)*.13cqmin));line-height:1;background:rgba(18,20,24,.78);color:#fff;border-radius:999px;padding:3px 8px}
+.l-kit .pad .pdn{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.l-kit .pad .pv{bottom:auto;top:50%;transform:translateY(-50%);z-index:2}
+.l-kit .pad.on{transform:translate(-50%,-50%) scale(.95);filter:brightness(.88)}
+.l-kit .pad.proche{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 60%,transparent),0 8px 18px rgba(0,0,0,.35)}
+.l-kit .pad.cible{box-shadow:0 0 0 4px var(--c),0 0 26px 6px var(--c)}
+.l-kit .pad[data-id].fb-ok{background:var(--ok)}
+.l-kit .pad[data-id].fb-warn{background:var(--warn)}
+.l-kit .pad[data-id].fb-bad{background:var(--err)}
+.l-kit .pad[data-id=tchaa]{--x:14;--y:22;--s:26}
+.l-kit .pad[data-id=tss]{--x:14;--y:70;--s:26}
+.l-kit .pad[data-id=doum]{--x:50;--y:22;--s:26}
+.l-kit .pad[data-id=psch]{--x:86;--y:21;--s:30}
+.l-kit .pad[data-id=tchak]{--x:37;--y:62;--s:30}
+.l-kit .pad[data-id=toum]{--x:82;--y:66;--s:30}
+.l-kit .pad[data-id=poum]{--x:60;--y:78;--s:30}
 /* La cascade : des barres tombent dans chaque couloir, on frappe quand elles touchent la ligne. */
 .kv-fall{position:absolute;left:0;top:0;width:100%;height:60%;min-height:0;display:block;border-radius:14px;background:var(--cell-a)}
 .kv-fall[hidden]{display:none}
@@ -710,6 +735,10 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
         <button type="button" data-v="chute">Cascade</button>
         <button type="button" data-v="utiles">Utiles</button>
       </div>
+    </div>
+    <div class="kv-row kv-microw"><span class="lab" id="lab-mic">Micro</span>
+      <button type="button" class="chip kv-mic" id="kvMic" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span>Ma vraie batterie</span></button>
+      <span class="kv-hear" id="kvHear" role="status" hidden><span id="kvHearTxt"></span> <button type="button" class="chip" id="kvTake" hidden>Prendre ce tempo</button></span>
     </div>
     <div class="kv-row" id="kvMineRow"><span class="lab" id="lab-mine">Je joue</span>
       <div class="pick" id="kvMine" role="group" aria-labelledby="lab-mine"></div>
@@ -1153,7 +1182,7 @@ const STORE_KEY='poumtchak.v2';
 let dict=defaultEntries();
 const W=id=>singleWord(dict,id);
 const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bars:[emptyGrid(METERS['44'])],bar:0,
-  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre',off:0},
+  ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre',off:0,micOff:0},
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
 const MAXBARS=8;
@@ -1191,7 +1220,8 @@ function loadStore(){
   if(['rythme','pratique','ecoute','mots'].includes(s.tab))state.tab=s.tab;
   if(s.kvl&&typeof s.kvl==='object'){
     if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
-    if(typeof s.kvl.off==='number')state.kvl.off=Math.max(-150,Math.min(150,Math.round(s.kvl.off)));
+    if(typeof s.kvl.off==='number')state.kvl.off=Math.max(-200,Math.min(400,Math.round(s.kvl.off)));
+    if(typeof s.kvl.micOff==='number')state.kvl.micOff=Math.max(-200,Math.min(500,Math.round(s.kvl.micOff)));
     state.kvl.mine=Array.isArray(s.kvl.mine)?s.kvl.mine.filter(id=>DRUMS.some(d=>d.id===id)):null;
   }
   if(s.ramp&&typeof s.ramp==='object'){
@@ -1436,9 +1466,9 @@ function scheduleStep(bar,step,abs,t){
   const silent=!chal.on&&isSilentBar(abs);
   /* Qui se tait : tout en mode muet ; en défi, rien pendant le décompte et tes fûts pendant ton tour ;
      en « Utiles », les fûts que tu joues. */
-  const hush=id=>state.mute||(chal.on?(ph==='play'&&chalMine().includes(id)):(kvOpen&&kvMutes.has(id)));
+  const hush=id=>state.mute||(chal.on?(ph==='play'&&chalMine().includes(id)):(kvOpen&&(kvMic||kvMutes.has(id))));
   if(ph!=='count')DRUMS.forEach(d=>{const v=g[d.id][step];if(v){ids.push(d.id);vals[d.id]=v;if(!silent&&!hush(d.id))voice(d.id,t,VEL[v]);}});
-  const clk=chal.on?(ph!=='listen'||state.click):(state.click||state.mute);
+  const clk=chal.on?(ph!=='listen'||state.click):(state.click||state.mute||(kvOpen&&kvMic));
   if(!silent&&clk&&step%m.perBeat===0)clickSound(t,step===0);
   queue.push({t,step,bar,abs,ids,vals,lv:levelOf(g,ids,step),silent,ph});
   if(ids.length){recent.push({t,ids,vals,hit:{},done:!!ph&&ph!=='play',ph});if(recent.length>96)recent.shift();}
@@ -1479,7 +1509,8 @@ function frame(){
   rafId=requestAnimationFrame(frame);
 }
 function play(){
-  stopSong();stopLive();
+  /* Le micro reste allumé quand ta vraie batterie joue dans la vue de jeu. */
+  stopSong();if(!kvMic)stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
   state.playing=true;sched=0;schedBar=0;absBar=0;nextTime=ctx.currentTime+0.08;queue.length=0;recent.length=0;resetScore();
   rampBase=state.ramp.on?state.bpm:null;
@@ -1820,10 +1851,10 @@ $('#offUp').addEventListener('click',()=>setOff(state.kvl.off+10));
 function recaler(){
   if(sc.offs.length<4){$('#kvScore').textContent='Frappe quelques notes, puis touche Recaler.';return;}
   const mean=sc.offs.reduce((a,b)=>a+b,0)/sc.offs.length;
-  setOff(state.kvl.off+mean);
+  shiftOff(mean);
   sc.offs=[];drawMeter();
   $('#offAuto2').hidden=true;
-  $('#kvScore').textContent='Recalé : décalage de '+(state.kvl.off>0?'+':'')+state.kvl.off+' ms.';
+  $('#kvScore').textContent='Recalé'+(kvMic?' (micro)':'')+' : décalage de '+(curOff()>0?'+':'')+curOff()+' ms.';
 }
 $('#offAuto').addEventListener('click',recaler);
 $('#offAuto2').addEventListener('click',recaler);
@@ -1838,9 +1869,10 @@ function updateHint(){
     h.textContent=chal.ph==='play'?'À toi : '+list(myDrums()):counting?'Prépare-toi…':'Écoute le rythme…';
     return;
   }
-  if(!state.playing&&state.kvl.mode==='defi'){h.textContent='Appuie sur ▶ : écoute, décompte, puis à toi.';return;}
+  if(!state.playing&&state.kvl.mode==='defi'){h.textContent=kvMic?'Appuie sur ▶ : écoute, puis joue sur ta batterie.':'Appuie sur ▶ : écoute, décompte, puis à toi.';return;}
   if(counting){h.textContent='Prépare-toi…';return;}
-  if(!state.playing){h.textContent='Appuie sur ▶ en bas : une mesure de décompte, puis à toi.';return;}
+  if(!state.playing){h.textContent=kvMic?'Joue sur ta batterie : les pads s\'allument. ▶ pour être noté.':'Appuie sur ▶ en bas : une mesure de décompte, puis à toi.';return;}
+  if(kvMic){h.textContent='Joue sur ta batterie avec le clic';return;}
   if(state.kvl.layout==='utiles'){
     const mine=myDrums(),rest=usedDrums().filter(id=>!mine.includes(id));
     h.textContent='Frappe '+list(mine)+(state.mute?' avec le clic':(rest.length?', l\'appli joue '+list(rest):' avec le clic'));
@@ -2092,6 +2124,65 @@ function drawFall(){
   });
 }
 
+/* ---------- Ta vraie batterie au micro ----------
+   Chaque coup entendu est reconnu (fûts appris dans Écoute, sinon grave / médium / aigu),
+   allume son pad et est noté comme une frappe sur l'écran. Le délai du micro a son propre réglage. */
+let kvMic=false,kvMicStarted=false;
+const inLat=()=>{try{const t=live&&live.stream.getAudioTracks()[0],l=t&&t.getSettings&&t.getSettings().latency;return typeof l==='number'?l:0;}catch(e){return 0;}};
+const micLatency=()=>((ctx&&(ctx.outputLatency||ctx.baseLatency))||0)+inLat()+(state.kvl.micOff||0)/1000;
+const curOff=()=>kvMic?state.kvl.micOff:state.kvl.off;
+function shiftOff(ms){
+  if(kvMic){state.kvl.micOff=Math.max(-200,Math.min(500,Math.round(state.kvl.micOff+ms)));save();}
+  else setOff(state.kvl.off+ms);
+}
+function hear(txt){$('#kvHear').hidden=false;$('#kvHearTxt').textContent=txt;}
+function micUI(){
+  const b=$('#kvMic');if(!b)return;
+  b.setAttribute('aria-pressed',String(kvMic));
+  b.querySelector('span').textContent=kvMic?'Micro allumé':'Ma vraie batterie';
+  if(!kvMic){$('#kvHear').hidden=true;$('#kvTake').hidden=true;}
+  updateHint();
+}
+async function setMic(on){
+  if(on===kvMic)return;
+  if(on){
+    hear('Allumage du micro…');
+    if(!state.live){
+      await startLive();
+      if(!state.live){hear(listenMsg.textContent.replace(/^Erreur : /,'')||'Le micro n\'a pas pu démarrer.');return;}
+      kvMicStarted=true;
+    }
+    kvMic=true;if(live)live.pk=0;
+    hear('J\'écoute : joue sur ta batterie.');
+  }else{
+    kvMic=false;
+    if(kvMicStarted&&state.live)stopLive();
+    kvMicStarted=false;
+  }
+  micUI();
+}
+$('#kvMic').addEventListener('click',()=>setMic(!kvMic));
+function showHeard(){
+  if(!res||res.bpm==null||res.clarity<0.12){hear('J\'écoute : pas encore de tempo net.');$('#kvTake').hidden=true;return;}
+  const b=Math.round(effBpm(res));
+  $('#kvHear').hidden=false;
+  $('#kvHearTxt').innerHTML='Tempo entendu <b>≈ '+b+' BPM</b>';
+  $('#kvTake').hidden=state.playing||res.clarity<0.25||Math.abs(b-state.bpm)<2;
+}
+$('#kvTake').addEventListener('click',()=>{if(res&&res.bpm!=null){setBpm(Math.round(effBpm(res)));$('#kvTake').hidden=true;}});
+/* Un coup est retenu s'il est assez fort par rapport aux derniers : le haut-parleur du téléphone,
+   plus faible que ta batterie, ne déclenche pas de fausses frappes. */
+function micHits(ids,t,strength){
+  if(!kvOpen||!kvMic||!live)return;
+  live.pk=Math.max(live.pk*0.97,strength);
+  if(strength<0.3*live.pk)return;
+  ids.forEach(id=>{
+    const p=padEls[id];
+    if(p&&!p.hidden){p.classList.add('on');clearTimeout(p._t);p._t=setTimeout(()=>p.classList.remove('on'),130);}
+    judge(id,t-micLatency());
+  });
+}
+
 /* ---------- Défi ---------- */
 const chalMine=()=>myDrums();
 function chalText(){
@@ -2230,11 +2321,11 @@ function padFeedback(id,kind,txt){
   void p.offsetWidth;p.classList.add('fb-'+kind);
   clearTimeout(p._f);p._f=setTimeout(()=>p.classList.remove('fb-'+kind),260);
 }
-function judge(id){
+function judge(id,at){
   if(!kvOpen||!state.playing||!ctx||(chal.on&&chal.ph==='listen'))return;
   if(chal.on&&!chalMine().includes(id))return;
   sc.mine.add(id);
-  const now=ctx.currentTime-latency(),win=judgeWin();
+  const now=at!=null?at:ctx.currentTime-latency(),win=judgeWin();
   let best=null,bd=1e9;
   for(let i=0;i<recent.length;i++){
     const e=recent[i];
@@ -2274,11 +2365,11 @@ function autoCale(d){
   if(mx-mn>70)return false;
   const mean=farOffs.reduce((a,b)=>a+b,0)/farOffs.length;
   farOffs.length=0;
-  const was=state.kvl.off;setOff(was+mean);
-  if(state.kvl.off===was)return false;
+  const was=curOff();shiftOff(mean);
+  if(curOff()===was)return false;
   Object.assign(sc,{miss:0,extra:0,streak:0});
   setVerdict('Je me cale','ok',1500);
-  $('#kvScore').textContent='Son en retard sur ce téléphone : calé à '+(state.kvl.off>0?'+':'')+state.kvl.off+' ms. Continue !';
+  $('#kvScore').textContent=(kvMic?'Micro en retard : calé à ':'Son en retard sur ce téléphone : calé à ')+(curOff()>0?'+':'')+curOff()+' ms. Continue !';
   return true;
 }
 function checkMisses(){
@@ -2358,6 +2449,7 @@ $('#kvPat').addEventListener('change',e=>{
 });
 function closeKit(silent){
   if(!kvOpen)return;
+  if(kvMic)setMic(false);
   const summary=judged()?pct()+' % de précision, série max '+sc.best+(tendency()?', '+tendency():''):'';
   kvOpen=false;$('#kitView').hidden=true;
   document.body.style.overflow='';
@@ -3091,7 +3183,7 @@ async function startLive(){
   live={on:true,stream,src,mono,merger,proc,mute,nodes,an,n:0,base:0,
     fbuf:new Float32Array(an.frequencyBinCount),edges:bandEdges(ctx.sampleRate,an.frequencyBinCount),ring:new Array(RING),
     prev:[0,0,0],d1:[0,0,0],d2:[0,0,0],m:[0,0,0],last:[-99,-99,-99],
-    tot:[],low:[],ev:[[],[],[]],evD,grp:null,lv:[0,0,0],timer:0,raf:0};
+    tot:[],low:[],ev:[[],[],[]],evD,grp:null,lv:[0,0,0],timer:0,raf:0,tH:new Float64Array(RING),pk:0};
   proc.onaudioprocess=liveProcess;
   live.timer=setInterval(liveAnalyze,2000);
   live.raf=requestAnimationFrame(liveLevels);
@@ -3116,10 +3208,13 @@ function flushGroup(){
   const ids=(vec&&calOn())?classify(vec,bands):bands.map(k=>BAND_IDS[k]).filter((x,i,a)=>a.indexOf(x)===i);
   ids.forEach(id=>{if(L.evD[id])L.evD[id].push(g.h0);});
   flash(ids);
+  if(kvMic)micHits(ids,L.tH[g.h0%RING],Math.max(g.f[0],g.f[1],g.f[2]));
 }
 function liveProcess(e){
   const L=live;if(!L||!L.on)return;
   const n=L.n++;
+  /* L'heure (horloge audio) du début de ce bloc de son : sert à dater les coups entendus. */
+  L.tH[n%RING]=ctx.currentTime-HOP/ctx.sampleRate;
   try{L.an.getFloatFrequencyData(L.fbuf);L.ring[n%RING]=bandRaw(L.fbuf,L.edges);}catch(err){}
   const w=[1,0.8,0.4];
   let totF=0,lowF=0;
@@ -3163,6 +3258,7 @@ function liveAnalyze(){
   const hopS=HOP/ctx.sampleRate;
   if(have<need){
     setListen('Écoute en cours, encore '+Math.ceil((need-have)*hopS)+' s pour estimer le tempo.');
+    if(kvMic)hear('J\'écoute… tempo dans '+Math.ceil((need-have)*hopS)+' s');
     if(drill==='mic')$('#drillMsg').textContent='Micro allumé, joue la mesure en boucle : résultat dans '+Math.ceil((need-have)*hopS)+' s.';
     return;
   }
@@ -3186,6 +3282,7 @@ function liveAnalyze(){
   }
   res={from:'live',bpm,clarity,grid};
   showResult();setListen('');
+  if(kvMic)showHeard();
   if(drill==='mic')scoreTap(grid);
   if(bpm!=null&&clarity>=0.25&&$('#follow').checked)setBpm(effBpm(res));
 }
@@ -3198,6 +3295,7 @@ function stopLive(){
   if(learnId){learnId=null;learnBuf=[];learnBands=[];renderCal();}
   L.stream.getTracks().forEach(t=>t.stop());
   live=null;state.live=false;if(!state.playing)keepAwake(false);updateLiveButton();
+  if(kvMic){kvMic=false;kvMicStarted=false;micUI();}
 }
 $('#liveBtn').addEventListener('click',()=>{
   if(state.live){stopLive();setListen('Écoute arrêtée.');}
