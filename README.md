@@ -40,6 +40,10 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
   sur l'écran, jouer sur sa batterie au micro. Tempo progressif et mesures
   muettes.
+- **Mains** : indépendance des mains. Chaque main joue 1, 2, 3 ou 4 coups par temps
+  (main droite = caisse claire, gauche = tom) ; on touche un temps pour changer
+  son nombre de coups, ou on prend 1·2·3·4 / 4·3·2·1. « Enchaîner les 16 duos »
+  passe de 1 contre 1 à 4 contre 4, deux mesures chacun.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
 - **Mots** : traduire des onomatopées ou du solfège vers la grille, modifier le

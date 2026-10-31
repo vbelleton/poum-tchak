@@ -72,7 +72,7 @@ button{font:inherit;color:inherit}
 
 /* Rubriques */
 .wrap{padding-block:14px 8px}
-.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
 .tabs [role=tab]{appearance:none;border:0;background:transparent;border-radius:9px;min-height:42px;padding:4px 2px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;touch-action:manipulation;min-width:0}
 .tabs [role=tab][aria-selected=true]{background:var(--ink);color:var(--ink-inv)}
 .panel{margin:0}
@@ -444,10 +444,29 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .tog,.tapb{padding:0 8px}
   .bpm button{width:32px}
   .bpm input{width:44px;font-size:16px}
-  .tabs [role=tab]{font-size:13px}
+  .tabs [role=tab]{font-size:12px}
 }
 @media (max-height:520px){.stage{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Mains : indépendance */
+.mn-head,.mn-line{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center}
+.mn-head div{display:grid;grid-template-columns:repeat(4,1fr)}
+.mn-head i{font:600 12px var(--f-mono);color:var(--muted);text-align:center;font-style:normal}
+.mn-line{margin:8px 0}
+.lbl{font-weight:700;font-size:13px;min-width:96px}
+.mn-hand{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff}
+.mn-r{background:var(--c-tchak)}.mn-l{background:var(--c-doum)}
+.mn-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--edge);border-radius:10px;overflow:hidden;background:var(--surface)}
+.mn-beat{appearance:none;border:0;border-left:1px solid var(--line);background:transparent;position:relative;height:56px;padding:0;cursor:pointer;touch-action:manipulation;color:var(--muted);font:600 11px var(--f-mono)}
+.mn-beat:first-child{border-left:0}
+.mn-beat:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+.mn-beat b{position:absolute;left:5px;top:3px;font-weight:600}
+.mn-dot{position:absolute;top:56%;left:calc(14px + (100% - 28px) * var(--p));width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--c);opacity:.55;transition:transform .08s,opacity .08s}
+.mn-dot.on{opacity:1;transform:scale(1.5)}
+.mn-r~.mn-row,.mn-row#mnR{--c:var(--c-tchak)}.mn-row#mnL{--c:var(--c-doum)}
+.mn-beat.cur{background:var(--cell-a)}
+@media (prefers-reduced-motion:reduce){.mn-dot{transition:none}}
 </style>
 </head>
 <body>
@@ -481,6 +500,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   <div class="tabs" role="tablist" aria-label="Rubriques">
     <button type="button" role="tab" id="t-rythme" aria-controls="p-rythme" aria-selected="true">Rythme</button>
     <button type="button" role="tab" id="t-pratique" aria-controls="p-pratique" aria-selected="false" tabindex="-1">Pratique</button>
+    <button type="button" role="tab" id="t-mains" aria-controls="p-mains" aria-selected="false" tabindex="-1">Mains</button>
     <button type="button" role="tab" id="t-ecoute" aria-controls="p-ecoute" aria-selected="false" tabindex="-1">Écoute</button>
     <button type="button" role="tab" id="t-mots" aria-controls="p-mots" aria-selected="false" tabindex="-1">Mots</button>
   </div>
@@ -582,6 +602,22 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   </section>
 
   <!-- Écoute : micro, fichier, calibration -->
+  <!-- Mains : indépendance, n coups par temps à chaque main -->
+  <section class="panel" role="tabpanel" id="p-mains" aria-labelledby="t-mains" hidden>
+    <h2 class="sr">Mains</h2>
+    <p class="hint">Indépendance des mains : chaque main joue 1, 2, 3 ou 4 coups par temps. Touche un temps pour changer son nombre de coups. Main droite = caisse claire, main gauche = tom.</p>
+    <div class="mn-head" aria-hidden="true"><span></span><div><i>1</i><i>2</i><i>3</i><i>4</i></div></div>
+    <div class="mn-line"><span class="mn-hand mn-r" aria-hidden="true">D</span><div class="mn-row" id="mnR" role="group" aria-label="Main droite"></div></div>
+    <div class="mn-line"><span class="mn-hand mn-l" aria-hidden="true">G</span><div class="mn-row" id="mnL" role="group" aria-label="Main gauche"></div></div>
+    <div class="ctrl"><span class="lbl">Main droite</span><div class="seg" id="mnSegR" role="group" aria-label="Main droite : coups par temps"></div></div>
+    <div class="ctrl"><span class="lbl">Main gauche</span><div class="seg" id="mnSegL" role="group" aria-label="Main gauche : coups par temps"></div></div>
+    <div class="row">
+      <button type="button" class="btn ghost" id="mnSwap">Inverser les mains</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="mnWalk"><span>Enchaîner les 16 duos (de 1 contre 1 à 4 contre 4), 2 mesures chacun</span></label>
+    <p class="msg" id="mnMsg" role="status"></p>
+  </section>
+
   <section class="panel" role="tabpanel" id="p-ecoute" aria-labelledby="t-ecoute" hidden>
     <h2 class="sr">Écoute</h2>
     <p class="hint">Le micro capte ta batterie ou la musique autour de toi et trouve le tempo. Tu peux aussi charger un fichier audio : 45 secondes au plus sont analysées.</p>
@@ -1218,7 +1254,7 @@ function loadStore(){
   state.pattern=PATTERNS.some(p=>p.id===s.pattern)?s.pattern:null;
   if([1,2,3].includes(s.brush))state.brush=s.brush;
   if(s.sound==='kit'||s.sound==='synth')state.sound=s.sound;
-  if(['rythme','pratique','ecoute','mots'].includes(s.tab))state.tab=s.tab;
+  if(['rythme','pratique','mains','ecoute','mots'].includes(s.tab))state.tab=s.tab;
   if(s.kvl&&typeof s.kvl==='object'){
     if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
     if(typeof s.kvl.off==='number')state.kvl.off=Math.max(-200,Math.min(400,Math.round(s.kvl.off)));
@@ -1249,7 +1285,26 @@ function loadStore(){
 
 /* ---------- Son ---------- */
 let ctx=null,master=null,noiseBuf=null;
+/* iPhone : le son Web Audio se coupe avec l'interrupteur silencieux et dans certains
+   navigateurs intégrés. On demande la catégorie « lecture » et on relance le son au toucher. */
+let silentEl=null;
+function unlockAudio(){
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+  if(silentEl||(navigator.audioSession))return;
+  try{
+    const n=800,b=new Uint8Array(44+n),dv=new DataView(b.buffer);
+    const w=(o,t)=>{for(let i=0;i<t.length;i++)b[o+i]=t.charCodeAt(i);};
+    w(0,'RIFF');dv.setUint32(4,36+n,true);w(8,'WAVEfmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+    dv.setUint32(24,8000,true);dv.setUint32(28,8000,true);dv.setUint16(32,1,true);dv.setUint16(34,8,true);w(36,'data');dv.setUint32(40,n,true);
+    for(let i=0;i<n;i++)b[44+i]=128;
+    silentEl=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));
+    silentEl.loop=true;silentEl.setAttribute('playsinline','');
+    const p=silentEl.play();if(p&&p.catch)p.catch(()=>{});
+  }catch(e){}
+}
+document.addEventListener('pointerdown',()=>{if(ctx&&ctx.state!=='running'&&ctx.state!=='closed')ctx.resume();},true);
 function ensureAudio(){
+  unlockAudio();
   if(ctx){if(ctx.state==='suspended')ctx.resume();return ctx;}
   const AC=window.AudioContext||window.webkitAudioContext;
   if(!AC)return null;
@@ -2544,11 +2599,128 @@ $('#kitBtn').addEventListener('click',()=>{if(!kvOpen){state.kvl.mode='libre';ch
 $('#kvClose').addEventListener('click',()=>closeKit());
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&kvOpen)closeKit();});
 
+/* ---------- Mains : n coups par temps à chaque main ---------- */
+const MN_KEY='poumtchak.mains';
+const mn={on:false,r:[1,1,1,1],l:[2,2,2,2],walk:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1};
+const MN_SEG=[['1',[1,1,1,1]],['2',[2,2,2,2]],['3',[3,3,3,3]],['4',[4,4,4,4]],['1·2·3·4',[1,2,3,4]],['4·3·2·1',[4,3,2,1]]];
+const mnSame=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
+function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({r:mn.r,l:mn.l}));}catch(e){}}
+function mnLoad(){
+  try{
+    const o=JSON.parse(localStorage.getItem(MN_KEY)||'null');
+    const ok=a=>Array.isArray(a)&&a.length===4&&a.every(v=>v>=1&&v<=4&&v%1===0);
+    if(o&&ok(o.r)&&ok(o.l)){mn.r=o.r.slice();mn.l=o.l.slice();}
+  }catch(e){}
+}
+function mnRow(h){
+  const host=$(h==='r'?'#mnR':'#mnL'),arr=mn[h],nm=h==='r'?'Main droite':'Main gauche';
+  host.innerHTML='';
+  arr.forEach((n,b)=>{
+    const el=document.createElement('button');el.type='button';el.className='mn-beat';el.dataset.b=b;
+    el.setAttribute('aria-label',nm+', temps '+(b+1)+' : '+n+(n>1?' coups':' coup')+'. Toucher pour changer.');
+    el.innerHTML='<b>'+n+'</b>';
+    for(let k=0;k<n;k++){const d=document.createElement('i');d.className='mn-dot';d.style.setProperty('--p',String(k/n));d.dataset.k=k;el.appendChild(d);}
+    el.addEventListener('click',()=>{mn.walk=false;$('#mnWalk').checked=false;arr[b]=arr[b]%4+1;mnSave();mnRender();});
+    host.appendChild(el);
+  });
+}
+function mnText(){
+  const d=mn.r,g=mn.l;
+  const w=a=>a.every(v=>v===a[0])?a[0]+(a[0]>1?' coups':' coup')+' par temps':a.join('-')+' coups par temps';
+  return 'Droite : '+w(d)+' · Gauche : '+w(g)+'.';
+}
+function mnRender(){
+  mnRow('r');mnRow('l');
+  ['r','l'].forEach(h=>{
+    const seg=$(h==='r'?'#mnSegR':'#mnSegL');
+    [...seg.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(mnSame(MN_SEG[i][1],mn[h]))));
+  });
+  if(!(mn.on&&mn.walk))$('#mnMsg').textContent=mnText();
+  if(mn.on)mnMark(mn.cur);
+}
+function mnMark(b){
+  document.querySelectorAll('.mn-beat').forEach(e=>e.classList.toggle('cur',+e.dataset.b===b));
+}
+['r','l'].forEach(h=>{
+  const seg=$(h==='r'?'#mnSegR':'#mnSegL');
+  MN_SEG.forEach(([lab,arr])=>{
+    const b=document.createElement('button');b.type='button';b.textContent=lab;
+    b.addEventListener('click',()=>{mn.walk=false;$('#mnWalk').checked=false;mn[h]=arr.slice();mnSave();mnRender();});
+    seg.appendChild(b);
+  });
+});
+$('#mnSwap').addEventListener('click',()=>{const t=mn.r;mn.r=mn.l;mn.l=t;mn.walk=false;$('#mnWalk').checked=false;mnSave();mnRender();});
+$('#mnWalk').addEventListener('change',e=>{
+  mn.walk=e.target.checked;
+  if(!mn.walk)$('#mnMsg').textContent=mnText();
+  else if(!mn.on)$('#mnMsg').textContent='Appuie sur Jouer : on part de 1 contre 1.';
+});
+function mnTick(){
+  if(!ctx)return;
+  const beat=60/state.bpm;
+  while(mn.nextT<ctx.currentTime+0.12){
+    const b=mn.beat%4;
+    if(b===0){
+      if(mn.walk){
+        const i=Math.floor(mn.bar/2)%16;
+        mn.r=[1+(i>>2),1+(i>>2),1+(i>>2),1+(i>>2)];
+        mn.l=[1+(i&3),1+(i&3),1+(i&3),1+(i&3)];
+        mn.q.push({t:mn.nextT,duo:i});
+      }
+      mn.bar++;
+    }
+    if(state.click)clickSound(mn.nextT,b===0);
+    [['r','tchak'],['l','doum']].forEach(([h,id])=>{
+      const n=mn[h][b];
+      for(let k=0;k<n;k++){
+        const t=mn.nextT+k*beat/n;
+        voice(id,t,0.9);
+        mn.q.push({t,h,b,k});
+      }
+    });
+    mn.q.push({t:mn.nextT,beat:b});
+    mn.nextT+=beat;mn.beat++;
+  }
+}
+function mnFrame(){
+  const now=vnow();
+  mn.q.sort((a,b)=>a.t-b.t);
+  while(mn.q.length&&mn.q[0].t<=now){
+    const e=mn.q.shift();
+    if(e.duo!=null){mnRender();$('#mnWalk').checked=true;$('#mnMsg').textContent='Duo '+(e.duo+1)+' sur 16 : droite '+mn.r[0]+' contre gauche '+mn.l[0]+'.';}
+    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);}
+    else{
+      const d=document.querySelector((e.h==='r'?'#mnR':'#mnL')+' .mn-beat[data-b="'+e.b+'"] .mn-dot[data-k="'+e.k+'"]');
+      if(d){d.classList.add('on');setTimeout(()=>d.classList.remove('on'),130);}
+    }
+  }
+  mn.raf=requestAnimationFrame(mnFrame);
+}
+function mnPlay(){
+  stop();stopSong();stopLive();
+  if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
+  mn.on=true;mn.bar=0;mn.beat=0;mn.q.length=0;mn.cur=-1;
+  mn.nextT=ctx.currentTime+0.1;
+  mn.timer=setInterval(mnTick,25);mnTick();
+  mn.raf=requestAnimationFrame(mnFrame);
+  keepAwake(true);updateControls();
+  setTimeout(()=>{if(mn.on&&ctx&&ctx.state!=='running')setWork('Pas de son ? Vérifie le volume et l\'interrupteur silencieux du téléphone.');},500);
+}
+function mnStop(){
+  if(!mn.on)return;
+  mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
+  document.querySelectorAll('.mn-dot.on').forEach(d=>d.classList.remove('on'));
+  mnMark(-1);mnRender();
+  keepAwake(false);updateControls();
+}
+mnLoad();mnRender();
+
 /* ---------- Rubriques ---------- */
-const TABS=['rythme','pratique','ecoute','mots'];
+const TABS=['rythme','pratique','mains','ecoute','mots'];
 function showTab(name,focus){
   if(!TABS.includes(name))name='rythme';
   state.tab=name;
+  if(name!=='mains')mnStop();
   TABS.forEach(t=>{
     const on=t===name,b=$('#t-'+t);
     b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;
@@ -2648,6 +2820,7 @@ function holdRepeat(btn,delta){
 holdRepeat($('#bpmDown'),-1);holdRepeat($('#bpmUp'),1);
 $('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
 $('#play').addEventListener('click',()=>{
+  if(state.tab==='mains'){if(mn.on)mnStop();else mnPlay();return;}
   const wasDrill=drill;
   drill=null;state.mute=false;
   if(wasDrill==='mic'&&state.live)stopLive();
@@ -2687,7 +2860,7 @@ function updateControls(){
   [...patHost.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===state.pattern)));
   $('#clic').setAttribute('aria-pressed',String(state.click));
   const pb=$('#play');
-  pb.innerHTML=state.playing?STOP_ICON:PLAY_ICON;
+  pb.innerHTML=(state.tab==='mains'?mn.on:state.playing)?STOP_ICON:PLAY_ICON;
   refreshTempoRead();
   updateDrillUI();
   save();
