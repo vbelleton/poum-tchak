@@ -72,7 +72,7 @@ button{font:inherit;color:inherit}
 
 /* Rubriques */
 .wrap{padding-block:14px 8px}
-.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
 .tabs [role=tab]{appearance:none;border:0;background:transparent;border-radius:9px;min-height:42px;padding:4px 2px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;touch-action:manipulation;min-width:0}
 .tabs [role=tab][aria-selected=true]{background:var(--ink);color:var(--ink-inv)}
 .panel{margin:0}
@@ -446,9 +446,33 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   .bpm input{width:44px;font-size:16px}
   .tabs [role=tab]{font-size:12px}
 }
+@media (max-width:560px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-height:520px){.stage{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
+/* Parcours */
+.pc-prog{display:flex;align-items:center;gap:10px;margin:4px 0 12px;font-size:13px;color:var(--muted);font-weight:600}
+.pc-meter{flex:1;height:10px;border-radius:99px;background:var(--cell-a);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
+.pc-meter i{display:block;height:100%;width:0;background:var(--ok);border-radius:99px;transition:width .3s}
+.pc-next{padding:14px;margin-bottom:18px}
+.pc-next .ch{font:600 12px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pc-next h3{margin:4px 0 6px;font:800 21px/1.15 var(--f-display)}
+.pc-next p{margin:0 0 10px;font-size:14.5px;line-height:1.45}
+.pc-next .goal{font-size:13px;color:var(--muted)}
+.pc-next .btn{min-height:48px;font-size:16px;padding:10px 22px}
+.pc-ch{margin:16px 0 6px;font:800 15px var(--f-display)}
+.pc-steps{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.pc-st{appearance:none;width:100%;text-align:left;display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 10px;cursor:pointer;touch-action:manipulation;font-size:14px}
+.pc-st .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--f-mono);background:var(--cell-a);color:var(--muted)}
+.pc-st.done .n{background:var(--ok);color:#fff}
+.pc-st .b{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
+.pc-st[aria-current="step"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.pc-bar{border:2px solid var(--ink);background:var(--surface);border-radius:12px;padding:10px 12px;margin:-4px 0 14px}
+.pc-bar.ok{border-color:var(--ok)}.pc-bar.ko{border-color:var(--warn)}
+.pc-bt{margin:0 0 8px;font-size:14px;line-height:1.4}
+.pc-bb{display:flex;flex-wrap:wrap;gap:6px}
+.pc-bb .btn{min-height:38px;padding:6px 12px;font-size:13.5px}
+#p-mains.pc-on .mn-tab,#p-mains.pc-on>.hint,#p-mains.pc-on .chk{display:none}
 /* Mots : s'entraîner à traduire */
 .tr-say{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 12px}
 .tr-say div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 6px 8px;min-width:0}
@@ -557,12 +581,27 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 
 <main class="in wrap" id="main" tabindex="-1">
   <div class="tabs" role="tablist" aria-label="Rubriques">
+    <button type="button" role="tab" id="t-parcours" aria-controls="p-parcours" aria-selected="false" tabindex="-1">Parcours</button>
     <button type="button" role="tab" id="t-rythme" aria-controls="p-rythme" aria-selected="true">Rythme</button>
     <button type="button" role="tab" id="t-pratique" aria-controls="p-pratique" aria-selected="false" tabindex="-1">Pratique</button>
     <button type="button" role="tab" id="t-mains" aria-controls="p-mains" aria-selected="false" tabindex="-1">Mains</button>
     <button type="button" role="tab" id="t-ecoute" aria-controls="p-ecoute" aria-selected="false" tabindex="-1">Écoute</button>
     <button type="button" role="tab" id="t-mots" aria-controls="p-mots" aria-selected="false" tabindex="-1">Mots</button>
   </div>
+
+  <div class="pc-bar" id="pcBar" hidden role="region" aria-label="Étape du parcours">
+    <p class="pc-bt" id="pcBarTxt" aria-live="polite"></p>
+    <div class="pc-bb" id="pcBarBtns"></div>
+  </div>
+
+  <!-- Parcours : une étape à la fois -->
+  <section class="panel" role="tabpanel" id="p-parcours" aria-labelledby="t-parcours" hidden>
+    <h2 class="sr">Parcours</h2>
+    <p class="hint first">Une étape à la fois, du plus simple au plus dur : une main seule, puis les deux, des noires aux doubles croches, avec des consignes à traduire entre deux. À 85 % pour chaque main, l'étape est réussie.</p>
+    <div class="pc-prog"><div class="pc-meter" aria-hidden="true"><i id="pcMeter"></i></div><span id="pcProgTxt"></span></div>
+    <div class="card pc-next" id="pcNext"></div>
+    <div id="pcList"></div>
+  </section>
 
   <!-- Rythme : écrire et lire la mesure -->
   <section class="panel" role="tabpanel" id="p-rythme" aria-labelledby="t-rythme">
@@ -1361,7 +1400,7 @@ function loadStore(){
   state.pattern=PATTERNS.some(p=>p.id===s.pattern)?s.pattern:null;
   if([1,2,3].includes(s.brush))state.brush=s.brush;
   if(s.sound==='kit'||s.sound==='synth')state.sound=s.sound;
-  if(['rythme','pratique','mains','ecoute','mots'].includes(s.tab))state.tab=s.tab;
+  if(['parcours','rythme','pratique','mains','ecoute','mots'].includes(s.tab))state.tab=s.tab;
   if(s.kvl&&typeof s.kvl==='object'){
     if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
     if(typeof s.kvl.off==='number')state.kvl.off=Math.max(-200,Math.min(400,Math.round(s.kvl.off)));
@@ -2718,7 +2757,7 @@ const MN_OPTS=[
   {v:0,frac:'1 → ¼',note:'change à chaque temps',kod:'ta · ti-ti · tri-o-let · ti-ri-ti-ri',tak:'ta · ta-di · ta-ki-da · ta-ka-di-mi',cnt:'1 · 2 et · 3 et a · 4 é et a'}
 ];
 const mn={on:false,sel:{l:2,r:1},sound:'tout',walk:false,midi:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1,exp:{l:[],r:[]},st:null};
-const mnArr=v=>v===0?[1,2,3,4]:[v,v,v,v];
+const mnArr=v=>v===-1?[0,0,0,0]:v===0?[1,2,3,4]:[v,v,v,v];
 const mnHand=h=>h==='l'?'gauche':'droite';
 function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({sel:mn.sel,sound:mn.sound}));}catch(e){}}
 function mnLoad(){
@@ -2765,7 +2804,7 @@ function mnRow(h){
   });
 }
 function mnText(){
-  const w=h=>{const v=mn.sel[h];return v?v+(v>1?' coups':' coup')+' par temps':'1, 2, 3 puis 4 coups';};
+  const w=h=>{const v=mn.sel[h];return v===-1?'au repos':v?v+(v>1?' coups':' coup')+' par temps':'1, 2, 3 puis 4 coups';};
   return 'Gauche : '+w('l')+' · droite : '+w('r')+'.';
 }
 function mnRender(){
@@ -2929,6 +2968,8 @@ function mnTick(){
     if(mn.sound!=='rien'&&(state.click||raw<0))clickSound(mn.nextT,b===0);
     if(raw<0){mn.q.push({t:mn.nextT,count:b+1});}
     else{
+      if(b===0&&mn.goal&&mn.bar>=mn.goal.bars&&!mn.goalEnd){mn.goalEnd=mn.nextT;}
+      if(mn.goalEnd){mn.nextT+=beat;mn.beat++;continue;}
       if(b===0){
         if(mn.walk){
           const i=Math.floor(mn.bar/2)%16;
@@ -2963,12 +3004,14 @@ function mnFrame(){
   }
   mnMisses(ctx.currentTime-latency());
   mnLanes();
+  if(mn.goalEnd&&ctx.currentTime-latency()>mn.goalEnd+0.15){mnGoalDone();return;}
   mn.raf=requestAnimationFrame(mnFrame);
 }
 function mnPlay(){
   stop();stopSong();stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
   mnColors();mn.plan=mnPlanAt(0);
+  mn.goalEnd=0;
   mn.on=true;mn.bar=0;mn.beat=-4;mn.q.length=0;mn.cur=-1;mn.exp={l:[],r:[]};mn.st=mnNewStats();
   mn.nextT=ctx.currentTime+0.1;mn.startT=mn.nextT+4*60/state.bpm;
   $('#mnStatL').textContent='';$('#mnStatR').textContent='';
@@ -2979,8 +3022,15 @@ function mnPlay(){
   if(pads.bottom>window.innerHeight-90||pads.top<0)$('#mnPads').scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
   setTimeout(()=>{if(mn.on&&ctx&&ctx.state!=='running')setWork('Pas de son ? Vérifie le volume et l\'interrupteur silencieux du téléphone.');},500);
 }
-function mnStop(){
+function mnGoalDone(){
+  const g=mn.goal,st=mn.st;mn.goal=null;mn.goalEnd=0;
+  mnStop(true);
+  const r={};['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
+  if(g&&g.cb)g.cb(r);
+}
+function mnStop(fromGoal){
   if(!mn.on)return;
+  if(!fromGoal&&mn.goal){const g=mn.goal;mn.goal=null;mn.goalEnd=0;if(g.abort)g.abort();}
   mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
   document.querySelectorAll('#p-mains .mn-dot').forEach(d=>d.classList.remove('on','ok','miss'));
   $('#mnCount').textContent='';
@@ -3023,7 +3073,7 @@ requestAnimationFrame(()=>mnLanes());
 
 
 /* ---------- Rubriques ---------- */
-const TABS=['rythme','pratique','mains','ecoute','mots'];
+const TABS=['parcours','rythme','pratique','mains','ecoute','mots'];
 function showTab(name,focus){
   if(!TABS.includes(name))name='rythme';
   state.tab=name;
@@ -3339,7 +3389,7 @@ function trKey(g){return IDS.map(id=>g[id].join('')).join('|');}
 function trNew(){
   let g,k,n=0;
   do{g=trMake(tr.lvl);k=trKey(g);n++;}while(k===tr.last&&n<20);
-  tr.last=k;tr.ans=g;tr.seen=false;
+  tr.last=k;tr.ans=g;tr.seen=false;tr.tries=0;
   tr.me={};IDS.forEach(id=>{tr.me[id]=new Array(8).fill(0);});
   tr.res=null;tr.step=0;
   trSay();trDraw();$('#trMsg').textContent='';$('#trPlay').hidden=true;
@@ -3421,6 +3471,7 @@ function trKit(){
   $('#trPrev').disabled=tr.step===0;$('#trNext').disabled=tr.step===7;
 }
 function trCheck(){
+  tr.tries=(tr.tries||0)+1;
   let bad=0,miss=0;const wrongSteps=new Set();
   tr.res={};
   IDS.forEach(id=>{
@@ -3436,7 +3487,18 @@ function trCheck(){
   const m=$('#trMsg');
   if(!bad&&!miss){
     m.textContent=tr.seen?'C\'est la bonne grille.':'Juste ! Écoute-la, joue-la, puis Autre consigne.';
-    m.className='msg';$('#trPlay').hidden=false;return;
+    m.className='msg';$('#trPlay').hidden=false;
+    if(tr.goal){
+      if(!tr.seen&&tr.tries===1)tr.goal.count++;
+      const g=tr.goal;
+      if(g.count>=g.need){tr.goal=null;g.cb(g.count);}
+      else{
+        m.textContent=(tr.seen||tr.tries>1?'Juste, mais pas du premier coup : celle-ci ne compte pas. ':'Juste du premier coup ! ')+g.count+' sur '+g.need+'. Consigne suivante…';
+        if(g.tick)g.tick();
+        clearTimeout(tr.nextT);tr.nextT=setTimeout(()=>{if(tr.goal===g)trNew();},1600);
+      }
+    }
+    return;
   }
   /* explique un ou deux mots mal lus */
   const why=[];const done=new Set();
@@ -3495,6 +3557,169 @@ $('#trPlay').addEventListener('click',()=>{
 });
 [...$('#trLvl').children].forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.v===tr.lvl)));
 trNew();
+
+/* ---------- Parcours : une étape à la fois ---------- */
+const PC_KEY='poumtchak.parcours',PC_OK=85;
+const PC_CH=[
+  {t:'Le temps',d:'Une frappe par clic.'},
+  {t:'Les croches',d:'Deux coups par temps : « ti-ti », « 1 et ».'},
+  {t:'Les triolets',d:'Trois coups égaux par temps : « tri-o-let ».'},
+  {t:'Les doubles croches',d:'Quatre coups par temps : « ti-ri-ti-ri », « 1 é et a ».'},
+  {t:'Les mélanges',d:'Chaque main garde sa vitesse.'}
+];
+const PM=(id,ch,l,r,bpm,tip)=>({id,ch,type:'mains',l,r,bpm,tip});
+const PT=(id,ch,lvl,tip)=>({id,ch,type:'trad',lvl,need:3,tip});
+const PC_STEPS=[
+  PM('d1',0,-1,1,60,'Main droite seule, une frappe sur chaque clic. Compte « 1, 2, 3, 4 » à voix haute.'),
+  PM('g1',0,1,-1,60,'Même chose avec la main gauche. Elle est souvent en retard : écoute bien le clic.'),
+  PM('gd1',0,1,1,60,'Les deux mains ensemble, comme si elles n\'en faisaient qu\'une.'),
+  PM('d2',1,-1,2,60,'Main droite, deux coups par temps. Dis « ti-ti » en jouant.'),
+  PM('g2',1,2,-1,60,'Main gauche, deux coups par temps.'),
+  PM('g1d2',1,1,2,60,'La gauche garde le temps, la droite fait le double. Le premier coup tombe ensemble.'),
+  PM('g2d1',1,2,1,60,'On inverse : la droite garde le temps, la gauche double.'),
+  PM('g2d2',1,2,2,70,'Les deux mains en croches, ensemble, un peu plus vite.'),
+  PT('t1',1,1,'Lis la consigne comme ton prof la dirait : grosse caisse et caisse claire.'),
+  PM('d3',2,-1,3,55,'Trois coups bien égaux par temps : « tri-o-let ». Ne te presse pas sur le dernier.'),
+  PM('g3',2,3,-1,55,'Les triolets à la main gauche.'),
+  PM('g1d3',2,1,3,55,'La gauche garde le temps, la droite fait les triolets.'),
+  PM('g3d1',2,3,1,55,'On inverse : triolets à gauche.'),
+  PT('t2',2,2,'Le charley arrive, et avec lui les mots fondus : « pouts », « tchats ».'),
+  PM('d4',3,-1,4,55,'Quatre coups par temps : « ti-ri-ti-ri ». Garde les baguettes basses.'),
+  PM('g4',3,4,-1,55,'Les doubles croches à gauche.'),
+  PM('g1d4',3,1,4,55,'La gauche garde le temps, la droite en doubles.'),
+  PM('g2d4',3,2,4,55,'Croches à gauche, doubles à droite : la gauche tombe sur 1 coup sur 2 de la droite.'),
+  PM('g4d2',3,4,2,55,'On inverse.'),
+  PM('g2d3',4,2,3,50,'Deux contre trois : seul le premier coup de chaque temps tombe ensemble. Écoute d\'abord, puis joue.'),
+  PM('g3d2',4,3,2,50,'Trois contre deux.'),
+  PM('g1dv',4,1,0,50,'La droite change à chaque temps : 1, 2, 3 puis 4 coups. La gauche reste sur le temps.'),
+  PM('gvd1',4,0,1,50,'On inverse : c\'est la gauche qui change.'),
+  PM('g3d4',4,3,4,45,'Le plus dur : trois contre quatre. Très lentement, en mode Modèle + clic d\'abord.'),
+  PT('t3',4,3,'Consignes avec toms, crash et petit roulement.')
+];
+const pc={done:{},cur:PC_STEPS[0].id,active:null,bpm:0};
+try{
+  const o=JSON.parse(localStorage.getItem(PC_KEY)||'null');
+  if(o&&o.done&&typeof o.done==='object')Object.keys(o.done).forEach(k=>{if(PC_STEPS.some(x=>x.id===k))pc.done[k]=+o.done[k]||1;});
+  if(o&&PC_STEPS.some(x=>x.id===o.cur))pc.cur=o.cur;
+}catch(e){}
+const pcSave=()=>{try{localStorage.setItem(PC_KEY,JSON.stringify({done:pc.done,cur:pc.cur}));}catch(e){}};
+const pcStep=id=>PC_STEPS.find(x=>x.id===id);
+const pcIdx=id=>PC_STEPS.findIndex(x=>x.id===id);
+function pcHand(v){return v===-1?'au repos':v===0?'1 → 4 coups':v+(v>1?' coups':' coup');}
+function pcTitle(st){
+  if(st.type==='trad')return 'Traduire 3 consignes ('+['','facile','moyen','difficile'][st.lvl]+')';
+  if(st.l===-1)return 'Main droite seule : '+pcHand(st.r)+' par temps';
+  if(st.r===-1)return 'Main gauche seule : '+pcHand(st.l)+' par temps';
+  return 'Gauche '+pcHand(st.l)+', droite '+pcHand(st.r);
+}
+function pcGoal(st){
+  return st.type==='trad'?'Objectif : 3 consignes justes du premier coup, sur la grille ou la batterie.'
+    :'Objectif : 4 mesures après le décompte, '+PC_OK+' % de coups justes pour chaque main jouée. Départ à '+st.bpm+' BPM.';
+}
+function pcRender(){
+  const n=Object.keys(pc.done).length;
+  $('#pcMeter').style.width=Math.round(100*n/PC_STEPS.length)+'%';
+  $('#pcProgTxt').textContent=n+' sur '+PC_STEPS.length+' étapes';
+  const st=pcStep(pc.cur),i=pcIdx(pc.cur);
+  const box=$('#pcNext');
+  box.innerHTML='<div class="ch">Étape '+(i+1)+' · '+PC_CH[st.ch].t+(pc.done[st.id]?' · réussie à '+pc.done[st.id]+' BPM':'')+'</div>'
+    +'<h3></h3><p class="tip"></p><p class="goal"></p><div class="row"><button type="button" class="btn" id="pcGo">Commencer</button></div>';
+  box.querySelector('h3').textContent=pcTitle(st);
+  box.querySelector('.tip').textContent=st.tip;
+  box.querySelector('.goal').textContent=pcGoal(st);
+  $('#pcGo').addEventListener('click',()=>pcStart(st.id));
+  const list=$('#pcList');list.innerHTML='';
+  PC_CH.forEach((c,ci)=>{
+    const h=document.createElement('h3');h.className='pc-ch';h.textContent=(ci+1)+'. '+c.t;list.appendChild(h);
+    const ol=document.createElement('ol');ol.className='pc-steps';
+    PC_STEPS.forEach((x,xi)=>{
+      if(x.ch!==ci)return;
+      const li=document.createElement('li'),b=document.createElement('button');
+      b.type='button';b.className='pc-st'+(pc.done[x.id]?' done':'');
+      if(x.id===pc.cur)b.setAttribute('aria-current','step');
+      b.innerHTML='<span class="n">'+(pc.done[x.id]?'✓':xi+1)+'</span><span class="t"></span><span class="b"></span>';
+      b.querySelector('.t').textContent=pcTitle(x);
+      b.querySelector('.b').textContent=pc.done[x.id]?pc.done[x.id]+' BPM':x.type==='trad'?'':x.bpm+' BPM';
+      b.setAttribute('aria-label','Étape '+(xi+1)+' : '+pcTitle(x)+(pc.done[x.id]?', réussie à '+pc.done[x.id]+' BPM':''));
+      b.addEventListener('click',()=>{pc.cur=x.id;pcSave();pcRender();$('#pcNext').scrollIntoView({block:'nearest'});$('#pcGo').focus();});
+      li.appendChild(b);ol.appendChild(li);
+    });
+    list.appendChild(ol);
+  });
+}
+function pcBar(txt,kind,btns){
+  const bar=$('#pcBar');bar.hidden=false;
+  $('#p-mains').classList.toggle('pc-on',!!pc.active&&pcStep(pc.active).type==='mains');bar.className='pc-bar'+(kind?' '+kind:'');
+  $('#pcBarTxt').innerHTML=txt;
+  const host=$('#pcBarBtns');host.innerHTML='';
+  btns.forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.addEventListener('click',fn);host.appendChild(b);});
+}
+function pcQuit(){
+  pc.active=null;$('#pcBar').hidden=true;$('#p-mains').classList.remove('pc-on');
+  if(mn.goal){mn.goal=null;mnStop(true);}
+  tr.goal=null;clearTimeout(tr.nextT);
+}
+const pcQuitBtn=['Quitter l\'étape',()=>{pcQuit();showTab('parcours');},true];
+function pcStart(id,bpm){
+  const st=pcStep(id),i=pcIdx(id);
+  pc.cur=id;pc.active=id;pcSave();
+  const head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · '+pcTitle(st)+'. ';
+  if(st.type==='mains'){
+    pc.bpm=bpm||st.bpm;
+    mnStop(true);
+    showTab('mains');
+    mn.walk=false;$('#mnWalk').checked=false;
+    mn.sel={l:st.l,r:st.r};mnRender();
+    setBpm(pc.bpm);
+    pcBar(head+'Écoute le décompte, puis joue 4 mesures.','',[pcQuitBtn]);
+    mn.goal={bars:4,cb:r=>pcMainsDone(st,r),abort:()=>pcBar(head+'Arrêté avant la fin.','ko',[['Recommencer',()=>pcStart(id,pc.bpm)],pcQuitBtn])};
+    mnPlay();
+  }else{
+    showTab('mots');
+    tr.lvl=st.lvl;try{localStorage.setItem(TR_KEY,String(tr.lvl));}catch(e){}
+    [...$('#trLvl').children].forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.v===tr.lvl)));
+    const g={need:st.need,count:0,cb:()=>pcTradDone(st),tick:()=>pcBar(head+g.count+' sur '+g.need+' justes du premier coup.','',[pcQuitBtn])};
+    tr.goal=g;trNew();
+    pcBar(head+'0 sur '+g.need+' justes du premier coup.','',[pcQuitBtn]);
+    $('#trSay').scrollIntoView({block:'center'});
+  }
+}
+function pcNextId(id){const i=pcIdx(id);return PC_STEPS[Math.min(i+1,PC_STEPS.length-1)].id;}
+function pcSucceed(st,bpm){
+  pc.done[st.id]=Math.max(pc.done[st.id]||0,bpm||1);
+  pc.cur=pcNextId(st.id);pcSave();pcRender();
+}
+function pcShowBar(){requestAnimationFrame(()=>$('#pcBar').scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));}
+function pcMainsDone(st,r){
+  const i=pcIdx(st.id),head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · ';
+  const hands=Object.keys(r);
+  const txt=hands.map(h=>(h==='l'?'gauche ':'droite ')+r[h]+' %').join(', ');
+  const ok=hands.length&&hands.every(h=>r[h]>=PC_OK);
+  const last=pcIdx(st.id)===PC_STEPS.length-1;
+  if(ok){
+    pcSucceed(st,state.bpm);
+    const nx=pcStep(pc.cur);
+    pcBar(head+'Réussi à '+state.bpm+' BPM : '+txt+'.','ok',[
+      ...(last?[]:[['Étape suivante : '+pcTitle(nx),()=>pcStart(nx.id)]]),
+      ['Plus vite (+5)',()=>pcStart(st.id,Math.min(220,state.bpm+5)),true],
+      ['Refaire',()=>pcStart(st.id,state.bpm),true],pcQuitBtn]);
+  }else{
+    const weak=hands.filter(h=>r[h]<PC_OK).map(h=>h==='l'?'gauche':'droite');
+    const slow=Math.max(40,state.bpm-5);
+    pcBar(head+'Pas encore : '+txt+'. Il faut '+PC_OK+' % '+(weak.length>1?'aux deux mains':'à la main '+weak[0])+'. '+(state.bpm>slow?'Essaie un peu plus lent.':''),'ko',[
+      ['Recommencer',()=>pcStart(st.id,state.bpm)],
+      ...(state.bpm>slow?[['Plus lent (−5)',()=>pcStart(st.id,slow),true]]:[]),pcQuitBtn]);
+  }
+  pcShowBar();
+}
+function pcTradDone(st){
+  const i=pcIdx(st.id),head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · ';
+  pcSucceed(st,1);
+  const last=i===PC_STEPS.length-1,nx=pcStep(pc.cur);
+  pcBar(head+'Réussi : 3 consignes justes du premier coup.'+(last?' Tu as fini le parcours !':''),'ok',[
+    ...(last?[]:[['Étape suivante : '+pcTitle(nx),()=>pcStart(nx.id)]]),pcQuitBtn]);
+}
+pcRender();
 
 /* ---------- Dictionnaire éditable ---------- */
 let lastD=null,refocus=null;

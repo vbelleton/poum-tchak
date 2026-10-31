@@ -13,7 +13,7 @@ test.describe('Démarrage et rubriques', () => {
   });
 
   test('une seule rubrique est visible à la fois', async ({ page }) => {
-    for (const [onglet, panneau] of [['Pratique', '#p-pratique'], ['Écoute', '#p-ecoute'], ['Mots', '#p-mots'], ['Rythme', '#p-rythme']]) {
+    for (const [onglet, panneau] of [['Pratique', '#p-pratique'], ['Écoute', '#p-ecoute'], ['Mots', '#p-mots'], ['Parcours', '#p-parcours'], ['Mains', '#p-mains'], ['Rythme', '#p-rythme']]) {
       await rubrique(page, onglet);
       await expect(page.locator(panneau)).toBeVisible();
       await expect(page.locator('.panel:visible')).toHaveCount(1);
@@ -27,6 +27,8 @@ test.describe('Démarrage et rubriques', () => {
     await expect(page.locator('#p-pratique')).toBeVisible();
     await page.keyboard.press('End');
     await expect(page.getByRole('tab', { name: 'Mots' })).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Parcours' })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Rythme' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('[role=tab][tabindex="0"]')).toHaveCount(1);

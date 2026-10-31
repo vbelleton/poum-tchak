@@ -11,7 +11,14 @@ Page en ligne : https://vbelleton.github.io/poum-tchak/
 En haut, la batterie s'allume à chaque frappe avec son mot ; plusieurs fûts
 frappés ensemble ont leur mot fondu (grosse caisse + caisse claire = « pak »).
 En bas, la lecture : clic, tempo (saisie directe, − et + qui défilent si on
-reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
+reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
+
+- **Parcours** : une étape à la fois, en 25 étapes et 5 chapitres (le temps,
+  croches, triolets, doubles croches, mélanges). Chaque étape lance le bon
+  exercice tout réglé : une main seule, puis les deux, ou 3 consignes à
+  traduire. À 85 % pour chaque main sur 4 mesures, l'étape est réussie et la
+  suivante s'ouvre ; sinon on recommence, plus lentement si besoin. La
+  progression et le meilleur tempo sont gardés.
 
 - **Rythme** : mesure (4/4, 3/4, 6/8), droit ou ternaire, sons de synthèse ou de
   vraie batterie, modèles (rock, funk, disco, bossa, shuffle, valse, 6/8). La
