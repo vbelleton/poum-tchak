@@ -449,23 +449,62 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 @media (max-height:520px){.stage{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
+/* Mots : s'entraîner à traduire */
+.tr-say{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 12px}
+.tr-say div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 6px 8px;min-width:0}
+.tr-say i{display:block;font:600 11px var(--f-mono);color:var(--muted);font-style:normal}
+.tr-say b{display:block;font:800 16px var(--f-display);line-height:1.2;overflow-wrap:anywhere}
+.tr-grid{display:grid;grid-template-columns:62px repeat(8,minmax(0,1fr));gap:4px;align-items:center}
+.tr-grid .rl{font-size:12px;font-weight:700;line-height:1.1;overflow-wrap:anywhere}
+.tr-grid .rl small{display:block;font-weight:500;color:var(--muted);font-size:10.5px}
+.tr-grid .hd{font:600 11px var(--f-mono);color:var(--muted);text-align:center}
+.tr-c{appearance:none;border:0;border-radius:6px;min-height:34px;background:var(--cell-a);box-shadow:inset 0 0 0 1px var(--edge);cursor:pointer;touch-action:manipulation;padding:0;position:relative}
+.tr-c.b2{margin-left:3px}
+.tr-c[aria-pressed="true"]{background:var(--c)}
+.tr-c.bad{box-shadow:inset 0 0 0 3px var(--err)}
+.tr-c.miss{box-shadow:inset 0 0 0 3px var(--err);background:repeating-linear-gradient(45deg,var(--cell-a) 0 4px,color-mix(in srgb,var(--c) 45%,var(--cell-a)) 4px 8px)}
+.tr-c.good{box-shadow:inset 0 0 0 3px var(--ok)}
+.tr-c:focus-visible{outline:3px solid var(--ink);outline-offset:1px}
 /* Mains : indépendance */
+.mn-tab{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mn-col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mn-th{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;padding:2px 2px 4px}
+.mn-opt{appearance:none;text-align:left;border:1px solid var(--edge);background:var(--surface);color:var(--ink);border-radius:10px;padding:7px 9px;cursor:pointer;touch-action:manipulation;min-width:0;display:block;width:100%}
+.mn-opt .f{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.mn-opt .f b{font:800 17px var(--f-display)}
+.mn-opt .f span{font-size:12px;color:var(--muted)}
+.mn-opt .s{display:block;font:500 12.5px var(--f-mono);margin-top:2px;overflow-wrap:normal}
+.mn-opt .c{display:block;font:500 12px var(--f-mono);color:var(--muted);overflow-wrap:normal}
+.mn-opt[aria-checked="true"]{border-color:var(--c);box-shadow:inset 0 0 0 2px var(--c);background:color-mix(in srgb,var(--c) 10%,var(--surface))}
+.mn-opt:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#mnColL{--c:var(--c-doum)}#mnColR{--c:var(--c-tchak)}
+.mn-time{margin-top:14px}
 .mn-head,.mn-line{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center}
 .mn-head div{display:grid;grid-template-columns:repeat(4,1fr)}
 .mn-head i{font:600 12px var(--f-mono);color:var(--muted);text-align:center;font-style:normal}
-.mn-line{margin:8px 0}
-.lbl{font-weight:700;font-size:13px;min-width:96px}
-.mn-hand{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff}
+.mn-line{margin:6px 0}
+.mn-hand{width:30px;height:30px;border-radius:50%;display:inline-grid;place-items:center;font-weight:800;font-size:14px;color:#fff;flex:none}
 .mn-r{background:var(--c-tchak)}.mn-l{background:var(--c-doum)}
 .mn-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--edge);border-radius:10px;overflow:hidden;background:var(--surface)}
-.mn-beat{appearance:none;border:0;border-left:1px solid var(--line);background:transparent;position:relative;height:56px;padding:0;cursor:pointer;touch-action:manipulation;color:var(--muted);font:600 11px var(--f-mono)}
+#mnL{--c:var(--c-doum)}#mnR{--c:var(--c-tchak)}
+.mn-beat{position:relative;height:40px;border-left:1px solid var(--line)}
 .mn-beat:first-child{border-left:0}
-.mn-beat:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
-.mn-beat b{position:absolute;left:5px;top:3px;font-weight:600}
-.mn-dot{position:absolute;top:56%;left:calc(14px + (100% - 28px) * var(--p));width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--c);opacity:.55;transition:transform .08s,opacity .08s}
+.mn-dot{position:absolute;top:50%;left:calc(12px + (100% - 24px) * var(--p));width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--c);opacity:.5;transition:transform .08s,opacity .08s}
 .mn-dot.on{opacity:1;transform:scale(1.5)}
-.mn-r~.mn-row,.mn-row#mnR{--c:var(--c-tchak)}.mn-row#mnL{--c:var(--c-doum)}
+.mn-dot.ok{box-shadow:0 0 0 3px var(--ok);opacity:1}
+.mn-dot.miss{box-shadow:0 0 0 3px var(--err)}
 .mn-beat.cur{background:var(--cell-a)}
+.mn-count{min-height:1.4em;margin:6px 0 4px;text-align:center;font:800 20px var(--f-display)}
+.mn-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mn-side{min-width:0}
+.mn-pad{appearance:none;width:100%;height:110px;border-radius:16px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface));color:var(--ink);font:800 20px var(--f-display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.mn-pad small{font:500 12px var(--f-body);color:var(--muted)}
+.mn-pad.hit{background:var(--c);color:#fff}.mn-pad.hit small{color:#fff}
+.mn-pl{--c:var(--c-doum)}.mn-pr{--c:var(--c-tchak)}
+.mn-stat{margin:6px 2px 0;font-size:13px;line-height:1.35;min-height:2.7em}
+.mn-stat b{font-size:15px}
+.mn-v{display:block;font-weight:700}
+.mn-v.ok{color:var(--ok)}.mn-v.warn{color:var(--warn)}.mn-v.err{color:var(--err)}
 @media (prefers-reduced-motion:reduce){.mn-dot{transition:none}}
 </style>
 </head>
@@ -605,17 +644,31 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   <!-- Mains : indépendance, n coups par temps à chaque main -->
   <section class="panel" role="tabpanel" id="p-mains" aria-labelledby="t-mains" hidden>
     <h2 class="sr">Mains</h2>
-    <p class="hint">Indépendance des mains : chaque main joue 1, 2, 3 ou 4 coups par temps. Touche un temps pour changer son nombre de coups. Main droite = caisse claire, main gauche = tom.</p>
-    <div class="mn-head" aria-hidden="true"><span></span><div><i>1</i><i>2</i><i>3</i><i>4</i></div></div>
-    <div class="mn-line"><span class="mn-hand mn-r" aria-hidden="true">D</span><div class="mn-row" id="mnR" role="group" aria-label="Main droite"></div></div>
-    <div class="mn-line"><span class="mn-hand mn-l" aria-hidden="true">G</span><div class="mn-row" id="mnL" role="group" aria-label="Main gauche"></div></div>
-    <div class="ctrl"><span class="lbl">Main droite</span><div class="seg" id="mnSegR" role="group" aria-label="Main droite : coups par temps"></div></div>
-    <div class="ctrl"><span class="lbl">Main gauche</span><div class="seg" id="mnSegL" role="group" aria-label="Main gauche : coups par temps"></div></div>
-    <div class="row">
-      <button type="button" class="btn ghost" id="mnSwap">Inverser les mains</button>
+    <p class="hint first">Choisis combien de coups chaque main fait par temps, puis Jouer. Après une mesure de décompte, tape à gauche et à droite : chaque main est notée à part.</p>
+    <div class="mn-tab">
+      <div class="mn-col" id="mnColL" role="radiogroup" aria-label="Main gauche : coups par temps"><div class="mn-th"><span class="mn-hand mn-l" aria-hidden="true">G</span>Main gauche</div></div>
+      <div class="mn-col" id="mnColR" role="radiogroup" aria-label="Main droite : coups par temps"><div class="mn-th"><span class="mn-hand mn-r" aria-hidden="true">D</span>Main droite</div></div>
+    </div>
+    <div class="mn-time" aria-hidden="true">
+      <div class="mn-head"><span></span><div><i>1</i><i>2</i><i>3</i><i>4</i></div></div>
+      <div class="mn-line"><span class="mn-hand mn-l">G</span><div class="mn-row" id="mnL"></div></div>
+      <div class="mn-line"><span class="mn-hand mn-r">D</span><div class="mn-row" id="mnR"></div></div>
+    </div>
+    <p class="mn-count" id="mnCount" aria-live="polite"></p>
+    <div class="mn-pads" id="mnPads">
+      <div class="mn-side"><button type="button" class="mn-pad mn-pl" id="mnPadL" aria-describedby="mnStatL">Gauche<small>touche F</small></button><p class="mn-stat" id="mnStatL"></p></div>
+      <div class="mn-side"><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button><p class="mn-stat" id="mnStatR"></p></div>
+    </div>
+    <div class="ctrl" style="margin-top:12px">
+      <div class="seg" id="mnModel" role="group" aria-label="Ce que joue l'appli">
+        <button type="button" data-v="1">Modèle + clic</button>
+        <button type="button" data-v="0">Clic seul</button>
+      </div>
+      <button type="button" class="btn ghost" id="mnMidi" aria-pressed="false">Batterie MIDI</button>
     </div>
     <label class="chk"><input type="checkbox" id="mnWalk"><span>Enchaîner les 16 duos (de 1 contre 1 à 4 contre 4), 2 mesures chacun</span></label>
     <p class="msg" id="mnMsg" role="status"></p>
+    <p class="hint">Modèle + clic : l'appli joue les deux mains pour que tu entendes (gauche = tom, droite = caisse claire). Clic seul : c'est toi qui fais le son. Batterie MIDI : la caisse claire compte pour la main droite, les autres pads pour la gauche.</p>
   </section>
 
   <section class="panel" role="tabpanel" id="p-ecoute" aria-labelledby="t-ecoute" hidden>
@@ -658,7 +711,27 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
   <!-- Mots : traduire et dictionnaire -->
   <section class="panel" role="tabpanel" id="p-mots" aria-labelledby="t-mots" hidden>
     <h2 class="sr">Mots</h2>
-    <h3 class="first">Traduire</h3>
+    <h3 class="first">S'entraîner à traduire</h3>
+    <p class="hint">L'appli te donne une consigne en onomatopées, comme ton prof : un mot par croche, « . » pour un silence. Coche dans la grille ce que tu jouerais, puis Vérifier.</p>
+    <div class="ctrl">
+      <div class="seg" id="trLvl" role="group" aria-label="Niveau">
+        <button type="button" data-v="1">Facile</button>
+        <button type="button" data-v="2">Moyen</button>
+        <button type="button" data-v="3">Difficile</button>
+      </div>
+      <button type="button" class="btn ghost" id="trNew">Autre consigne</button>
+    </div>
+    <div class="tr-say" id="trSay" aria-label="La consigne"></div>
+    <div class="tr-grid" id="trGrid" role="group" aria-label="Ta réponse : coche les fûts à jouer"></div>
+    <div class="row" style="margin-top:10px">
+      <button type="button" class="btn" id="trCheck">Vérifier</button>
+      <button type="button" class="btn ghost" id="trHear">Écouter</button>
+      <button type="button" class="btn ghost" id="trShow">Voir la réponse</button>
+    </div>
+    <p class="msg" id="trMsg" role="status"></p>
+    <div class="row"><button type="button" class="btn ghost" id="trPlay" hidden>La jouer sur l'écran</button></div>
+
+    <h3>Traduire</h3>
     <p class="hint">Écris un rythme en mots ou en solfège : la mesure affichée se remplit. « . » est un silence, MAJUSCULES pour un accent, (parenthèses) pour une ghost note.</p>
     <label class="f" for="txtPhrase">Onomatopées, un mot par pas</label>
     <textarea id="txtPhrase" rows="3" autocapitalize="none" autocomplete="off" spellcheck="false"></textarea>
@@ -2286,10 +2359,11 @@ function midiMsg(e){
   if(!state.playing)midiTempo(t);
   judge(id,t-midiLatency());
 }
+function midiRoute(e){if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
 function midiInputs(){return midiAcc?[...midiAcc.inputs.values()]:[];}
 function midiBind(){
   const ins=midiInputs();
-  ins.forEach(i=>{i.onmidimessage=kvMidi?midiMsg:null;});
+  ins.forEach(i=>{i.onmidimessage=(kvMidi||mn.midi)?midiRoute:null;});
   if(!kvMidi)return;
   if(!ins.length)hear('MIDI : branche la batterie (câble USB).');
   else hear('MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓');
@@ -2599,86 +2673,186 @@ $('#kitBtn').addEventListener('click',()=>{if(!kvOpen){state.kvl.mode='libre';ch
 $('#kvClose').addEventListener('click',()=>closeKit());
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&kvOpen)closeKit();});
 
-/* ---------- Mains : n coups par temps à chaque main ---------- */
+/* ---------- Mains : n coups par temps à chaque main, notées à part ---------- */
 const MN_KEY='poumtchak.mains';
-const mn={on:false,r:[1,1,1,1],l:[2,2,2,2],walk:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1};
-const MN_SEG=[['1',[1,1,1,1]],['2',[2,2,2,2]],['3',[3,3,3,3]],['4',[4,4,4,4]],['1·2·3·4',[1,2,3,4]],['4·3·2·1',[4,3,2,1]]];
-const mnSame=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
-function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({r:mn.r,l:mn.l}));}catch(e){}}
+/* 0 = « ça change à chaque temps » : 1, 2, 3 puis 4 coups. */
+const MN_OPTS=[
+  {v:1,frac:'1 temps',note:'noire',kod:'ta',tak:'ta',cnt:'1'},
+  {v:2,frac:'½ temps',note:'croches',kod:'ti-ti',tak:'ta-di',cnt:'1 et'},
+  {v:3,frac:'⅓ temps',note:'triolet',kod:'tri-o-let',tak:'ta-ki-da',cnt:'1 et a'},
+  {v:4,frac:'¼ temps',note:'doubles',kod:'ti-ri-ti-ri',tak:'ta-ka-di-mi',cnt:'1 é et a'},
+  {v:0,frac:'1 → ¼',note:'change à chaque temps',kod:'ta · ti-ti · tri-o-let · ti-ri-ti-ri',tak:'ta · ta-di · ta-ki-da · ta-ka-di-mi',cnt:'1 · 2 et · 3 et a · 4 é et a'}
+];
+const mn={on:false,sel:{l:2,r:1},model:true,walk:false,midi:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1,exp:{l:[],r:[]},st:null};
+const mnArr=v=>v===0?[1,2,3,4]:[v,v,v,v];
+const mnHand=h=>h==='l'?'gauche':'droite';
+function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({sel:mn.sel,model:mn.model}));}catch(e){}}
 function mnLoad(){
   try{
     const o=JSON.parse(localStorage.getItem(MN_KEY)||'null');
-    const ok=a=>Array.isArray(a)&&a.length===4&&a.every(v=>v>=1&&v<=4&&v%1===0);
-    if(o&&ok(o.r)&&ok(o.l)){mn.r=o.r.slice();mn.l=o.l.slice();}
+    const ok=v=>[0,1,2,3,4].includes(v);
+    if(o&&o.sel&&ok(o.sel.l)&&ok(o.sel.r))mn.sel={l:o.sel.l,r:o.sel.r};
+    if(o&&typeof o.model==='boolean')mn.model=o.model;
   }catch(e){}
 }
+function mnOptHTML(o){
+  const sol=state.solf==='kodaly'?o.kod:o.tak;
+  const nb=t=>t.replace(/-/g,'\u2011').replace(/ · /g,'\u00a0· ');
+  return '<span class="f"><b>'+o.frac+'</b><span>'+o.note+'</span></span><span class="s">'+nb(sol)+'</span><span class="c">'+nb(o.cnt)+'</span>';
+}
+function mnBuildCols(){
+  ['l','r'].forEach(h=>{
+    const col=$(h==='l'?'#mnColL':'#mnColR');
+    col.querySelectorAll('.mn-opt').forEach(e=>e.remove());
+    MN_OPTS.forEach(o=>{
+      const b=document.createElement('button');b.type='button';b.className='mn-opt';b.setAttribute('role','radio');b.dataset.v=o.v;
+      b.setAttribute('aria-label','Main '+mnHand(h)+' : '+(o.v?o.v+(o.v>1?' coups':' coup')+' par temps, '+o.note+', '+o.frac:'1, 2, 3 puis 4 coups, '+o.note));
+      b.innerHTML=mnOptHTML(o);
+      b.addEventListener('click',()=>{mn.walk=false;$('#mnWalk').checked=false;mn.sel[h]=o.v;mnSave();mnRender();});
+      b.addEventListener('keydown',e=>{
+        const k=e.key;if(!['ArrowDown','ArrowUp','ArrowRight','ArrowLeft'].includes(k))return;
+        e.preventDefault();
+        const i=MN_OPTS.indexOf(o),j=(i+(k==='ArrowDown'||k==='ArrowRight'?1:MN_OPTS.length-1))%MN_OPTS.length;
+        mn.walk=false;$('#mnWalk').checked=false;mn.sel[h]=MN_OPTS[j].v;mnSave();mnRender();
+        col.querySelector('.mn-opt[data-v="'+MN_OPTS[j].v+'"]').focus();
+      });
+      col.appendChild(b);
+    });
+  });
+}
 function mnRow(h){
-  const host=$(h==='r'?'#mnR':'#mnL'),arr=mn[h],nm=h==='r'?'Main droite':'Main gauche';
+  const host=$(h==='r'?'#mnR':'#mnL');
   host.innerHTML='';
-  arr.forEach((n,b)=>{
-    const el=document.createElement('button');el.type='button';el.className='mn-beat';el.dataset.b=b;
-    el.setAttribute('aria-label',nm+', temps '+(b+1)+' : '+n+(n>1?' coups':' coup')+'. Toucher pour changer.');
-    el.innerHTML='<b>'+n+'</b>';
+  mnArr(mn.sel[h]).forEach((n,b)=>{
+    const el=document.createElement('div');el.className='mn-beat';el.dataset.b=b;
     for(let k=0;k<n;k++){const d=document.createElement('i');d.className='mn-dot';d.style.setProperty('--p',String(k/n));d.dataset.k=k;el.appendChild(d);}
-    el.addEventListener('click',()=>{mn.walk=false;$('#mnWalk').checked=false;arr[b]=arr[b]%4+1;mnSave();mnRender();});
     host.appendChild(el);
   });
 }
 function mnText(){
-  const d=mn.r,g=mn.l;
-  const w=a=>a.every(v=>v===a[0])?a[0]+(a[0]>1?' coups':' coup')+' par temps':a.join('-')+' coups par temps';
-  return 'Droite : '+w(d)+' · Gauche : '+w(g)+'.';
+  const w=h=>{const v=mn.sel[h];return v?v+(v>1?' coups':' coup')+' par temps':'1, 2, 3 puis 4 coups';};
+  return 'Gauche : '+w('l')+' · droite : '+w('r')+'.';
 }
 function mnRender(){
-  mnRow('r');mnRow('l');
-  ['r','l'].forEach(h=>{
-    const seg=$(h==='r'?'#mnSegR':'#mnSegL');
-    [...seg.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(mnSame(MN_SEG[i][1],mn[h]))));
+  ['l','r'].forEach(h=>{
+    $(h==='l'?'#mnColL':'#mnColR').querySelectorAll('.mn-opt').forEach(b=>{
+      const on=+b.dataset.v===mn.sel[h];b.setAttribute('aria-checked',String(on));b.tabIndex=on?0:-1;
+    });
   });
+  mnRow('l');mnRow('r');
+  [...$('#mnModel').children].forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.v==='1')===mn.model)));
   if(!(mn.on&&mn.walk))$('#mnMsg').textContent=mnText();
   if(mn.on)mnMark(mn.cur);
 }
-function mnMark(b){
-  document.querySelectorAll('.mn-beat').forEach(e=>e.classList.toggle('cur',+e.dataset.b===b));
+function mnMark(b){document.querySelectorAll('#p-mains .mn-beat').forEach(e=>e.classList.toggle('cur',+e.dataset.b===b));}
+function mnDot(h,b,k){return document.querySelector((h==='r'?'#mnR':'#mnL')+' .mn-beat[data-b="'+b+'"] .mn-dot[data-k="'+k+'"]');}
+
+/* Notation, une main à la fois */
+function mnNewStats(){return {l:{n:0,ok:0,pf:0,miss:0,extra:0,offs:[]},r:{n:0,ok:0,pf:0,miss:0,extra:0,offs:[]}};}
+function mnStat(h,verdict,kind){
+  const s=mn.st[h],el=$(h==='l'?'#mnStatL':'#mnStatR');
+  if(!s.n&&!s.extra){el.textContent='';return;}
+  const pct=s.n?Math.round(100*s.ok/s.n):0;
+  let txt='<b>'+pct+' %</b> justes ('+s.ok+'/'+s.n+')';
+  if(s.offs.length>=4){
+    const m=s.offs.reduce((a,b)=>a+b,0)/s.offs.length;
+    const sd=Math.sqrt(s.offs.reduce((a,b)=>a+(b-m)*(b-m),0)/s.offs.length);
+    const mm=Math.round(m*1000);
+    txt+='<br>'+(Math.abs(mm)<=12?'bien centrée':mm<0?'en avance de '+(-mm)+' ms':'en retard de '+mm+' ms')+', régularité ± '+Math.round(sd*1000)+' ms';
+  }
+  if(s.extra)txt+='<br>'+s.extra+' en trop';
+  el.innerHTML=(verdict?'<span class="mn-v '+kind+'">'+verdict+'</span>':'')+txt;
 }
-['r','l'].forEach(h=>{
-  const seg=$(h==='r'?'#mnSegR':'#mnSegL');
-  MN_SEG.forEach(([lab,arr])=>{
-    const b=document.createElement('button');b.type='button';b.textContent=lab;
-    b.addEventListener('click',()=>{mn.walk=false;$('#mnWalk').checked=false;mn[h]=arr.slice();mnSave();mnRender();});
-    seg.appendChild(b);
+const mnWin=(h,t)=>{const e=mn.exp[h].find(x=>Math.abs(x.t-t)<0.5);const iv=e?e.iv:60/state.bpm;return Math.min(0.11,iv*0.45);};
+function mnJudge(h,at){
+  if(!mn.on||!mn.st)return;
+  const L=mn.exp[h];let best=null,bd=1e9;
+  L.forEach(e=>{if(e.done)return;const d=at-e.t;if(Math.abs(d)<Math.abs(bd)){bd=d;best=e;}});
+  const win=best?Math.min(0.11,best.iv*0.45):0;
+  if(!best||Math.abs(bd)>win){
+    /* pas encore commencé : on ne compte rien */
+    if(at<mn.startT-0.15)return;
+    mn.st[h].extra++;mnStat(h,'En trop','err');return;
+  }
+  best.done=true;best.hit=true;
+  const s=mn.st[h];s.n++;
+  const a=Math.abs(bd);
+  if(a<=0.085){s.ok++;s.offs.push(bd);}
+  const v=a<=0.04?'Parfait':a<=0.085?'Bien':bd<0?'Tôt':'Tard';
+  if(a<=0.04)s.pf++;
+  const d=mnDot(h,best.b,best.k);if(d&&a<=0.085){d.classList.add('ok');setTimeout(()=>d.classList.remove('ok'),300);}
+  mnStat(h,v,a<=0.085?'ok':'warn');
+}
+function mnMisses(now){
+  ['l','r'].forEach(h=>{
+    const L=mn.exp[h];
+    while(L.length&&L[0].t<now-0.5)L.shift();
+    L.forEach(e=>{
+      if(e.done||now<=e.t+Math.min(0.11,e.iv*0.45))return;
+      e.done=true;mn.st[h].n++;mn.st[h].miss++;
+      const d=mnDot(h,e.b,e.k);if(d){d.classList.add('miss');setTimeout(()=>d.classList.remove('miss'),300);}
+      mnStat(h,'Raté','err');
+    });
   });
+}
+function mnHit(h){
+  const pad=$(h==='l'?'#mnPadL':'#mnPadR');
+  pad.dataset.n=String((+pad.dataset.n||0)+1);
+  pad.classList.add('hit');setTimeout(()=>pad.classList.remove('hit'),90);
+}
+/* pour les tests : secondes avant la prochaine frappe attendue d'une main */
+window.__mnExp=h=>{
+  if(!mn.on||!ctx)return null;
+  const now=ctx.currentTime-latency(),e=mn.exp[h].find(x=>!x.done&&x.t>now+0.01);
+  return e?e.t-now:null;
+};
+function mnTap(h,at){
+  mnHit(h);
+  if(!ensureAudio())return;
+  if(!mn.on||!mn.model)voice(h==='l'?'doum':'tchak',ctx.currentTime,0.9);
+  mnJudge(h,at!=null?at:ctx.currentTime-latency());
+}
+['l','r'].forEach(h=>{
+  const pad=$(h==='l'?'#mnPadL':'#mnPadR');
+  pad.addEventListener('pointerdown',e=>{e.preventDefault();mnTap(h);});
+  pad.addEventListener('click',e=>{if(e.detail===0)mnTap(h);});
+  pad.addEventListener('contextmenu',e=>e.preventDefault());
 });
-$('#mnSwap').addEventListener('click',()=>{const t=mn.r;mn.r=mn.l;mn.l=t;mn.walk=false;$('#mnWalk').checked=false;mnSave();mnRender();});
-$('#mnWalk').addEventListener('change',e=>{
-  mn.walk=e.target.checked;
-  if(!mn.walk)$('#mnMsg').textContent=mnText();
-  else if(!mn.on)$('#mnMsg').textContent='Appuie sur Jouer : on part de 1 contre 1.';
+document.addEventListener('keydown',e=>{
+  if(state.tab!=='mains'||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
+  const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'))return;
+  const k=e.key.toLowerCase();
+  if(k==='f'){e.preventDefault();mnTap('l');}
+  else if(k==='j'){e.preventDefault();mnTap('r');}
 });
+
 function mnTick(){
   if(!ctx)return;
   const beat=60/state.bpm;
   while(mn.nextT<ctx.currentTime+0.12){
-    const b=mn.beat%4;
-    if(b===0){
-      if(mn.walk){
-        const i=Math.floor(mn.bar/2)%16;
-        mn.r=[1+(i>>2),1+(i>>2),1+(i>>2),1+(i>>2)];
-        mn.l=[1+(i&3),1+(i&3),1+(i&3),1+(i&3)];
-        mn.q.push({t:mn.nextT,duo:i});
+    const raw=mn.beat,b=((raw%4)+4)%4;
+    if(state.click||raw<0)clickSound(mn.nextT,b===0);
+    if(raw<0){mn.q.push({t:mn.nextT,count:b+1});}
+    else{
+      if(b===0){
+        if(mn.walk){
+          const i=Math.floor(mn.bar/2)%16;
+          mn.q.push({t:mn.nextT,duo:i,l:1+(i>>2),r:1+(i&3)});
+          mn.plan={l:1+(i>>2),r:1+(i&3)};
+        }else mn.plan={l:mn.sel.l,r:mn.sel.r};
+        mn.bar++;
       }
-      mn.bar++;
+      [['l','doum'],['r','tchak']].forEach(([h,id])=>{
+        const n=mnArr(mn.plan[h])[b];
+        for(let k=0;k<n;k++){
+          const t=mn.nextT+k*beat/n;
+          if(mn.model)voice(id,t,0.85);
+          mn.q.push({t,h,b,k});
+          mn.exp[h].push({t:t-0,b,k,iv:beat/n,done:false});
+        }
+      });
+      mn.q.push({t:mn.nextT,beat:b});
     }
-    if(state.click)clickSound(mn.nextT,b===0);
-    [['r','tchak'],['l','doum']].forEach(([h,id])=>{
-      const n=mn[h][b];
-      for(let k=0;k<n;k++){
-        const t=mn.nextT+k*beat/n;
-        voice(id,t,0.9);
-        mn.q.push({t,h,b,k});
-      }
-    });
-    mn.q.push({t:mn.nextT,beat:b});
     mn.nextT+=beat;mn.beat++;
   }
 }
@@ -2687,33 +2861,68 @@ function mnFrame(){
   mn.q.sort((a,b)=>a.t-b.t);
   while(mn.q.length&&mn.q[0].t<=now){
     const e=mn.q.shift();
-    if(e.duo!=null){mnRender();$('#mnWalk').checked=true;$('#mnMsg').textContent='Duo '+(e.duo+1)+' sur 16 : droite '+mn.r[0]+' contre gauche '+mn.l[0]+'.';}
-    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);}
-    else{
-      const d=document.querySelector((e.h==='r'?'#mnR':'#mnL')+' .mn-beat[data-b="'+e.b+'"] .mn-dot[data-k="'+e.k+'"]');
-      if(d){d.classList.add('on');setTimeout(()=>d.classList.remove('on'),130);}
-    }
+    if(e.count!=null){$('#mnCount').textContent=e.count+(e.count===4?' … à toi':'');}
+    else if(e.duo!=null){mn.sel={l:e.l,r:e.r};mnRender();$('#mnMsg').textContent='Duo '+(e.duo+1)+' sur 16 : gauche '+e.l+' contre droite '+e.r+'.';}
+    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);if(e.beat===0)$('#mnCount').textContent='';}
+    else{const d=mnDot(e.h,e.b,e.k);if(d){d.classList.add('on');setTimeout(()=>d.classList.remove('on'),130);}}
   }
+  mnMisses(ctx.currentTime-latency());
   mn.raf=requestAnimationFrame(mnFrame);
 }
 function mnPlay(){
   stop();stopSong();stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
-  mn.on=true;mn.bar=0;mn.beat=0;mn.q.length=0;mn.cur=-1;
-  mn.nextT=ctx.currentTime+0.1;
+  mn.on=true;mn.bar=0;mn.beat=-4;mn.q.length=0;mn.cur=-1;mn.exp={l:[],r:[]};mn.st=mnNewStats();
+  mn.nextT=ctx.currentTime+0.1;mn.startT=mn.nextT+4*60/state.bpm;
+  $('#mnStatL').textContent='';$('#mnStatR').textContent='';
   mn.timer=setInterval(mnTick,25);mnTick();
   mn.raf=requestAnimationFrame(mnFrame);
   keepAwake(true);updateControls();
+  const pads=$('#mnPads').getBoundingClientRect();
+  if(pads.bottom>window.innerHeight-90||pads.top<0)$('#mnPads').scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
   setTimeout(()=>{if(mn.on&&ctx&&ctx.state!=='running')setWork('Pas de son ? Vérifie le volume et l\'interrupteur silencieux du téléphone.');},500);
 }
 function mnStop(){
   if(!mn.on)return;
   mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
-  document.querySelectorAll('.mn-dot.on').forEach(d=>d.classList.remove('on'));
-  mnMark(-1);mnRender();
+  document.querySelectorAll('#p-mains .mn-dot').forEach(d=>d.classList.remove('on','ok','miss'));
+  $('#mnCount').textContent='';
+  mnMark(-1);
+  if(mn.st&&(mn.st.l.n||mn.st.r.n)){
+    const p=h=>mn.st[h].n?Math.round(100*mn.st[h].ok/mn.st[h].n):0;
+    const pl=p('l'),pr=p('r');
+    $('#mnMsg').textContent='Bilan : gauche '+pl+' %, droite '+pr+' %. '+(Math.abs(pl-pr)>=15?'La main '+(pl<pr?'gauche':'droite')+' a besoin de plus de travail : ralentis un peu.':pl>=85&&pr>=85?'Les deux mains tiennent : monte le tempo de 5.':'Continue à ce tempo.');
+  }else mnRender();
   keepAwake(false);updateControls();
 }
-mnLoad();mnRender();
+$('#mnModel').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.model=b.dataset.v==='1';mnSave();mnRender();});
+$('#mnWalk').addEventListener('change',e=>{
+  mn.walk=e.target.checked;
+  if(!mn.walk)$('#mnMsg').textContent=mnText();
+  else if(!mn.on)$('#mnMsg').textContent='Appuie sur Jouer : on part de 1 contre 1.';
+});
+function mnMidi(e){
+  const [st,note,vel]=e.data;
+  if((st&0xf0)!==0x90||!vel)return;
+  const id=GM_DRUM[note];if(!id)return;
+  ensureAudio();
+  let t=ctx.currentTime;
+  try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.performanceTime)t=o.contextTime+(e.timeStamp-o.performanceTime)/1000;else t=ctx.currentTime-(performance.now()-e.timeStamp)/1000;}catch(err){}
+  const h=id==='tchak'?'r':'l';
+  mnHit(h);
+  mnJudge(h,t-midiLatency());
+}
+$('#mnMidi').addEventListener('click',async()=>{
+  if(mn.midi){mn.midi=false;midiBind();$('#mnMidi').setAttribute('aria-pressed','false');$('#mnMsg').textContent='MIDI coupé.';return;}
+  if(!navigator.requestMIDIAccess){$('#mnMsg').textContent='Pas de MIDI dans ce navigateur. Sur iPhone : « Web MIDI Browser » ; sinon Chrome (Android, ordinateur).';return;}
+  try{if(!midiAcc){midiAcc=await navigator.requestMIDIAccess({sysex:false});midiAcc.onstatechange=()=>midiBind();}}
+  catch(err){$('#mnMsg').textContent='MIDI refusé par le navigateur.';return;}
+  mn.midi=true;midiBind();$('#mnMidi').setAttribute('aria-pressed','true');
+  const ins=midiInputs();
+  $('#mnMsg').textContent=ins.length?'MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓ Caisse claire = droite, autres pads = gauche.':'MIDI : branche la batterie (câble USB).';
+});
+mnLoad();mnBuildCols();mnRender();
+
 
 /* ---------- Rubriques ---------- */
 const TABS=['rythme','pratique','mains','ecoute','mots'];
@@ -2779,7 +2988,7 @@ $('#brushSeg').addEventListener('click',e=>{
 });
 $('#solfSeg').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  state.solf=b.dataset.v;refreshText();updateControls();
+  state.solf=b.dataset.v;refreshText();updateControls();mnBuildCols();mnRender();
 });
 function setMeter(k){
   state.meter=k;if(k==='68')state.swing=false;
@@ -2998,6 +3207,136 @@ $('#applySolf').addEventListener('click',()=>{
   applySolfegeToDrum(G(),m,id,r.bits);state.pattern=null;renderAll();
   msg(W(id)+' joue maintenant ce rythme sur '+Math.min(r.bits.length,m.beats)+' temps.');
 });
+
+/* ---------- Mots : s'entraîner à traduire une consigne ---------- */
+const TR_KEY='poumtchak.trad';
+const TR_LVL={1:['tchak','poum'],2:['tss','tchak','poum'],3:['psch','tss','tchak','doum','toum','poum']};
+const tr={lvl:1,ans:null,me:null,seen:false,last:''};
+try{const v=+localStorage.getItem(TR_KEY);if(TR_LVL[v])tr.lvl=v;}catch(e){}
+const rnd=p=>Math.random()<p;
+function trMake(lvl){
+  const g={};IDS.forEach(id=>{g[id]=new Array(8).fill(0);});
+  g.poum[0]=1;g.tchak[2]=1;g.tchak[6]=1;
+  [1,3,4,5,7].forEach(i=>{if(rnd(lvl===1?0.35:0.3))g.poum[i]=1;});
+  if(lvl>=2){
+    const croches=rnd(0.6);
+    for(let i=0;i<8;i++)if(croches||i%2===0)g.tss[i]=1;
+  }
+  if(lvl===3){
+    if(rnd(0.6)){g.psch[0]=1;g.tss[0]=0;}
+    if(rnd(0.5))g.tchak[7]=1;
+    if(rnd(0.7)){
+      /* un petit roulement sur le dernier temps */
+      const f=rnd(0.5)?[['doum'],['toum']]:[['tchak'],['doum']];
+      [6,7].forEach((st,k)=>{['tss','tchak','poum','doum','toum'].forEach(id=>{g[id][st]=0;});f[k].forEach(id=>{g[id][st]=1;});});
+    }
+    if(rnd(0.4)){g.poum[5]=1;}
+  }
+  return g;
+}
+const trIds=(g,st)=>IDS.filter(id=>g[id][st]);
+function trWord(g,st){const ids=trIds(g,st);return ids.length?comboWord(dict,ids):'.';}
+function trKey(g){return IDS.map(id=>g[id].join('')).join('|');}
+function trNew(){
+  let g,k,n=0;
+  do{g=trMake(tr.lvl);k=trKey(g);n++;}while(k===tr.last&&n<20);
+  tr.last=k;tr.ans=g;tr.seen=false;
+  tr.me={};IDS.forEach(id=>{tr.me[id]=new Array(8).fill(0);});
+  trSay();trGrid();$('#trMsg').textContent='';$('#trPlay').hidden=true;
+}
+function trSay(){
+  const host=$('#trSay');host.innerHTML='';
+  for(let b=0;b<4;b++){
+    const d=document.createElement('div');
+    d.innerHTML='<i>temps '+(b+1)+'</i><b>'+trWord(tr.ans,2*b)+' '+trWord(tr.ans,2*b+1)+'</b>';
+    host.appendChild(d);
+  }
+  host.setAttribute('aria-label','La consigne : '+[...Array(8)].map((_,i)=>trWord(tr.ans,i)).join(' '));
+}
+function trGrid(){
+  const host=$('#trGrid');host.innerHTML='';
+  host.appendChild(document.createElement('span'));
+  for(let i=0;i<8;i++){const h=document.createElement('span');h.className='hd';h.textContent=i%2?'et':String(i/2+1);host.appendChild(h);}
+  const rows=ROWS.filter(id=>TR_LVL[tr.lvl].includes(id));
+  rows.forEach(id=>{
+    const d=DRUMS.find(x=>x.id===id);
+    const l=document.createElement('span');l.className='rl';l.innerHTML=W(id)+'<small>'+d.abbr+'</small>';host.appendChild(l);
+    for(let i=0;i<8;i++){
+      const c=document.createElement('button');c.type='button';c.className='tr-c'+(i%2===0&&i?' b2':'');
+      c.dataset.id=id;c.dataset.s=i;c.style.setProperty('--c','var(--c-'+id+')');
+      c.setAttribute('aria-label',d.name+', temps '+(Math.floor(i/2)+1)+(i%2?' et':''));
+      c.setAttribute('aria-pressed',String(!!tr.me[id][i]));
+      c.addEventListener('click',()=>{
+        tr.me[id][i]=tr.me[id][i]?0:1;c.setAttribute('aria-pressed',String(!!tr.me[id][i]));
+        host.querySelectorAll('.tr-c').forEach(x=>x.classList.remove('bad','miss','good'));
+        if(ensureAudio()&&tr.me[id][i])voice(id,ctx.currentTime,0.8);
+      });
+      host.appendChild(c);
+    }
+  });
+}
+function trCheck(){
+  const host=$('#trGrid');let bad=0,miss=0;const wrongSteps=new Set();
+  host.querySelectorAll('.tr-c').forEach(c=>{
+    const id=c.dataset.id,i=+c.dataset.s,want=!!tr.ans[id][i],got=!!tr.me[id][i];
+    c.classList.remove('bad','miss','good');
+    if(got&&want)c.classList.add('good');
+    else if(got){c.classList.add('bad');bad++;wrongSteps.add(i);}
+    else if(want){c.classList.add('miss');miss++;wrongSteps.add(i);}
+  });
+  const m=$('#trMsg');
+  if(!bad&&!miss){
+    m.textContent=tr.seen?'C\'est la bonne grille.':'Juste ! Écoute-la, joue-la, puis Autre consigne.';
+    m.className='msg';$('#trPlay').hidden=false;return;
+  }
+  /* explique un ou deux mots mal lus */
+  const why=[];const done=new Set();
+  [...wrongSteps].sort((a,b)=>a-b).forEach(i=>{
+    const w=trWord(tr.ans,i);if(done.has(w)||why.length>=2)return;done.add(w);
+    const ids=trIds(tr.ans,i);
+    why.push(w==='.'?'« . » = silence, on ne joue rien':'« '+w+' » = '+ids.map(id=>DRUMS.find(x=>x.id===id).name.toLowerCase()).join(' + '));
+  });
+  m.textContent=(bad+miss)+(bad+miss>1?' cases à revoir':' case à revoir')+' (rouge : en trop, hachuré : manquant). '+why.join(' ; ')+'.';
+  m.className='msg err';
+}
+let trTimer=null;
+function trHear(){
+  if(!ensureAudio())return;
+  const g=tr.ans,step=60/state.bpm/2,t0=ctx.currentTime+0.08;
+  for(let i=0;i<8;i++){
+    const t=t0+i*step;
+    if(state.click&&i%2===0)clickSound(t,i===0);
+    trIds(g,i).forEach(id=>voice(id,t,0.9));
+  }
+  /* la consigne suit le son */
+  const words=[...$('#trSay').querySelectorAll('b')];
+  clearTimeout(trTimer);
+  words.forEach((w,b)=>{setTimeout(()=>{words.forEach(x=>x.style.color='');w.style.color='var(--c-tchak)';},(0.08+2*b*step)*1000);});
+  trTimer=setTimeout(()=>words.forEach(x=>x.style.color=''),(0.08+8*step)*1000);
+}
+$('#trLvl').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  tr.lvl=+b.dataset.v;try{localStorage.setItem(TR_KEY,String(tr.lvl));}catch(err){}
+  [...$('#trLvl').children].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  trNew();
+});
+$('#trNew').addEventListener('click',trNew);
+$('#trCheck').addEventListener('click',trCheck);
+$('#trHear').addEventListener('click',trHear);
+$('#trShow').addEventListener('click',()=>{
+  IDS.forEach(id=>{tr.me[id]=tr.ans[id].slice();});tr.seen=true;trGrid();trCheck();
+});
+$('#trPlay').addEventListener('click',()=>{
+  /* la consigne devient la mesure en cours, en 4/4 */
+  if(state.meter!=='44')setMeter('44');
+  const m=METERS['44'],g=emptyGrid(m);
+  IDS.forEach(id=>{for(let i=0;i<8;i++)if(tr.ans[id][i])g[id][i*2]=2;});
+  state.bars=[g];state.bar=0;state.pattern=null;renderAll();
+  showTab('pratique');
+  $('#kitBtn').click();
+});
+[...$('#trLvl').children].forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.v===tr.lvl)));
+trNew();
 
 /* ---------- Dictionnaire éditable ---------- */
 let lastD=null,refocus=null;

@@ -40,13 +40,18 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
   sur l'écran, jouer sur sa batterie au micro. Tempo progressif et mesures
   muettes.
-- **Mains** : indépendance des mains. Chaque main joue 1, 2, 3 ou 4 coups par temps
-  (main droite = caisse claire, gauche = tom) ; on touche un temps pour changer
-  son nombre de coups, ou on prend 1·2·3·4 / 4·3·2·1. « Enchaîner les 16 duos »
-  passe de 1 contre 1 à 4 contre 4, deux mesures chacun.
+- **Mains** : indépendance des mains. Un tableau à deux colonnes (main gauche,
+  main droite) : 1, 2, 3 ou 4 coups par temps, ou 1 → ¼ qui change à chaque
+  temps, avec la fraction du temps, le nom de la note, le solfège (Kodály ou
+  Takadimi) et le compte (« 1 et », « 1 é et a »). Après une mesure de décompte,
+  on tape les deux pads (ou F et J, ou une batterie MIDI : caisse claire = droite) :
+  chaque main a son score, son avance ou retard moyen et sa régularité.
+  « Enchaîner les 16 duos » passe de 1 contre 1 à 4 contre 4.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
-- **Mots** : traduire des onomatopées ou du solfège vers la grille, modifier le
+- **Mots** : s'entraîner à traduire une consigne en onomatopées (trois niveaux :
+  la grille à cocher est vérifiée, chaque mot mal lu est expliqué, on peut
+  l'écouter puis la jouer sur l'écran) ; traduire des onomatopées ou du solfège vers la grille, modifier le
   dictionnaire, les mots fondus, partager le dictionnaire, et le référentiel du
   solfège rythmique.
 
