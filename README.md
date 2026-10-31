@@ -46,11 +46,15 @@ reste appuyé, Tap) et Jouer. Entre les deux, quatre rubriques :
   Takadimi) et le compte (« 1 et », « 1 é et a »). Après une mesure de décompte,
   on tape les deux pads (ou F et J, ou une batterie MIDI : caisse claire = droite) :
   chaque main a son score, son avance ou retard moyen et sa régularité.
+  Au-dessus de chaque pad, un couloir montre les coups qui arrivent : ils
+  descendent, grossissent et s'allument au moment de frapper. Son au choix :
+  modèle + clic, clic seul, ou sans son (on n'entend que ses baguettes).
   « Enchaîner les 16 duos » passe de 1 contre 1 à 4 contre 4.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
-- **Mots** : s'entraîner à traduire une consigne en onomatopées (trois niveaux :
-  la grille à cocher est vérifiée, chaque mot mal lu est expliqué, on peut
+- **Mots** : s'entraîner à traduire une consigne en onomatopées (trois niveaux ;
+  on répond sur une grille ou sur la batterie dessinée, coup par coup ; la
+  réponse est vérifiée, chaque mot mal lu est expliqué, on peut
   l'écouter puis la jouer sur l'écran) ; traduire des onomatopées ou du solfège vers la grille, modifier le
   dictionnaire, les mots fondus, partager le dictionnaire, et le référentiel du
   solfège rythmique.

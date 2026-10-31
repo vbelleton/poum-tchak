@@ -83,3 +83,35 @@ test.describe("S'entraîner à traduire", () => {
     expect(l).toBeLessThanOrEqual(0);
   });
 });
+
+test.describe('Traduire sur la batterie', () => {
+  test('coup par coup sur la batterie dessinée, puis vérifier', async ({ page }) => {
+    await rubrique(page, 'Mots');
+    await page.locator('#trView').getByRole('button', { name: 'Batterie' }).click();
+    await expect(page.locator('#trKit')).toBeVisible();
+    await expect(page.locator('#trGrid')).toBeHidden();
+    await expect(page.locator('#trSteps .tr-step')).toHaveCount(8);
+    // facile : seulement grosse caisse et caisse claire
+    await expect(page.locator('#trKit .pad:not([hidden])')).toHaveCount(2);
+    const mots = await consigne(page);
+    for (let i = 0; i < 8; i++) {
+      await page.locator('#trSteps .tr-step').nth(i).click();
+      await expect(page.locator('#trCur')).toContainText(`Coup ${i + 1} sur 8`);
+      for (const id of SENS[mots[i]]) await page.locator(`#trKit .pad[data-id="${id}"]`).click();
+    }
+    await page.locator('#trCheck').click();
+    await expect(page.locator('#trMsg')).toContainText('Juste');
+    await expect(page.locator('#trSteps .tr-step.good')).toHaveCount(8);
+  });
+
+  test('une erreur ramène au coup à revoir et marque le pad', async ({ page }) => {
+    await rubrique(page, 'Mots');
+    await page.locator('#trView').getByRole('button', { name: 'Batterie' }).click();
+    await page.locator('#trCheck').click(); // rien joué : le premier « poum » manque
+    await expect(page.locator('#trCur')).toContainText('Coup 1 sur 8');
+    await expect(page.locator('#trKit .pad[data-id="poum"]')).toHaveClass(/miss/);
+    await page.reload();
+    await rubrique(page, 'Mots');
+    await expect(page.locator('#trKit')).toBeVisible(); // la vue choisie est gardée
+  });
+});

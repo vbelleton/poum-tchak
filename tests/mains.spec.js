@@ -190,3 +190,45 @@ test.describe('Mains', () => {
     expect(await page.evaluate(() => navigator.audioSession.type)).toBe('playback');
   });
 });
+
+test.describe('Mains : couloirs et son', () => {
+  test('au-dessus de chaque pad, les coups arrivent dans un couloir', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('90');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#play').click();
+    await page.waitForTimeout(3200);
+    // pixels de la couleur de chaque main dans le haut du couloir (les coups qui arrivent)
+    const n = await page.evaluate(() => ['#mnLaneL', '#mnLaneR'].map((s) => {
+      const cv = document.querySelector(s), c = cv.getContext('2d');
+      const d = c.getImageData(0, 0, cv.width, Math.floor(cv.height * 0.8)).data;
+      let k = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 120 && Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 60) k++;
+      return k;
+    }));
+    expect(n[0]).toBeGreaterThan(50);
+    expect(n[1]).toBeGreaterThan(50);
+  });
+
+  test('sans son : ni clic, ni modèle, ni son au toucher', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__sons = 0;
+      const o = AudioScheduledSourceNode.prototype.start;
+      AudioScheduledSourceNode.prototype.start = function (...a) { window.__sons++; return o.apply(this, a); };
+    });
+    await page.reload();
+    await rubrique(page, 'Mains');
+    await page.locator('#mnModel').getByRole('button', { name: 'Sans son' }).click();
+    await page.locator('#play').click();
+    await page.waitForTimeout(1500);
+    await page.locator('#mnPadR').dispatchEvent('pointerdown');
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__sons)).toBe(0);
+    await page.locator('#play').click();
+    // avec le clic seul, ça sonne
+    await page.locator('#mnModel').getByRole('button', { name: 'Clic seul' }).click();
+    await page.locator('#play').click();
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.__sons)).toBeGreaterThan(0);
+  });
+});
