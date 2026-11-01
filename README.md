@@ -63,6 +63,9 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   échangent leurs rythmes) ; **main ancre** (une main garde son rythme, l'autre
   passe par 1, 2, 3, 4 coups par temps, puis les rôles s'inversent). Les étapes
   à deux mains du Parcours se font une main, puis l'autre.
+  Pendant le jeu, la rubrique se réduit à l'essentiel : pas de batterie en haut,
+  le score et le verdict de chaque main au-dessus de son pad (hors du pouce), et
+  rien ne bouge.
   On ne te laisse pas échouer : si deux mesures de suite sont trop faibles
   (moins de 70 %), le tempo baisse de 5 BPM tout seul, jusqu'à 40, et l'étape
   est réussie dès que les mesures tiennent ; arrêter n'est jamais un échec.

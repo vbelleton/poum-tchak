@@ -538,15 +538,23 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .mn-dot.ok{box-shadow:0 0 0 3px var(--ok);opacity:1}
 .mn-dot.miss{box-shadow:0 0 0 3px var(--err)}
 .mn-beat.cur{background:var(--cell-a)}
-.mn-count{min-height:1.4em;margin:6px 0 4px;text-align:center;font:800 20px var(--f-display)}
+.mn-count{height:2.6em;margin:4px 0;display:grid;place-items:center;text-align:center;font:800 20px/1.15 var(--f-display);overflow:hidden}
 .mn-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+body[data-tab="mains"] .stage{display:none}
+body.mn-live .tabs,body.mn-live #p-mains>.hint,body.mn-live #p-mains .mn-tab,body.mn-live #p-mains .ctrl,body.mn-live #p-mains .mn-way,body.mn-live #p-mains .chk,body.mn-live #p-mains #mnMsg{display:none}
+body.mn-live .pc-bar{margin-top:6px}
+body.mn-live .foot{display:none}
+@media (min-height:780px){body.mn-live .mn-lane{height:170px}}
+body.mn-live .mn-count{height:2.2em}
+@media (max-height:760px){.mn-lane{height:104px!important}.mn-pad{height:92px!important}.mn-stat{height:4.4em}.mn-line{margin:3px 0}.mn-row .mn-beat{height:34px}}
 .mn-side{min-width:0}
 .mn-lane{display:block;width:100%;height:130px;margin-bottom:4px}
 .mn-pad{appearance:none;width:100%;height:110px;border-radius:16px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface));color:var(--ink);font:800 20px var(--f-display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .mn-pad small{font:500 12px var(--f-body);color:var(--muted)}
 .mn-pad.hit{background:var(--c);color:#fff}.mn-pad.hit small{color:#fff}
 .mn-pl{--c:var(--c-doum)}.mn-pr{--c:var(--c-tchak)}
-.mn-stat{margin:6px 2px 0;font-size:13px;line-height:1.35;min-height:2.7em}
+.mn-stat{margin:0 2px 4px;font-size:13px;line-height:1.3;height:5em;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.mn-stat .mn-v{font-size:17px;line-height:1.2}
 .mn-stat b{font-size:15px}
 .mn-v{display:block;font-weight:700}
 .mn-v.ok{color:var(--ok)}.mn-v.warn{color:var(--warn)}.mn-v.err{color:var(--err)}
@@ -716,8 +724,8 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
     </div>
     <p class="mn-count" id="mnCount" aria-live="polite"></p>
     <div class="mn-pads" id="mnPads">
-      <div class="mn-side"><canvas class="mn-lane" id="mnLaneL" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pl" id="mnPadL" aria-describedby="mnStatL">Gauche<small>touche F</small></button><p class="mn-stat" id="mnStatL"></p></div>
-      <div class="mn-side"><canvas class="mn-lane" id="mnLaneR" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button><p class="mn-stat" id="mnStatR"></p></div>
+      <div class="mn-side"><p class="mn-stat" id="mnStatL"></p><canvas class="mn-lane" id="mnLaneL" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pl" id="mnPadL" aria-describedby="mnStatL">Gauche<small>touche F</small></button></div>
+      <div class="mn-side"><p class="mn-stat" id="mnStatR"></p><canvas class="mn-lane" id="mnLaneR" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button></div>
     </div>
     <div class="ctrl" style="margin-top:12px">
       <div class="seg" id="mnWay" role="group" aria-label="Façon de travailler">
@@ -2839,14 +2847,12 @@ function mnStat(h,verdict,kind){
   const s=mn.st[h],el=$(h==='l'?'#mnStatL':'#mnStatR');
   if(!s.n&&!s.extra){el.textContent='';return;}
   const pct=s.n?Math.round(100*s.ok/s.n):0;
-  let txt='<b>'+pct+' %</b> justes ('+s.ok+'/'+s.n+')';
+  let txt='<span><b>'+pct+' %</b> justes ('+s.ok+'/'+s.n+')'+(s.extra?' · '+s.extra+' en trop':'')+'</span>';
   if(s.offs.length>=4){
     const m=s.offs.reduce((a,b)=>a+b,0)/s.offs.length;
-    const sd=Math.sqrt(s.offs.reduce((a,b)=>a+(b-m)*(b-m),0)/s.offs.length);
     const mm=Math.round(m*1000);
-    txt+='<br>'+(Math.abs(mm)<=12?'bien centrée':mm<0?'en avance de '+(-mm)+' ms':'en retard de '+mm+' ms')+', régularité ± '+Math.round(sd*1000)+' ms';
+    txt+='<span>'+(Math.abs(mm)<=12?'bien centrée':mm<0?'en avance de '+(-mm)+' ms':'en retard de '+mm+' ms')+'</span>';
   }
-  if(s.extra)txt+='<br>'+s.extra+' en trop';
   el.innerHTML=(verdict?'<span class="mn-v '+kind+'">'+verdict+'</span>':'')+txt;
 }
 const mnWin=(h,t)=>{const e=mn.exp[h].find(x=>Math.abs(x.t-t)<0.5);const iv=e?e.iv:60/state.bpm;return Math.min(0.11,iv*0.45);};
@@ -3168,8 +3174,7 @@ function mnPlay(){
   mn.timer=setInterval(mnTick,25);mnTick();
   mn.raf=requestAnimationFrame(mnFrame);
   keepAwake(true);updateControls();
-  const pads=$('#mnPads').getBoundingClientRect();
-  if(pads.bottom>window.innerHeight-90||pads.top<0)$('#mnPads').scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  document.body.classList.add('mn-live');window.scrollTo(0,0);
   setTimeout(()=>{if(mn.on&&ctx&&ctx.state!=='running')setWork('Pas de son ? Vérifie le volume et l\'interrupteur silencieux du téléphone.');},500);
 }
 function mnGoalDone(){
@@ -3185,6 +3190,7 @@ function mnStop(fromGoal){
   if(!mn.on)return;
   if(!fromGoal&&mn.goal){const g=mn.goal;mn.goal=null;mn.goalEnd=0;if(g.abort)g.abort();}
   mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
+  document.body.classList.remove('mn-live');
   if(mn.pg&&mn.pg.swapped)mn.sel=mn.pg.orig;
   mn.pg=null;mn.shown=null;mn.mute=false;mnRender();
   document.querySelectorAll('#p-mains .mn-dot').forEach(d=>d.classList.remove('on','ok','miss'));
@@ -3233,7 +3239,7 @@ requestAnimationFrame(()=>mnLanes());
 const TABS=['parcours','rythme','pratique','mains','ecoute','mots'];
 function showTab(name,focus){
   if(!TABS.includes(name))name='rythme';
-  state.tab=name;
+  state.tab=name;document.body.dataset.tab=name;
   if(name!=='mains')mnStop();
   else requestAnimationFrame(()=>{mnCol=null;mnLanes();});
   TABS.forEach(t=>{

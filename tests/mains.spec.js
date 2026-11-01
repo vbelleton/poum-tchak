@@ -129,12 +129,15 @@ test.describe('Mains', () => {
     await expect(page.locator('#mnPadR')).toHaveAttribute('data-n', '1');
   });
 
-  test('changer de rubrique arrête les mains', async ({ page }) => {
+  test('pendant le jeu les onglets se cachent ; Stop les ramène', async ({ page }) => {
     await ouvrir(page);
     await page.locator('#play').click();
     await expect(page.locator('#play')).toContainText('Stop');
-    await rubrique(page, 'Rythme');
+    await expect(page.locator('.tabs')).toBeHidden();
+    await page.locator('#play').click();
     await expect(page.locator('#play')).toContainText('Jouer');
+    await rubrique(page, 'Rythme');
+    await expect(page.locator('#p-rythme')).toBeVisible();
   });
 
   test('les 16 duos s\'enchaînent, deux mesures chacun', async ({ page }) => {
@@ -345,5 +348,38 @@ test.describe('Mains : on ne te laisse pas échouer', () => {
     await page.locator('#play').click();
     await jouer(page, ['r'], 9000);
     expect(+(await page.locator('#bpmIn').inputValue())).toBe(140);
+  });
+});
+
+test.describe('Mains : vue de jeu', () => {
+  test('pas de batterie en haut, indications au-dessus des pads, rien ne bouge', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    await expect(page.locator('.stage')).toBeHidden();
+    await expect(page.locator('#kit')).toBeHidden();
+    await page.locator('#bpmIn').fill('120');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnColR .mn-opt[data-v="2"]').click();
+    await page.locator('#play').click();
+    await expect(page.locator('.tabs')).toBeHidden(); // pendant le jeu, seulement l'essentiel
+    const y = () => page.evaluate(() => {
+      const r = (s) => Math.round(document.querySelector(s).getBoundingClientRect().top);
+      return [r('#mnPadL'), r('#mnPadR'), r('#mnLaneL'), r('#mnStatL'), r('#mnCount'), Math.round(scrollY)];
+    });
+    const a = await y();
+    await page.waitForTimeout(1200);
+    await page.locator('#mnPadR').dispatchEvent('pointerdown');
+    await page.waitForTimeout(1200);
+    await page.locator('#mnPadL').dispatchEvent('pointerdown');
+    await page.waitForTimeout(1500);
+    const b = await y();
+    expect(b).toEqual(a);
+    // le score et le verdict sont au-dessus du pad, jamais dessous
+    const [stat, pad] = await page.evaluate(() => [
+      document.querySelector('#mnStatR').getBoundingClientRect().bottom,
+      document.querySelector('#mnPadR').getBoundingClientRect().top,
+    ]);
+    expect(stat).toBeLessThanOrEqual(pad);
+    await page.locator('#play').click();
+    await expect(page.locator('.tabs')).toBeVisible();
   });
 });
