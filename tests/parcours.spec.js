@@ -53,8 +53,8 @@ test.describe('Parcours', () => {
     await page.locator('#pcGo').click();
     await page.waitForTimeout(500);
     await page.locator('#play').click();
-    await expect(page.locator('#pcBar')).toContainText('Arrêté avant la fin');
-    await expect(page.locator('#pcBarBtns')).toContainText('Recommencer');
+    await expect(page.locator('#pcBar')).toContainText('Pas de souci');
+    await expect(page.locator('#pcBarBtns')).toContainText('Reprendre');
     await page.locator('#pcBarBtns').getByRole('button', { name: "Quitter l'étape" }).click();
     await expect(page.locator('#pcBar')).toBeHidden();
     await expect(page.locator('#p-parcours')).toBeVisible();
@@ -134,5 +134,20 @@ test.describe('Parcours à deux mains', () => {
     await page.locator('#pcBarBtns').getByRole('button', { name: "Quitter l'étape" }).click();
     await rubrique(page, 'Mains');
     await expect(page.locator('#mnWay [aria-pressed="true"]')).toHaveText('Ensemble');
+  });
+});
+
+test.describe('Parcours : jamais d\'échec', () => {
+  test('une étape qu\'on ne réussit pas ralentit, sans message d\'échec', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Parcours');
+    await page.locator('.pc-st').nth(7).click(); // 2 contre 2 à 70
+    await page.locator('#pcGo').click();
+    await page.waitForTimeout(14000);
+    expect(+(await page.locator('#bpmIn').inputValue())).toBeLessThan(70);
+    await expect(page.locator('#pcBar')).not.toContainText('Pas encore');
+    await page.locator('#play').click();
+    await expect(page.locator('#pcBar')).toContainText('Pas de souci');
+    await expect(page.locator('#pcBarBtns')).toContainText('Reprendre à');
   });
 });

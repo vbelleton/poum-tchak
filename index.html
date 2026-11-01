@@ -3061,6 +3061,33 @@ function mnProgResult(){
   }
   return {r,x};
 }
+/* Jamais d'échec : si deux mesures de suite sont trop faibles, le tempo baisse de 5 et on repart. */
+const MN_WEAK=70;
+function mnAdaptEval(k){
+  while(mn.ae<=k-2){
+    const j=mn.ae++;
+    const o=mn.bs[j];
+    if(!o||(o.l.n+o.r.n)===0)continue;
+    const act=['l','r'].filter(h=>o[h].n>0);
+    const pcs=act.map(h=>100*o[h].ok/o[h].n);
+    const weak=pcs.some(x=>x<MN_WEAK),good=pcs.every(x=>x>=MN_OK);
+    mn.weak=weak?mn.weak+1:0;
+    if(mn.goal&&mn.goal.consec){
+      if(j>=mn.gStart){mn.gr=good?mn.gr+1:0;if(mn.gr>=mn.goal.consec)mn.glast=j;}
+    }
+  }
+}
+function mnSlow(k){
+  if((!mn.goal&&!mn.pg)||mn.weak<2)return false;
+  mn.weak=0;
+  if(state.bpm<=40){mn.q.push({t:mn.nextT,say:'Prends ton temps, on reste à 40'});return false;}
+  const nb=Math.max(40,state.bpm-5);
+  setBpm(nb);
+  mn.q.push({t:mn.nextT,say:'On ralentit à '+nb+' BPM : prends ton temps'});
+  mn.gr=0;mn.gStart=k+1;
+  if(mn.pg&&mn.pg.ph!=='X'){mn.pg.since=k;mn.pg.ev=k;mn.pg.run=0;}
+  return true;
+}
 function mnTick(){
   if(!ctx)return;
   const beat=60/state.bpm;
@@ -3070,10 +3097,13 @@ function mnTick(){
     else{
       if(b===0&&mn.goal&&!mn.goalEnd){
         const pg=mn.pg;
-        if(mn.goal.bars&&mn.bar>=mn.goal.bars)mn.goalEnd=mn.nextT;
+        mnAdaptEval(mn.bar);
+        if(mn.goal.consec&&mn.gr>=mn.goal.consec)mn.goalEnd=mn.nextT;
         else if(pg&&pg.stopAt!=null&&mn.bar>=pg.stopAt)mn.goalEnd=mn.nextT;
-        else if(mn.goal.max&&mn.bar>=mn.goal.max)mn.goalEnd=mn.nextT;
+        else if(mn.goal.bars&&mn.bar>=mn.goal.bars)mn.goalEnd=mn.nextT;
+        else mnSlow(mn.bar);
       }
+      if(b===0&&!mn.goal&&mn.pg){mnAdaptEval(mn.bar);mnSlow(mn.bar);}
       if(mn.goalEnd){mn.nextT+=beat;mn.beat++;continue;}
       if(b===0){
         mn.barT[mn.bar]=mn.nextT;
@@ -3109,6 +3139,7 @@ function mnFrame(){
   while(mn.q.length&&mn.q[0].t<=now){
     const e=mn.q.shift();
     if(e.count!=null){$('#mnCount').textContent=e.count+(e.count===4?' … à toi':'');}
+    else if(e.say){$('#mnCount').textContent=e.say;mn.msgUntil=e.t+60/state.bpm*3.5;}
     else if(e.plan){
       const cur=mn.shown||mn.sel,ch=cur.l!==e.plan.l||cur.r!==e.plan.r;
       mn.shown=e.plan;if(ch){mnRow('l');mnRow('r');}
@@ -3127,6 +3158,7 @@ function mnFrame(){
 function mnPlay(){
   stop();stopSong();stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
+  mn.ae=0;mn.weak=0;mn.gr=0;mn.gStart=0;mn.glast=-1;
   mnColors();mnProgInit();mn.bs={};mn.barT=[];mn.shown=null;mn.mute=false;mn.msgUntil=0;
   mn.plan=mn.pg?mnProg(0):mnPlanAt(0);if(mn.pg){mn.pg.ev=0;mn.pg.run=0;}
   mn.goalEnd=0;
@@ -3144,6 +3176,7 @@ function mnGoalDone(){
   const g=mn.goal,st=mn.st;mn.goal=null;mn.goalEnd=0;
   let r={},x=null;
   if(mn.pg){const o=mnProgResult();r=o.r;x=o.x;}
+  else if(g&&g.consec&&mn.glast>=0){['l','r'].forEach(h=>{const p=mnRangePct(h,mn.glast-g.consec+1,mn.glast);if(p!=null)r[h]=p;});}
   else ['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
   mnStop(true);
   if(g&&g.cb)g.cb(r,x);
@@ -3739,8 +3772,8 @@ function pcTitle(st){
 function pcGoal(st){
   return st.type==='trad'?'Objectif : 3 consignes justes du premier coup, sur la grille ou la batterie.'
     :st.l!==-1&&st.r!==-1
-      ?'Comme sur le papier : une main seule d\'abord. Quand elle tient 2 mesures à '+PC_OK+' %, l\'autre entre. Quand les deux tiennent 2 mesures, 2 mesures sans clic, et c\'est réussi. Départ à '+st.bpm+' BPM.'
-      :'Objectif : 4 mesures après le décompte, '+PC_OK+' % de coups justes. Départ à '+st.bpm+' BPM.';
+      ?'Comme sur le papier : une main seule d\'abord. Quand elle tient 2 mesures à '+PC_OK+' %, l\'autre entre. Quand les deux tiennent, 2 mesures sans clic. Si ça coince, le tempo ralentit tout seul. Départ à '+st.bpm+' BPM.'
+      :'Objectif : 4 mesures de suite à '+PC_OK+' % de coups justes. Si ça coince, le tempo ralentit tout seul. Départ à '+st.bpm+' BPM.';
 }
 function pcRender(){
   const n=Object.keys(pc.done).length;
@@ -3803,8 +3836,8 @@ function pcStart(id,bpm){
     mn.sel={l:st.l,r:st.r};mnRender();
     setBpm(pc.bpm);
     const f=two?mnFirst(mn.sel):'';
-    pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue 4 mesures.'),'',[pcQuitBtn]);
-    mn.goal={bars:two?0:4,max:two?24:0,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Arrêté avant la fin.','ko',[['Recommencer',()=>pcStart(id,pc.bpm)],pcQuitBtn])};
+    pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue : il faut 4 bonnes mesures de suite.')+' Le tempo ralentit tout seul si ça coince.','',[pcQuitBtn]);
+    mn.goal={consec:two?0:4,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Pas de souci, on s\'arrête là. Tu peux reprendre quand tu veux'+(state.bpm<pc.bpm?', à '+state.bpm+' BPM, un peu plus lent.':'.'),'',[['Reprendre'+(state.bpm<pc.bpm?' à '+state.bpm+' BPM':''),()=>pcStart(id,state.bpm)],pcQuitBtn])};
     mnPlay();
   }else{
     showTab('mots');

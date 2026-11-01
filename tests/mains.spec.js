@@ -319,3 +319,31 @@ test.describe('Mains : main ancre', () => {
     expect(i, a.join(' | ')).toBe(ordre.length);
   });
 });
+
+test.describe('Mains : on ne te laisse pas échouer', () => {
+  test('si tu ne tiens pas, le tempo ralentit tout seul', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('200');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnWay').getByRole('button', { name: "Une main, puis l'autre" }).click();
+    await suivreAnnonces(page);
+    await page.locator('#play').click(); // on ne tape rien
+    await page.waitForTimeout(9000);
+    const bpm = +(await page.locator('#bpmIn').inputValue());
+    expect(bpm).toBeLessThan(200);
+    const a = await page.evaluate(() => window.__annonces);
+    expect(a.some((t) => t.startsWith('On ralentit à'))).toBe(true);
+  });
+
+  test('on ne ralentit pas quand ça se passe bien', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('140');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnWay').getByRole('button', { name: "Une main, puis l'autre" }).click();
+    await page.locator('#play').click();
+    await jouer(page, ['r'], 9000);
+    expect(+(await page.locator('#bpmIn').inputValue())).toBe(140);
+  });
+});

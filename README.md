@@ -63,6 +63,9 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   échangent leurs rythmes) ; **main ancre** (une main garde son rythme, l'autre
   passe par 1, 2, 3, 4 coups par temps, puis les rôles s'inversent). Les étapes
   à deux mains du Parcours se font une main, puis l'autre.
+  On ne te laisse pas échouer : si deux mesures de suite sont trop faibles
+  (moins de 70 %), le tempo baisse de 5 BPM tout seul, jusqu'à 40, et l'étape
+  est réussie dès que les mesures tiennent ; arrêter n'est jamais un échec.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
 - **Mots** : s'entraîner à traduire une consigne en onomatopées (trois niveaux ;
