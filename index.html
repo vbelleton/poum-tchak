@@ -472,7 +472,8 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .pc-bt{margin:0 0 8px;font-size:14px;line-height:1.4}
 .pc-bb{display:flex;flex-wrap:wrap;gap:6px}
 .pc-bb .btn{min-height:38px;padding:6px 12px;font-size:13.5px}
-#p-mains.pc-on .mn-tab,#p-mains.pc-on>.hint,#p-mains.pc-on .chk{display:none}
+#p-mains.pc-on .mn-tab,#p-mains.pc-on>.hint,#p-mains.pc-on .chk,#p-mains.pc-on #mnWay,#p-mains.pc-on .mn-way{display:none}
+.mn-way{margin-top:-2px}
 /* Mots : s'entraîner à traduire */
 .tr-say{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 12px}
 .tr-say div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 6px 8px;min-width:0}
@@ -719,6 +720,14 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
       <div class="mn-side"><canvas class="mn-lane" id="mnLaneR" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button><p class="mn-stat" id="mnStatR"></p></div>
     </div>
     <div class="ctrl" style="margin-top:12px">
+      <div class="seg" id="mnWay" role="group" aria-label="Façon de travailler">
+        <button type="button" data-v="ensemble">Ensemble</button>
+        <button type="button" data-v="empiler">Une main, puis l'autre</button>
+        <button type="button" data-v="ancre">Main ancre</button>
+      </div>
+    </div>
+    <p class="hint mn-way" id="mnWayTxt"></p>
+    <div class="ctrl">
       <div class="seg" id="mnModel" role="group" aria-label="Ce que joue l'appli">
         <button type="button" data-v="tout">Modèle + clic</button>
         <button type="button" data-v="clic">Clic seul</button>
@@ -2756,15 +2765,16 @@ const MN_OPTS=[
   {v:4,frac:'¼ temps',note:'doubles',kod:'ti-ri-ti-ri',tak:'ta-ka-di-mi',cnt:'1 é et a'},
   {v:0,frac:'1 → ¼',note:'change à chaque temps',kod:'ta · ti-ti · tri-o-let · ti-ri-ti-ri',tak:'ta · ta-di · ta-ki-da · ta-ka-di-mi',cnt:'1 · 2 et · 3 et a · 4 é et a'}
 ];
-const mn={on:false,sel:{l:2,r:1},sound:'tout',walk:false,midi:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1,exp:{l:[],r:[]},st:null};
+const mn={on:false,sel:{l:2,r:1},sound:'tout',mode:'ensemble',pg:null,bs:{},barT:[],shown:null,mute:false,walk:false,midi:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1,exp:{l:[],r:[]},st:null};
 const mnArr=v=>v===-1?[0,0,0,0]:v===0?[1,2,3,4]:[v,v,v,v];
 const mnHand=h=>h==='l'?'gauche':'droite';
-function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({sel:mn.sel,sound:mn.sound}));}catch(e){}}
+function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({sel:mn.sel,sound:mn.sound,mode:mn.mode}));}catch(e){}}
 function mnLoad(){
   try{
     const o=JSON.parse(localStorage.getItem(MN_KEY)||'null');
     const ok=v=>[0,1,2,3,4].includes(v);
     if(o&&o.sel&&ok(o.sel.l)&&ok(o.sel.r))mn.sel={l:o.sel.l,r:o.sel.r};
+    if(o&&['ensemble','empiler','ancre'].includes(o.mode))mn.mode=o.mode;
     if(o&&['tout','clic','rien'].includes(o.sound))mn.sound=o.sound;
     else if(o&&o.model===false)mn.sound='clic';
   }catch(e){}
@@ -2797,7 +2807,7 @@ function mnBuildCols(){
 function mnRow(h){
   const host=$(h==='r'?'#mnR':'#mnL');
   host.innerHTML='';
-  mnArr(mn.sel[h]).forEach((n,b)=>{
+  mnArr(mn.on&&mn.shown?mn.shown[h]:mn.sel[h]).forEach((n,b)=>{
     const el=document.createElement('div');el.className='mn-beat';el.dataset.b=b;
     for(let k=0;k<n;k++){const d=document.createElement('i');d.className='mn-dot';d.style.setProperty('--p',String(k/n));d.dataset.k=k;el.appendChild(d);}
     host.appendChild(el);
@@ -2815,6 +2825,8 @@ function mnRender(){
   });
   mnRow('l');mnRow('r');
   [...$('#mnModel').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.sound)));
+  [...$('#mnWay').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.mode)));
+  $('#mnWayTxt').textContent=MN_WAY[mn.mode];
   if(!(mn.on&&mn.walk))$('#mnMsg').textContent=mnText();
   if(mn.on)mnMark(mn.cur);
 }
@@ -2849,6 +2861,7 @@ function mnJudge(h,at){
     mn.st[h].extra++;mnStat(h,'En trop','err');return;
   }
   best.done=true;best.hit=true;best.res=Math.abs(bd)<=0.085?'ok':'warn';
+  mnBS(best.bar,h,Math.abs(bd)<=0.085);
   const s=mn.st[h];s.n++;
   const a=Math.abs(bd);
   if(a<=0.085){s.ok++;s.offs.push(bd);}
@@ -2863,7 +2876,7 @@ function mnMisses(now){
     while(L.length&&L[0].t<now-1)L.shift();
     L.forEach(e=>{
       if(e.done||now<=e.t+Math.min(0.11,e.iv*0.45))return;
-      e.done=true;e.res='miss';mn.st[h].n++;mn.st[h].miss++;
+      e.done=true;e.res='miss';mn.st[h].n++;mn.st[h].miss++;mnBS(e.bar,h,false);
       const d=mnDot(h,e.b,e.k);if(d){d.classList.add('miss');setTimeout(()=>d.classList.remove('miss'),300);}
       mnStat(h,'Raté','err');
     });
@@ -2912,7 +2925,7 @@ function mnUpcoming(now,H){
   while(t<now+H){
     const b=((raw%4)+4)%4;
     if(raw>=0){
-      if(b===0){plan=mnPlanAt(bar);bar++;}
+      if(b===0){if(!mn.pg)plan=mnPlanAt(bar);bar++;}
       ['l','r'].forEach(h=>{const n=mnArr(plan[h])[b];for(let k=0;k<n;k++)out[h].push({t:t+k*bt/n});});
     }
     t+=bt;raw++;
@@ -2960,31 +2973,129 @@ function mnLanes(){
     c.globalAlpha=1;
   });
 }
+/* Façons de travailler. « Une main, puis l'autre » : comme sur le papier, une main
+   seule jusqu'à ce qu'elle tienne, puis l'autre entre, puis le clic s'efface, puis les
+   mains échangent leurs rythmes. « Main ancre » : une main garde son rythme, l'autre
+   change toutes les 2 mesures ; au bout du tour, les rôles s'inversent. */
+const MN_OK=85;
+const MN_WAY={
+  ensemble:'Les deux mains jouent dès le début.',
+  empiler:'Une main d\'abord (celle qui fait le moins de coups). Quand elle tient 2 mesures à 85 %, l\'autre entre. Quand les deux tiennent, 2 mesures sans clic, puis les mains échangent leurs rythmes.',
+  ancre:'Une main garde son rythme, l\'autre passe par 1, 2, 3 puis 4 coups par temps, 2 mesures chacun. Puis on inverse les rôles.'
+};
+function mnBS(bar,h,ok){
+  if(bar==null)return;
+  const o=mn.bs[bar]||(mn.bs[bar]={l:{n:0,ok:0},r:{n:0,ok:0}});
+  o[h].n++;if(ok)o[h].ok++;
+}
+function mnBarPct(j,h){const o=mn.bs[j];return o&&o[h].n?100*o[h].ok/o[h].n:null;}
+function mnRangePct(h,a,b){
+  let n=0,ok=0;for(let j=a;j<=b;j++){const o=mn.bs[j];if(o){n+=o[h].n;ok+=o[h].ok;}}
+  return n?Math.round(100*ok/n):null;
+}
+const mnWeight=v=>v===0?4.5:v;
+const mnFirst=sel=>mnWeight(sel.l)<mnWeight(sel.r)?'l':'r';
+const mnOther=h=>h==='l'?'r':'l';
+const mnName=h=>h==='l'?'gauche':'droite';
+function mnProgInit(){
+  const two=mn.sel.l!==-1&&mn.sel.r!==-1;
+  if(!two||mn.walk||mn.mode==='ensemble'){mn.pg=null;return;}
+  const f=mnFirst(mn.sel);
+  mn.pg={ph:mn.mode==='ancre'?'X':'A',first:f,since:0,ev:0,run:0,act:[f],swapped:false,cStart:0,bStart:0,orig:{l:mn.sel.l,r:mn.sel.r},stopAt:null,anchor:f};
+}
+function mnEval(k){
+  const pg=mn.pg;
+  while(pg.ev<=k-2){
+    const j=pg.ev++;
+    if(j<pg.since)continue;
+    const good=pg.act.every(h=>{const p=mnBarPct(j,h);return p!=null&&p>=MN_OK;});
+    pg.run=good?pg.run+1:0;
+  }
+}
+/* plan de la mesure k : coups de chaque main, mesure muette, message */
+function mnProg(k){
+  const pg=mn.pg,sel=mn.sel;
+  if(!pg)return {l:sel.l,r:sel.r};
+  if(pg.ph==='X'){
+    const blk=Math.floor(k/8),A=blk%2?mnOther(pg.anchor):pg.anchor,F=mnOther(A);
+    const v=[1,2,3,4][Math.floor(k/2)%4];
+    const plan={[A]:sel[pg.anchor],[F]:v};
+    if(k%8===0)plan.msg=(k?'On inverse : ':'')+'la '+mnName(A)+' garde le temps';
+    else if(k%2===0)plan.msg=mnName(F)[0].toUpperCase()+mnName(F).slice(1)+' : '+v+(v>1?' coups':' coup');
+    return plan;
+  }
+  mnEval(k);
+  let msg='';
+  if(k===0)msg=mnName(pg.first)[0].toUpperCase()+mnName(pg.first).slice(1)+' seule';
+  if(pg.ph==='A'&&pg.run>=2){
+    pg.ph='B';pg.since=k;pg.ev=k;pg.run=0;pg.bStart=k;pg.act=['l','r'];
+    msg='La '+mnName(mnOther(pg.first))+' entre !';
+  }else if(pg.ph==='B'&&pg.run>=2){
+    pg.ph='C';pg.since=k;pg.ev=k;pg.run=0;pg.cStart=k;
+    msg='Sans clic : garde le tempo';
+    if(mn.goal)pg.stopAt=k+2;
+  }else if(pg.ph==='C'&&k>=pg.cStart+2){
+    if(!pg.swapped){
+      pg.swapped=true;mn.sel={l:sel.r,r:sel.l};
+      pg.first=mnFirst(mn.sel);pg.ph='A';pg.since=k;pg.ev=k;pg.run=0;pg.act=[pg.first];
+      msg='On inverse : '+mnName(pg.first)+' seule';
+    }else{pg.ph='L';pg.since=k;msg='Tu es libre !';}
+  }
+  const s=mn.sel;
+  const plan=pg.ph==='A'?{[pg.first]:s[pg.first],[mnOther(pg.first)]:-1}:{l:s.l,r:s.r};
+  if(pg.ph==='C')plan.mute=true;
+  if(msg)plan.msg=msg;
+  return plan;
+}
+function mnProgResult(){
+  const pg=mn.pg,r={},x={prog:true,reached:false,ph:pg?pg.ph:''};
+  if(!pg)return {r,x};
+  if(pg.ph==='C'||pg.ph==='L'){
+    x.reached=true;
+    ['l','r'].forEach(h=>{const p=mnRangePct(h,pg.cStart-2,pg.cStart-1);if(p!=null)r[h]=p;});
+    x.free={};['l','r'].forEach(h=>{const p=mnRangePct(h,pg.cStart,pg.cStart+1);if(p!=null)x.free[h]=p;});
+  }else{
+    const end=mn.bar-1,a=Math.max(pg.since,end-3);
+    pg.act.forEach(h=>{const p=mnRangePct(h,a,end);if(p!=null)r[h]=p;});
+    x.waiting=pg.ph==='A'?mnOther(pg.first):'';
+  }
+  return {r,x};
+}
 function mnTick(){
   if(!ctx)return;
   const beat=60/state.bpm;
   while(mn.nextT<ctx.currentTime+0.12){
     const raw=mn.beat,b=((raw%4)+4)%4;
-    if(mn.sound!=='rien'&&(state.click||raw<0))clickSound(mn.nextT,b===0);
-    if(raw<0){mn.q.push({t:mn.nextT,count:b+1});}
+    if(raw<0){if(mn.sound!=='rien')clickSound(mn.nextT,b===0);mn.q.push({t:mn.nextT,count:b+1});}
     else{
-      if(b===0&&mn.goal&&mn.bar>=mn.goal.bars&&!mn.goalEnd){mn.goalEnd=mn.nextT;}
+      if(b===0&&mn.goal&&!mn.goalEnd){
+        const pg=mn.pg;
+        if(mn.goal.bars&&mn.bar>=mn.goal.bars)mn.goalEnd=mn.nextT;
+        else if(pg&&pg.stopAt!=null&&mn.bar>=pg.stopAt)mn.goalEnd=mn.nextT;
+        else if(mn.goal.max&&mn.bar>=mn.goal.max)mn.goalEnd=mn.nextT;
+      }
       if(mn.goalEnd){mn.nextT+=beat;mn.beat++;continue;}
       if(b===0){
+        mn.barT[mn.bar]=mn.nextT;
         if(mn.walk){
           const i=Math.floor(mn.bar/2)%16;
           mn.q.push({t:mn.nextT,duo:i,l:1+(i>>2),r:1+(i&3)});
           mn.plan={l:1+(i>>2),r:1+(i&3)};
-        }else mn.plan={l:mn.sel.l,r:mn.sel.r};
+        }else{
+          const pl=mnProg(mn.bar);
+          mn.plan={l:pl.l,r:pl.r};mn.mute=!!pl.mute;
+          mn.q.push({t:mn.nextT,plan:{l:pl.l,r:pl.r},msg:pl.msg||'',mute:mn.mute});
+        }
         mn.bar++;
       }
+      if(mn.sound!=='rien'&&!mn.mute&&state.click)clickSound(mn.nextT,b===0);
       [['l','doum'],['r','tchak']].forEach(([h,id])=>{
         const n=mnArr(mn.plan[h])[b];
         for(let k=0;k<n;k++){
           const t=mn.nextT+k*beat/n;
-          if(mn.sound==='tout')voice(id,t,0.85);
+          if(mn.sound==='tout'&&!mn.mute)voice(id,t,0.85);
           mn.q.push({t,h,b,k});
-          mn.exp[h].push({t:t-0,b,k,iv:beat/n,done:false});
+          mn.exp[h].push({t:t-0,b,k,iv:beat/n,done:false,bar:mn.bar-1});
         }
       });
       mn.q.push({t:mn.nextT,beat:b});
@@ -2998,8 +3109,14 @@ function mnFrame(){
   while(mn.q.length&&mn.q[0].t<=now){
     const e=mn.q.shift();
     if(e.count!=null){$('#mnCount').textContent=e.count+(e.count===4?' … à toi':'');}
+    else if(e.plan){
+      const cur=mn.shown||mn.sel,ch=cur.l!==e.plan.l||cur.r!==e.plan.r;
+      mn.shown=e.plan;if(ch){mnRow('l');mnRow('r');}
+      if(e.msg){$('#mnCount').textContent=e.msg;mn.msgUntil=e.t+60/state.bpm*3.5;}
+      if(e.msg)mnRender();
+    }
     else if(e.duo!=null){mn.sel={l:e.l,r:e.r};mnRender();$('#mnMsg').textContent='Duo '+(e.duo+1)+' sur 16 : gauche '+e.l+' contre droite '+e.r+'.';}
-    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);if(e.beat===0)$('#mnCount').textContent='';}
+    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);if(e.beat===0&&!(mn.msgUntil>e.t))$('#mnCount').textContent='';}
     else{const d=mnDot(e.h,e.b,e.k);if(d){d.classList.add('on');setTimeout(()=>d.classList.remove('on'),130);}}
   }
   mnMisses(ctx.currentTime-latency());
@@ -3010,7 +3127,8 @@ function mnFrame(){
 function mnPlay(){
   stop();stopSong();stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
-  mnColors();mn.plan=mnPlanAt(0);
+  mnColors();mnProgInit();mn.bs={};mn.barT=[];mn.shown=null;mn.mute=false;mn.msgUntil=0;
+  mn.plan=mn.pg?mnProg(0):mnPlanAt(0);if(mn.pg){mn.pg.ev=0;mn.pg.run=0;}
   mn.goalEnd=0;
   mn.on=true;mn.bar=0;mn.beat=-4;mn.q.length=0;mn.cur=-1;mn.exp={l:[],r:[]};mn.st=mnNewStats();
   mn.nextT=ctx.currentTime+0.1;mn.startT=mn.nextT+4*60/state.bpm;
@@ -3024,14 +3142,18 @@ function mnPlay(){
 }
 function mnGoalDone(){
   const g=mn.goal,st=mn.st;mn.goal=null;mn.goalEnd=0;
+  let r={},x=null;
+  if(mn.pg){const o=mnProgResult();r=o.r;x=o.x;}
+  else ['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
   mnStop(true);
-  const r={};['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
-  if(g&&g.cb)g.cb(r);
+  if(g&&g.cb)g.cb(r,x);
 }
 function mnStop(fromGoal){
   if(!mn.on)return;
   if(!fromGoal&&mn.goal){const g=mn.goal;mn.goal=null;mn.goalEnd=0;if(g.abort)g.abort();}
   mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
+  if(mn.pg&&mn.pg.swapped)mn.sel=mn.pg.orig;
+  mn.pg=null;mn.shown=null;mn.mute=false;mnRender();
   document.querySelectorAll('#p-mains .mn-dot').forEach(d=>d.classList.remove('on','ok','miss'));
   $('#mnCount').textContent='';
   mnMark(-1);mnLanes();
@@ -3042,9 +3164,11 @@ function mnStop(fromGoal){
   }else mnRender();
   keepAwake(false);updateControls();
 }
+$('#mnWay').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.mode=b.dataset.v;if(mn.mode!=='ensemble'){mn.walk=false;$('#mnWalk').checked=false;}mnSave();mnRender();if(mn.on){mnStop();mnPlay();}});
 $('#mnModel').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.sound=b.dataset.v;mnSave();mnRender();});
 $('#mnWalk').addEventListener('change',e=>{
   mn.walk=e.target.checked;
+  if(mn.walk&&mn.mode!=='ensemble'){mn.mode='ensemble';mnSave();mnRender();}
   if(!mn.walk)$('#mnMsg').textContent=mnText();
   else if(!mn.on)$('#mnMsg').textContent='Appuie sur Jouer : on part de 1 contre 1.';
 });
@@ -3614,7 +3738,9 @@ function pcTitle(st){
 }
 function pcGoal(st){
   return st.type==='trad'?'Objectif : 3 consignes justes du premier coup, sur la grille ou la batterie.'
-    :'Objectif : 4 mesures après le décompte, '+PC_OK+' % de coups justes pour chaque main jouée. Départ à '+st.bpm+' BPM.';
+    :st.l!==-1&&st.r!==-1
+      ?'Comme sur le papier : une main seule d\'abord. Quand elle tient 2 mesures à '+PC_OK+' %, l\'autre entre. Quand les deux tiennent 2 mesures, 2 mesures sans clic, et c\'est réussi. Départ à '+st.bpm+' BPM.'
+      :'Objectif : 4 mesures après le décompte, '+PC_OK+' % de coups justes. Départ à '+st.bpm+' BPM.';
 }
 function pcRender(){
   const n=Object.keys(pc.done).length;
@@ -3654,7 +3780,9 @@ function pcBar(txt,kind,btns){
   const host=$('#pcBarBtns');host.innerHTML='';
   btns.forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.addEventListener('click',fn);host.appendChild(b);});
 }
+function pcRestoreMode(){if(pc.mode!=null){mn.mode=pc.mode;pc.mode=null;mnRender();}}
 function pcQuit(){
+  pcRestoreMode();
   pc.active=null;$('#pcBar').hidden=true;$('#p-mains').classList.remove('pc-on');
   if(mn.goal){mn.goal=null;mnStop(true);}
   tr.goal=null;clearTimeout(tr.nextT);
@@ -3669,10 +3797,14 @@ function pcStart(id,bpm){
     mnStop(true);
     showTab('mains');
     mn.walk=false;$('#mnWalk').checked=false;
+    const two=st.l!==-1&&st.r!==-1;
+    if(pc.mode==null)pc.mode=mn.mode;
+    mn.mode=two?'empiler':'ensemble';
     mn.sel={l:st.l,r:st.r};mnRender();
     setBpm(pc.bpm);
-    pcBar(head+'Écoute le décompte, puis joue 4 mesures.','',[pcQuitBtn]);
-    mn.goal={bars:4,cb:r=>pcMainsDone(st,r),abort:()=>pcBar(head+'Arrêté avant la fin.','ko',[['Recommencer',()=>pcStart(id,pc.bpm)],pcQuitBtn])};
+    const f=two?mnFirst(mn.sel):'';
+    pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue 4 mesures.'),'',[pcQuitBtn]);
+    mn.goal={bars:two?0:4,max:two?24:0,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Arrêté avant la fin.','ko',[['Recommencer',()=>pcStart(id,pc.bpm)],pcQuitBtn])};
     mnPlay();
   }else{
     showTab('mots');
@@ -3690,11 +3822,14 @@ function pcSucceed(st,bpm){
   pc.cur=pcNextId(st.id);pcSave();pcRender();
 }
 function pcShowBar(){requestAnimationFrame(()=>$('#pcBar').scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));}
-function pcMainsDone(st,r){
+function pcMainsDone(st,r,x){
+  pcRestoreMode();
   const i=pcIdx(st.id),head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · ';
   const hands=Object.keys(r);
-  const txt=hands.map(h=>(h==='l'?'gauche ':'droite ')+r[h]+' %').join(', ');
-  const ok=hands.length&&hands.every(h=>r[h]>=PC_OK);
+  let txt=hands.map(h=>(h==='l'?'gauche ':'droite ')+r[h]+' %').join(', ');
+  const ok=x&&x.prog?x.reached:hands.length&&hands.every(h=>r[h]>=PC_OK);
+  if(x&&x.free){const fh=Object.keys(x.free);if(fh.length)txt+=' ; sans clic : '+fh.map(h=>mnName(h)+' '+x.free[h]+' %').join(', ');}
+  if(x&&!x.reached)txt=(x.waiting?'la '+mnName(mnOther(x.waiting))+' seule n\'a pas encore tenu 2 mesures de suite ('+(txt||'pas de coup')+')':'les deux mains n\'ont pas encore tenu 2 mesures de suite ('+txt+')');
   const last=pcIdx(st.id)===PC_STEPS.length-1;
   if(ok){
     pcSucceed(st,state.bpm);
@@ -3706,7 +3841,8 @@ function pcMainsDone(st,r){
   }else{
     const weak=hands.filter(h=>r[h]<PC_OK).map(h=>h==='l'?'gauche':'droite');
     const slow=Math.max(40,state.bpm-5);
-    pcBar(head+'Pas encore : '+txt+'. Il faut '+PC_OK+' % '+(weak.length>1?'aux deux mains':'à la main '+weak[0])+'. '+(state.bpm>slow?'Essaie un peu plus lent.':''),'ko',[
+    const need=x&&x.prog?'':'Il faut '+PC_OK+' % '+(weak.length>1?'aux deux mains':'à la main '+(weak[0]||''))+'. ';
+    pcBar(head+'Pas encore : '+txt+'. '+need+(state.bpm>slow?'Essaie un peu plus lent.':''),'ko',[
       ['Recommencer',()=>pcStart(st.id,state.bpm)],
       ...(state.bpm>slow?[['Plus lent (−5)',()=>pcStart(st.id,slow),true]]:[]),pcQuitBtn]);
   }

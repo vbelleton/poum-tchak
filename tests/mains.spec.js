@@ -232,3 +232,90 @@ test.describe('Mains : couloirs et son', () => {
     expect(await page.evaluate(() => window.__sons)).toBeGreaterThan(0);
   });
 });
+
+// Tape les mains demandées en rythme pendant « duree » ms (d'après l'horloge du son).
+async function jouer(page, mains, duree) {
+  await page.evaluate(async ({ mains, duree }) => {
+    const fin = performance.now() + duree;
+    const pads = { l: document.querySelector('#mnPadL'), r: document.querySelector('#mnPadR') };
+    const boucle = async (h) => {
+      while (performance.now() < fin) {
+        const x = window.__mnExp(h);
+        if (x != null) {
+          await new Promise((r) => setTimeout(r, x * 1000));
+          pads[h].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+          await new Promise((r) => setTimeout(r, 40));
+        } else await new Promise((r) => setTimeout(r, 10));
+      }
+    };
+    await Promise.all(mains.map(boucle));
+  }, { mains, duree });
+}
+async function suivreAnnonces(page) {
+  await page.evaluate(() => {
+    window.__annonces = [];
+    const c = document.querySelector('#mnCount');
+    new MutationObserver(() => { const t = c.textContent; if (t && !/^\d/.test(t)) window.__annonces.push(t); })
+      .observe(c, { childList: true, characterData: true, subtree: true });
+  });
+}
+
+test.describe('Mains : une main, puis l\'autre', () => {
+  test('la main qui fait le moins de coups commence, l\'autre entre quand elle tient, puis sans clic, puis on inverse', async ({ page }) => {
+    test.setTimeout(90_000);
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('140');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnColL .mn-opt[data-v="1"]').click();
+    await page.locator('#mnColR .mn-opt[data-v="2"]').click();
+    await page.locator('#mnWay').getByRole('button', { name: "Une main, puis l'autre" }).click();
+    await expect(page.locator('#mnWayTxt')).toContainText('Une main d\'abord');
+    await suivreAnnonces(page);
+    await page.locator('#play').click();
+    await jouer(page, ['l', 'r'], 24000);
+    const a = await page.evaluate(() => window.__annonces);
+    const ordre = ['Gauche seule', 'La droite entre !', 'Sans clic : garde le tempo', 'On inverse : droite seule'];
+    let i = 0;
+    for (const t of a) if (t === ordre[i]) i++;
+    expect(i, a.join(' | ')).toBe(ordre.length);
+    // après l'inversion, la droite fait 1 coup et la gauche 2
+    await expect(page.locator('#mnR .mn-dot')).toHaveCount(4);
+    await page.locator('#play').click();
+    // à l'arrêt, le réglage d'origine revient
+    await expect(page.locator('#mnColR .mn-opt[data-v="2"]')).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('tant que la première main ne tient pas, l\'autre n\'entre pas', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('180');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnWay').getByRole('button', { name: "Une main, puis l'autre" }).click();
+    await suivreAnnonces(page);
+    await page.locator('#play').click();
+    await page.waitForTimeout(9000);
+    const a = await page.evaluate(() => window.__annonces);
+    expect(a).toContain('Droite seule');
+    expect(a.some((t) => t.includes('entre'))).toBe(false);
+    await expect(page.locator('#mnL .mn-dot')).toHaveCount(0);
+  });
+});
+
+test.describe('Mains : main ancre', () => {
+  test('une main garde le temps, l\'autre passe par 1, 2, 3, 4 coups, puis on inverse', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('220');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnColL .mn-opt[data-v="1"]').click();
+    await page.locator('#mnColR .mn-opt[data-v="2"]').click();
+    await page.locator('#mnWay').getByRole('button', { name: 'Main ancre' }).click();
+    await suivreAnnonces(page);
+    await page.locator('#play').click();
+    await page.waitForTimeout(11000);
+    const a = await page.evaluate(() => window.__annonces);
+    const ordre = ['la gauche garde le temps', 'Droite : 2 coups', 'Droite : 3 coups', 'Droite : 4 coups', 'On inverse : la droite garde le temps'];
+    let i = 0;
+    for (const t of a) if (t === ordre[i]) i++;
+    expect(i, a.join(' | ')).toBe(ordre.length);
+  });
+});

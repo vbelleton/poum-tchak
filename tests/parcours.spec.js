@@ -103,3 +103,36 @@ test.describe('Parcours', () => {
     }
   });
 });
+
+test.describe('Parcours à deux mains', () => {
+  test('une main d\'abord, l\'autre entre, puis sans clic : étape réussie', async ({ page }) => {
+    test.setTimeout(120_000);
+    await rubrique(page, 'Parcours');
+    await page.locator('.pc-st').nth(2).click();
+    await expect(page.locator('#pcNext .goal')).toContainText('une main seule d\'abord');
+    await page.locator('#pcGo').click();
+    await expect(page.locator('#pcBar')).toContainText('la droite seule');
+    await expect(page.locator('#mnL .mn-dot')).toHaveCount(0);
+    await page.evaluate(async () => {
+      const pads = { l: document.querySelector('#mnPadL'), r: document.querySelector('#mnPadR') };
+      const fin = performance.now() + 60000;
+      const boucle = async (h) => {
+        while (performance.now() < fin && !document.querySelector('#pcBar.ok, #pcBar.ko')) {
+          const x = window.__mnExp(h);
+          if (x != null) {
+            await new Promise((r) => setTimeout(r, x * 1000));
+            pads[h].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+            await new Promise((r) => setTimeout(r, 40));
+          } else await new Promise((r) => setTimeout(r, 10));
+        }
+      };
+      await Promise.all([boucle('l'), boucle('r')]);
+    });
+    await expect(page.locator('#pcBar')).toHaveClass(/ok/);
+    await expect(page.locator('#pcBarTxt')).toContainText('sans clic');
+    // la façon de travailler de l'utilisateur est rendue
+    await page.locator('#pcBarBtns').getByRole('button', { name: "Quitter l'étape" }).click();
+    await rubrique(page, 'Mains');
+    await expect(page.locator('#mnWay [aria-pressed="true"]')).toHaveText('Ensemble');
+  });
+});

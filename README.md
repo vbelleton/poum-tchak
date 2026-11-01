@@ -57,6 +57,12 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   descendent, grossissent et s'allument au moment de frapper. Son au choix :
   modèle + clic, clic seul, ou sans son (on n'entend que ses baguettes).
   « Enchaîner les 16 duos » passe de 1 contre 1 à 4 contre 4.
+  Trois façons de travailler : **ensemble** ; **une main, puis l'autre** (comme
+  sur le papier : la main qui fait le moins de coups seule, l'autre entre quand
+  elle tient 2 mesures à 85 %, puis 2 mesures sans clic, puis les mains
+  échangent leurs rythmes) ; **main ancre** (une main garde son rythme, l'autre
+  passe par 1, 2, 3, 4 coups par temps, puis les rôles s'inversent). Les étapes
+  à deux mains du Parcours se font une main, puis l'autre.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
 - **Mots** : s'entraîner à traduire une consigne en onomatopées (trois niveaux ;
