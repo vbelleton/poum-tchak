@@ -214,7 +214,11 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .grv .btn{min-height:36px;padding:5px 11px;font-size:13px}
 .chk input{width:22px;height:22px;accent-color:var(--ink);flex:none}
 .ents{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
-.ent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 38px 38px;gap:6px;align-items:center;margin-top:6px}
+.ent{display:grid;grid-template-columns:minmax(0,1fr) 38px 38px;gap:6px 6px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.ent:first-child{border-top:0}
+.fl{display:block;min-width:0}
+.fl>span{display:block;font:600 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
+.fl-src{grid-column:1/-1}
 .ent .el{grid-column:1/-1;font:600 12px/1.3 var(--f-mono);color:var(--muted);margin-top:6px}
 .ent input,.ent textarea{font-size:15px;padding:7px 9px;min-width:0}
 textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-sizing:content}
@@ -223,13 +227,12 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
 .ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .ib[aria-pressed="true"]{color:var(--ink)}
 .ib[aria-pressed="true"] svg{fill:currentColor}
-.ent-h{margin-top:2px}
-.ent-h span{font:600 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ent-h span:nth-child(n+3){text-align:center;font-size:13px;letter-spacing:0;color:#C8960C}
 .dict-help{margin:0 0 10px;padding-left:20px}
 .dict-help li{margin:3px 0}
 .ib[data-role=star][aria-pressed="true"]{color:#C8960C;border-color:#C8960C}
-.addrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) auto;gap:6px;margin-top:10px;align-items:center}
+.addrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:10px;align-items:center}
+.addrow textarea{grid-column:1/-1;grid-row:2}
+.addrow .btn{grid-column:2;grid-row:1}
 .addrow input,.addrow textarea{font-size:15px;padding:7px 9px;min-width:0}
 .addrow .btn{min-height:38px;padding:6px 12px}
 .pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -904,7 +907,7 @@ body.mn-live .mn-count{height:2.2em}
       <div class="pick" id="comboPick" role="group" aria-label="Fûts de la nouvelle frappe"></div>
       <div class="addrow">
         <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot fondu">
-        <textarea id="comboSrc" class="src" rows="1" placeholder="Ex. : mon prof" maxlength="60" autocomplete="off" aria-label="Origine du nouveau mot fondu (facultatif)"></textarea>
+        <textarea id="comboSrc" class="src" rows="1" placeholder="Origine (facultatif), ex. : mon prof" maxlength="60" autocomplete="off" aria-label="Origine du nouveau mot fondu (facultatif)"></textarea>
         <button type="button" class="btn" id="comboAdd">Ajouter</button>
       </div>
       <p class="msg dm" data-k="combos"></p>
@@ -4079,11 +4082,6 @@ function textInput(value,placeholder,label,max){
 }
 const drumNames=ids=>ids.map(id=>DRUMS.find(d=>d.id===id).name).join(' + ');
 const kOf=e=>e.ids.length===1?e.ids[0]:'combos';
-function entHead(){
-  const h=el('div','ent ent-h');h.setAttribute('aria-hidden','true');
-  ['Mot','Origine','★',''].forEach(t=>h.appendChild(el('span',null,t)));
-  return h;
-}
 function entryRow(e,i,showIds){
   const row=el('div','ent');
   const key=keyOf(e.ids),k=kOf(e);
@@ -4126,7 +4124,9 @@ function entryRow(e,i,showIds){
     if(e.ids.length===1&&siblings===1){dmsg('Chaque fût garde au moins un mot.',true,k);return;}
     dict.splice(i,1);refocus={k};dmsg('« '+e.w+' » retiré.',false,k);commit();
   });
-  row.append(w,s,star,del);
+  const lw=el('label','fl');lw.append(el('span',null,'Mot'),w);
+  const ls=el('label','fl fl-src');ls.append(el('span',null,'Origine (facultatif)'),s);
+  row.append(lw,star,del,ls);
   return row;
 }
 const REF={
@@ -4160,7 +4160,6 @@ function renderDict(){
     r.src.forEach(pair=>{const li=el('li');li.append(el('span',null,pair[0]),el('b',null,pair[1]));ul.appendChild(li);});
     det.appendChild(ul);
     const list=el('div','ents');
-    list.appendChild(entHead());
     dict.forEach((e,i)=>{if(keyOf(e.ids)===d.id)list.appendChild(entryRow(e,i,false));});
     det.appendChild(list);
     const add=el('div','addrow');
@@ -4176,7 +4175,7 @@ function renderDict(){
     det.appendChild(box);
     host.appendChild(det);
   });
-  const ch=$('#dictCombos');ch.innerHTML='';ch.appendChild(entHead());
+  const ch=$('#dictCombos');ch.innerHTML='';
   const combos=dict.map((e,i)=>({e,i})).filter(x=>x.e.ids.length>1);
   combos.sort((a,b)=>IDS.indexOf(a.e.ids[0])-IDS.indexOf(b.e.ids[0])||a.e.ids.length-b.e.ids.length);
   combos.forEach(x=>ch.appendChild(entryRow(x.e,x.i,true)));
