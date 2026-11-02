@@ -385,6 +385,19 @@ test.describe('Mains : vue de jeu', () => {
 });
 
 test.describe('Mains : savoir ce qu\'on joue', () => {
+  test('les deux pads restent alignés, quelle que soit la longueur des consignes', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    for (const w of [390, 320]) {
+      await page.setViewportSize({ width: w, height: 800 });
+      for (const [g, d] of [[1, 3], [2, 3], [3, 2], [4, 4], [1, 1]]) {
+        await page.locator('#mnColL .mn-opt[data-v="' + g + '"]').click();
+        await page.locator('#mnColR .mn-opt[data-v="' + d + '"]').click();
+        const [a, b] = await Promise.all([page.locator('#mnPadL').boundingBox(), page.locator('#mnPadR').boundingBox()]);
+        expect(Math.abs(a.y - b.y), 'pads ' + g + '/' + d + ' à ' + w + ' px').toBeLessThan(1);
+      }
+    }
+  });
+
   test('consigne de chaque main, écoute avant de jouer, compte affiché, objectif visible', async ({ page }) => {
     await rubrique(page, 'Mains');
     await page.locator('#bpmIn').fill('100');
