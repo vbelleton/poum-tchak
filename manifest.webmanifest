@@ -2,16 +2,75 @@
   "name": "Poum Tchak",
   "short_name": "Poum Tchak",
   "lang": "fr",
-  "description": "Pupitre de batterie : onomatopées, solfège rythmique, écoute du tempo au micro.",
+  "description": "Pupitre de batterie : parcours guidé, indépendance des mains, onomatopées et solfège rythmique, écoute du tempo au micro.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ECEFF3",
-  "theme_color": "#ECEFF3",
+  "background_color": "#0E1218",
+  "theme_color": "#0E1218",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "categories": [
+    "music",
+    "education"
+  ],
+  "shortcuts": [
+    {
+      "name": "Parcours",
+      "short_name": "Parcours",
+      "url": "./?rubrique=parcours",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mains",
+      "short_name": "Mains",
+      "url": "./?rubrique=mains",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Rythme",
+      "short_name": "Rythme",
+      "url": "./?rubrique=rythme",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

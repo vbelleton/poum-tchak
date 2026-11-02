@@ -383,3 +383,30 @@ test.describe('Mains : vue de jeu', () => {
     await expect(page.locator('.tabs')).toBeVisible();
   });
 });
+
+test.describe('Mains : savoir ce qu\'on joue', () => {
+  test('consigne de chaque main, écoute avant de jouer, compte affiché, objectif visible', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('100');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnColL .mn-opt[data-v="1"]').click();
+    await page.locator('#mnColR .mn-opt[data-v="2"]').click();
+    await expect(page.locator('#mnDoL')).toContainText('Gauche : 1 coup');
+    await expect(page.locator('#mnDoR')).toContainText('Droite : 2 coups');
+    await expect(page.locator('#mnDoR')).toContainText('ti‑ti');
+    await page.locator('#mnWay').getByRole('button', { name: "Une main, puis l'autre" }).click();
+    await page.locator('#play').click();
+    await expect(page.locator('#mnCount')).toContainText('Écoute');
+    // une main d'abord : la droite est au repos
+    await expect(page.locator('#mnDoR')).toContainText('au repos', { timeout: 5000 });
+    await expect(page.locator('#mnGoal .ph.on')).toHaveText('Gauche seule');
+    await expect(page.locator('#mnGoal .dots i')).toHaveCount(2);
+    // le compte suit la mesure : « 1 », « 2 », …
+    const vus = await page.evaluate(async () => {
+      const v = new Set(); const fin = performance.now() + 2500;
+      while (performance.now() < fin) { const t = document.querySelector('#mnBeat .on'); if (t) v.add(t.textContent); await new Promise((r) => setTimeout(r, 20)); }
+      return [...v];
+    });
+    expect(vus.length).toBeGreaterThanOrEqual(3);
+  });
+});

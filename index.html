@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)">
 <title>Poum Tchak</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Poum Tchak">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="description" content="Pupitre de batterie : onomatopées, solfège rythmique, écoute du tempo au micro.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23141922'/%3E%3Ccircle cx='24' cy='24' r='14' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Ccircle cx='24' cy='24' r='4' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -450,6 +456,13 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 @media (max-height:520px){.stage{position:static}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
+/* Installer l'appli */
+.inst{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 8px 10px 12px;margin:4px 0 14px}
+.inst b{display:block;font-size:14px}
+.inst span{display:block;font-size:13px;color:var(--muted);line-height:1.35}
+.inst .btn{min-height:40px}
+.inst-x{appearance:none;border:0;background:transparent;color:var(--muted);font-size:22px;width:36px;height:40px;cursor:pointer}
+.inst kbd{font:inherit;font-weight:700;color:var(--ink)}
 /* Parcours */
 .pc-prog{display:flex;align-items:center;gap:10px;margin:4px 0 12px;font-size:13px;color:var(--muted);font-weight:600}
 .pc-meter{flex:1;height:10px;border-radius:99px;background:var(--cell-a);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
@@ -539,6 +552,26 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .mn-dot.miss{box-shadow:0 0 0 3px var(--err)}
 .mn-beat.cur{background:var(--cell-a)}
 .mn-count{height:2.6em;margin:4px 0;display:grid;place-items:center;text-align:center;font:800 20px/1.15 var(--f-display);overflow:hidden}
+.mn-say{display:grid;margin:4px 0}
+.mn-say>*{grid-area:1/1}
+.mn-say .mn-count{margin:0}
+#mnCount:not(:empty)+.mn-beatc{visibility:hidden}
+.mn-beatc{margin:0;height:2.2em;display:flex;align-items:center;justify-content:center;gap:.45em;font:800 26px/1 var(--f-display);color:var(--muted)}
+.mn-beatc span{opacity:.45;transition:opacity .06s}
+.mn-beatc span.on{opacity:1;color:var(--ink);transform:scale(1.15)}
+.mn-beatc span.b{color:var(--ink)}
+.mn-goal{min-height:1.7em;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 6px;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 6px}
+.mn-goal .ph{padding:2px 8px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.mn-goal .ph.on{background:var(--ink);color:var(--ink-inv);border-color:var(--ink)}
+.mn-goal .ph.ok{color:var(--ok);border-color:var(--ok)}
+.mn-goal .dots{display:inline-flex;gap:4px;align-items:center}
+.mn-goal .dots i{width:11px;height:11px;border-radius:50%;border:2px solid var(--edge);display:inline-block}
+.mn-goal .dots i.on{background:var(--ok);border-color:var(--ok)}
+.mn-do{margin:0 2px 2px;font:700 14px/1.25 var(--f-body);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;min-height:1.3em}
+.mn-do b{font:800 15px var(--f-display);color:var(--c)}
+.mn-do span{font:500 13px var(--f-mono);color:var(--muted)}
+.mn-dl{--c:var(--c-doum)}.mn-dr{--c:var(--c-tchak)}
+@media (max-height:760px){body.mn-live .mn-time{display:none}}
 .mn-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 body[data-tab="mains"] .stage{display:none}
 body.mn-live .tabs,body.mn-live #p-mains>.hint,body.mn-live #p-mains .mn-tab,body.mn-live #p-mains .ctrl,body.mn-live #p-mains .mn-way,body.mn-live #p-mains .chk,body.mn-live #p-mains #mnMsg{display:none}
@@ -607,6 +640,11 @@ body.mn-live .mn-count{height:2.2em}
   <section class="panel" role="tabpanel" id="p-parcours" aria-labelledby="t-parcours" hidden>
     <h2 class="sr">Parcours</h2>
     <p class="hint first">Une étape à la fois, du plus simple au plus dur : une main seule, puis les deux, des noires aux doubles croches, avec des consignes à traduire entre deux. À 85 % pour chaque main, l'étape est réussie.</p>
+    <div class="inst" id="inst" hidden>
+      <div><b>Installe Poum Tchak</b><span id="instTxt">Une icône sur ton écran d'accueil, en plein écran, même sans réseau.</span></div>
+      <button type="button" class="btn" id="instBtn">Installer</button>
+      <button type="button" class="inst-x" id="instX" aria-label="Plus tard">×</button>
+    </div>
     <div class="pc-prog"><div class="pc-meter" aria-hidden="true"><i id="pcMeter"></i></div><span id="pcProgTxt"></span></div>
     <div class="card pc-next" id="pcNext"></div>
     <div id="pcList"></div>
@@ -722,10 +760,11 @@ body.mn-live .mn-count{height:2.2em}
       <div class="mn-line"><span class="mn-hand mn-l">G</span><div class="mn-row" id="mnL"></div></div>
       <div class="mn-line"><span class="mn-hand mn-r">D</span><div class="mn-row" id="mnR"></div></div>
     </div>
-    <p class="mn-count" id="mnCount" aria-live="polite"></p>
+    <div class="mn-say"><p class="mn-count" id="mnCount" aria-live="polite"></p><p class="mn-beatc" id="mnBeat" aria-hidden="true"></p></div>
+    <div class="mn-goal" id="mnGoal" aria-live="polite"></div>
     <div class="mn-pads" id="mnPads">
-      <div class="mn-side"><p class="mn-stat" id="mnStatL"></p><canvas class="mn-lane" id="mnLaneL" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pl" id="mnPadL" aria-describedby="mnStatL">Gauche<small>touche F</small></button></div>
-      <div class="mn-side"><p class="mn-stat" id="mnStatR"></p><canvas class="mn-lane" id="mnLaneR" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button></div>
+      <div class="mn-side"><p class="mn-do mn-dl" id="mnDoL"></p><p class="mn-stat" id="mnStatL"></p><canvas class="mn-lane" id="mnLaneL" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pl" id="mnPadL" aria-describedby="mnStatL">Gauche<small>touche F</small></button></div>
+      <div class="mn-side"><p class="mn-do mn-dr" id="mnDoR"></p><p class="mn-stat" id="mnStatR"></p><canvas class="mn-lane" id="mnLaneR" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button></div>
     </div>
     <div class="ctrl" style="margin-top:12px">
       <div class="seg" id="mnWay" role="group" aria-label="Façon de travailler">
@@ -1573,9 +1612,6 @@ function clickSound(t,accent){
 
 /* ---------- Hors ligne et installation ---------- */
 if(location.protocol==='http:'||location.protocol==='https:'){
-  const addLink=(rel,href,extra)=>{const l=document.createElement('link');l.rel=rel;l.href=href;if(extra)Object.assign(l,extra);document.head.appendChild(l);};
-  addLink('manifest','manifest.webmanifest');
-  addLink('apple-touch-icon','icon-180.png');
   if('serviceWorker' in navigator){
     const msg=()=>{$('#offlineMsg').textContent='Prêt à fonctionner sans réseau. Tu peux ajouter l\'appli à ton écran d\'accueil, et l\'écran reste allumé pendant la lecture.';};
     if(navigator.serviceWorker.controller)msg();
@@ -1587,6 +1623,29 @@ if(location.protocol==='http:'||location.protocol==='https:'){
     });
   }
 }
+
+/* Installer : bouton du navigateur (Android, ordinateur) ou explication (iPhone). */
+(function(){
+  const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  if(standalone){document.documentElement.classList.add('pwa');return;}
+  let later=false;try{later=localStorage.getItem('poumtchak.install')==='plus-tard';}catch(e){}
+  if(later)return;
+  const box=$('#inst'),btn=$('#instBtn');
+  const ios=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  let deferred=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;box.hidden=false;});
+  window.addEventListener('appinstalled',()=>{box.hidden=true;});
+  if(ios){
+    box.hidden=false;
+    btn.textContent='Comment ?';
+  }
+  btn.addEventListener('click',async()=>{
+    if(deferred){deferred.prompt();try{await deferred.userChoice;}catch(e){}deferred=null;box.hidden=true;return;}
+    $('#instTxt').innerHTML='Dans Safari : touche <kbd>Partager</kbd> (le carré avec la flèche), puis <kbd>Sur l\'écran d\'accueil</kbd>. L\'appli s\'ouvrira en plein écran.';
+    btn.hidden=true;
+  });
+  $('#instX').addEventListener('click',()=>{box.hidden=true;try{localStorage.setItem('poumtchak.install','plus-tard');}catch(e){}});
+})();
 
 /* ---------- Écran allumé ---------- */
 let wakeLock=null,wakeWanted=false;
@@ -2831,7 +2890,7 @@ function mnRender(){
       const on=+b.dataset.v===mn.sel[h];b.setAttribute('aria-checked',String(on));b.tabIndex=on?0:-1;
     });
   });
-  mnRow('l');mnRow('r');
+  mnRow('l');mnRow('r');mnDo();
   [...$('#mnModel').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.sound)));
   [...$('#mnWay').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.mode)));
   $('#mnWayTxt').textContent=MN_WAY[mn.mode];
@@ -3094,12 +3153,61 @@ function mnSlow(k){
   if(mn.pg&&mn.pg.ph!=='X'){mn.pg.since=k;mn.pg.ev=k;mn.pg.run=0;}
   return true;
 }
+/* Ce que fait chaque main maintenant, et le compte dit à voix haute, affiché. */
+const MN_SYL=(n,b)=>n===1?[String(b)]:n===2?[String(b),'et']:n===3?[String(b),'et','a']:[String(b),'é','et','a'];
+function mnSolf(v){const o=MN_OPTS.find(x=>x.v===v);return o?(state.solf==='kodaly'?o.kod:o.tak):'';}
+function mnDo(){
+  const plan=mn.on&&mn.shown?mn.shown:mn.sel;
+  ['l','r'].forEach(h=>{
+    const v=plan[h],el=$(h==='l'?'#mnDoL':'#mnDoR');
+    const nm=h==='l'?'Gauche':'Droite';
+    if(v===-1)el.innerHTML='<b>'+nm+'</b><span>au repos</span>';
+    else if(v===0)el.innerHTML='<b>'+nm+'</b><span>1, 2, 3, 4 coups</span>';
+    else el.innerHTML='<b>'+nm+' : '+v+(v>1?' coups':' coup')+'</b><span>'+mnSolf(v).replace(/-/g,'‑')+'</span>';
+  });
+}
+function mnBeatShow(b,k,n){
+  const syl=MN_SYL(n,b+1);
+  $('#mnBeat').innerHTML=syl.map((x,i)=>'<span class="'+(i===0?'b ':'')+(i===k?'on':'')+'">'+x+'</span>').join('');
+}
+function mnGoalShow(g){
+  const el=$('#mnGoal');
+  if(!g){el.innerHTML='';return;}
+  let h='';
+  if(g.phases){
+    h=g.phases.map((p,i)=>'<span class="ph'+(i<g.at?' ok':i===g.at?' on':'')+'">'+p+'</span>').join('');
+  }
+  if(g.need){
+    h+='<span class="dots" aria-label="'+g.run+' mesures réussies sur '+g.need+'">'+Array.from({length:g.need},(_,i)=>'<i class="'+(i<g.run?'on':'')+'"></i>').join('')+'</span>';
+  }
+  if(g.txt)h+='<span>'+g.txt+'</span>';
+  el.innerHTML=h;
+}
+/* état de l'objectif au moment de la mesure k (calculé quand on la programme) */
+function mnGoalAt(){
+  const pg=mn.pg;
+  if(pg&&pg.ph!=='X'){
+    const f=mnName(pg.first),o=mnName(mnOther(pg.first));
+    const phases=[f[0].toUpperCase()+f.slice(1)+' seule','+ '+o,'Sans clic',pg.swapped?'Libre':'On inverse'];
+    const at={A:0,B:1,C:2,L:3}[pg.ph];
+    return {phases,at,need:pg.ph==='A'||pg.ph==='B'?2:0,run:Math.min(2,pg.run)};
+  }
+  if(mn.goal&&mn.goal.consec)return {need:mn.goal.consec,run:Math.min(mn.goal.consec,mn.gr),txt:'mesures justes de suite'};
+  return null;
+}
 function mnTick(){
   if(!ctx)return;
   const beat=60/state.bpm;
   while(mn.nextT<ctx.currentTime+0.12){
     const raw=mn.beat,b=((raw%4)+4)%4;
-    if(raw<0){if(mn.sound!=='rien')clickSound(mn.nextT,b===0);mn.q.push({t:mn.nextT,count:b+1});}
+    if(raw<0){
+      if(mn.sound!=='rien'){
+        clickSound(mn.nextT,b===0);
+        const p0=mn.plan||{l:mn.sel.l,r:mn.sel.r};
+        [['l','doum'],['r','tchak']].forEach(([h,id])=>{const n=mnArr(p0[h])[b];for(let k=0;k<n;k++)voice(id,mn.nextT+k*beat/n,0.7);});
+      }
+      mn.q.push({t:mn.nextT,count:b+1});
+    }
     else{
       if(b===0&&mn.goal&&!mn.goalEnd){
         const pg=mn.pg;
@@ -3120,7 +3228,7 @@ function mnTick(){
         }else{
           const pl=mnProg(mn.bar);
           mn.plan={l:pl.l,r:pl.r};mn.mute=!!pl.mute;
-          mn.q.push({t:mn.nextT,plan:{l:pl.l,r:pl.r},msg:pl.msg||'',mute:mn.mute});
+          mn.q.push({t:mn.nextT,plan:{l:pl.l,r:pl.r},msg:pl.msg||'',mute:mn.mute,goal:mnGoalAt()});
         }
         mn.bar++;
       }
@@ -3144,17 +3252,23 @@ function mnFrame(){
   mn.q.sort((a,b)=>a.t-b.t);
   while(mn.q.length&&mn.q[0].t<=now){
     const e=mn.q.shift();
-    if(e.count!=null){$('#mnCount').textContent=e.count+(e.count===4?' … à toi':'');}
+    if(e.count!=null){$('#mnCount').textContent=mn.sound==='rien'?(e.count===4?'4 · à toi !':String(e.count)):(e.count===4?'4 · à toi !':'Écoute · '+e.count);}
     else if(e.say){$('#mnCount').textContent=e.say;mn.msgUntil=e.t+60/state.bpm*3.5;}
     else if(e.plan){
       const cur=mn.shown||mn.sel,ch=cur.l!==e.plan.l||cur.r!==e.plan.r;
-      mn.shown=e.plan;if(ch){mnRow('l');mnRow('r');}
+      mn.shown=e.plan;if(ch){mnRow('l');mnRow('r');mnDo();}
+      mnGoalShow(e.goal);
       if(e.msg){$('#mnCount').textContent=e.msg;mn.msgUntil=e.t+60/state.bpm*3.5;}
       if(e.msg)mnRender();
     }
     else if(e.duo!=null){mn.sel={l:e.l,r:e.r};mnRender();$('#mnMsg').textContent='Duo '+(e.duo+1)+' sur 16 : gauche '+e.l+' contre droite '+e.r+'.';}
-    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);if(e.beat===0&&!(mn.msgUntil>e.t))$('#mnCount').textContent='';}
-    else{const d=mnDot(e.h,e.b,e.k);if(d){d.classList.add('on');setTimeout(()=>d.classList.remove('on'),130);}}
+    else if(e.beat!=null){mn.cur=e.beat;mnMark(e.beat);if(!(mn.msgUntil>e.t))$('#mnCount').textContent='';}
+    else{
+      const d=mnDot(e.h,e.b,e.k);if(d){d.classList.add('on');setTimeout(()=>d.classList.remove('on'),130);}
+      const pl=mn.shown||mn.plan||mn.sel,nl=mnArr(pl.l)[e.b],nr=mnArr(pl.r)[e.b];
+      const lead=nr>=nl?'r':'l';
+      if(e.h===lead)mnBeatShow(e.b,e.k,Math.max(nl,nr));
+    }
   }
   mnMisses(ctx.currentTime-latency());
   mnLanes();
@@ -3191,6 +3305,7 @@ function mnStop(fromGoal){
   if(!fromGoal&&mn.goal){const g=mn.goal;mn.goal=null;mn.goalEnd=0;if(g.abort)g.abort();}
   mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
   document.body.classList.remove('mn-live');
+  $('#mnBeat').textContent='';mnGoalShow(null);
   if(mn.pg&&mn.pg.swapped)mn.sel=mn.pg.orig;
   mn.pg=null;mn.shown=null;mn.mute=false;mnRender();
   document.querySelectorAll('#p-mains .mn-dot').forEach(d=>d.classList.remove('on','ok','miss'));
@@ -4451,6 +4566,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();sto
 
 /* ---------- Démarrage ---------- */
 const restored=loadStore();
+{const q=new URLSearchParams(location.search).get('rubrique');if(q&&TABS.includes(q))state.tab=q;}
 showTab(state.tab);
 fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();renderCal();
 setBpm(state.bpm);

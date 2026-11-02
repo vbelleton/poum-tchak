@@ -4,8 +4,8 @@ test.describe('Hors ligne', () => {
   test("après une visite, l'appli s'ouvre sans réseau", async ({ page, context }) => {
     await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 15000 }).toBe(true);
     await expect(page.locator('#offlineMsg')).toContainText('Prêt à fonctionner sans réseau');
-    const enCache = await page.evaluate(async () => (await (await caches.open('poum-tchak-v1')).keys()).map((r) => new URL(r.url).pathname.split('/').pop()));
-    expect(enCache).toEqual(expect.arrayContaining(['index.html', 'manifest.webmanifest', 'icon-192.png']));
+    const enCache = await page.evaluate(async () => (await (await caches.open('poum-tchak-v2')).keys()).map((r) => new URL(r.url).pathname.split('/').pop()));
+    expect(enCache).toEqual(expect.arrayContaining(['index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-maskable-512.png']));
     await context.setOffline(true);
     await page.reload();
     await expect(page.locator('#grid .cell')).toHaveCount(7 * 16);

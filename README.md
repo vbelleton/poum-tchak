@@ -63,6 +63,9 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   échangent leurs rythmes) ; **main ancre** (une main garde son rythme, l'autre
   passe par 1, 2, 3, 4 coups par temps, puis les rôles s'inversent). Les étapes
   à deux mains du Parcours se font une main, puis l'autre.
+  Avant de jouer, une mesure d'écoute fait entendre ce qu'il faut jouer. Pendant
+  le jeu : ce que fait chaque main (« Droite : 2 coups · ti-ti »), le compte
+  affiché (« 1 et 2 et… »), et l'objectif (étape en cours, mesures réussies).
   Pendant le jeu, la rubrique se réduit à l'essentiel : pas de batterie en haut,
   le score et le verdict de chaque main au-dessus de son pad (hors du pouce), et
   rien ne bouge.
@@ -116,9 +119,16 @@ npm test              # tout, environ 6 minutes
 npm run test:rapide   # sans le micro
 ```
 
+## Appli installable
+
+Poum Tchak s'installe comme une appli (PWA) : sur Android ou ordinateur, le
+bouton « Installer » de la rubrique Parcours ; sur iPhone, Safari > Partager >
+Sur l'écran d'accueil. Elle s'ouvre en plein écran et fonctionne sans réseau.
+Raccourcis de l'icône : Parcours, Mains, Rythme.
+
 ## Fichiers
 
 Tout tient dans `index.html` : pas de dépendance, pas de compilation. Les
 autres fichiers servent à l'installation sur mobile et au mode hors ligne
-(`sw.js`, `manifest.webmanifest`, `icon-*.png`) et aux tests (`tests/`,
+(`sw.js`, `manifest.webmanifest`, `icon-*.png`, dont une icône « maskable ») et aux tests (`tests/`,
 `playwright.config.js`, `package.json`).

@@ -2,8 +2,8 @@
    Les fichiers de l'appli sont gardés dès la première visite ; les polices et
    le reste sont gardés au fil des chargements. Une nouvelle version remplace
    l'ancienne au lancement suivant. */
-const V = 'poum-tchak-v1';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const V = 'poum-tchak-v2';
+const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
