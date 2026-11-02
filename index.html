@@ -587,6 +587,7 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
 body[data-tab="mains"] .stage{display:none}
 body[data-tab="parcours"] .dock,body[data-tab="mots"] .dock{display:none}
 body[data-tab="parcours"],body[data-tab="mots"]{padding-bottom:24px}
+body[data-tab="parcours"] .tempo-read,body[data-tab="mots"] .tempo-read{display:none}
 body.mn-live .tabs,body.mn-live #p-mains>.hint,body.mn-live #p-mains .mn-tab,body.mn-live #p-mains .ctrl,body.mn-live #p-mains .mn-way,body.mn-live #p-mains .chk,body.mn-live #p-mains #mnMsg{display:none}
 body.mn-live .pc-bar{margin-top:6px}
 body.mn-live .foot{display:none}
@@ -889,14 +890,14 @@ body.mn-live .mn-count{height:2.2em}
     <p class="hint">Chaque fût peut avoir plusieurs mots. Ouvre un fût pour les voir :</p>
     <ul class="hint dict-help">
       <li><b>Mot</b> : tous les mots de la liste sont compris quand tu écris un rythme (« boum » et « poum » donnent la grosse caisse).</li>
-      <li><b>Étoile ★</b> : le mot à l'étoile pleine est celui qu'on <em>affiche</em> partout (pads, phrases, consignes). Pour en changer, touche l'étoile d'un autre mot : l'ancien passe en second (on ne « retire » pas une étoile). Une étoile pâle = mot seul, aucun choix possible.</li>
+      <li><b>Étoile ★</b> : le mot à l'étoile pleine est celui qu'on <em>affiche</em> partout (pads, phrases, consignes). Pour en changer, touche l'étoile d'un autre mot : l'ancien passe en second (on ne « retire » pas une étoile). Une étoile pâle = mot seul, aucun choix possible. (Mots fondus : voir plus bas.)</li>
       <li><b>Origine</b> : une simple note pour te souvenir d'où vient le mot (ton prof, une méthode, le beatbox…). Ce que tu écris reste entièrement visible (la case s'agrandit) ; « Ex. : mon prof » en grisé n'est qu'un exemple quand la case est vide. Elle ne change rien au jeu.</li>
     </ul>
     <p class="sr" id="dmsg" role="status"></p>
     <div class="refs" id="dictDrums"></div>
 
     <h3>Mots fondus</h3>
-    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot : « pak » = grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + » (« poum+tss »). L'étoile et l'origine marchent comme au-dessus : l'étoile ne sert que s'il y a deux mots pour la même frappe (ajoute-en un plus bas pour choisir).</p>
+    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot : « pak » = grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + » (« poum+tss »). L'étoile et l'origine marchent comme au-dessus : ici l'étoile choisit comment la frappe s'affiche : étoile pleine = le mot fondu (« pak »), étoile vide = la forme avec « + » (« poum+tchak »). Touche-la pour basculer.</p>
     <div class="refs"><details class="ref" id="combosDet">
       <summary data-k="combos"><span class="rw">Voir et modifier</span><span class="rc" id="comboCount"></span></summary>
       <div class="ents" id="dictCombos"></div>
@@ -1065,7 +1066,7 @@ function defaultEntries(){
   ];
 }
 const keyOf=ids=>IDS.filter(id=>ids.includes(id)).join('+');
-function primaryWord(dict,key){const e=dict.find(x=>keyOf(x.ids)===key);return e?e.w:null;}
+function primaryWord(dict,key){const e=dict.find(x=>keyOf(x.ids)===key);return e&&!e.plus?e.w:null;}
 function singleWord(dict,id){return primaryWord(dict,id)||id;}
 function comboWord(dict,ids){
   const key=keyOf(ids);
@@ -1103,7 +1104,9 @@ function sanitizeDict(raw){
     seen.add(w);
     let src=typeof e.src==='string'?e.src.trim().slice(0,60):'';
     if(src==='Appli')src="Mot de départ de l'appli";
-    out.push({w,ids,src});
+    const o={w,ids,src};
+    if(e.plus===true&&ids.length>1)o.plus=true;
+    out.push(o);
   });
   return out.length?out:null;
 }
@@ -4079,12 +4082,14 @@ function entryRow(e,i,showIds){
   const key=keyOf(e.ids),k=kOf(e);
   if(showIds)row.appendChild(el('div','el',key.split('+').map(W).join(' + ')+' = '+drumNames(e.ids).toLowerCase()));
   const first=dict.findIndex(x=>keyOf(x.ids)===key);
-  const isPrimary=first===i;
+  const isPrimary=first===i&&!e.plus;
+  const isCombo=e.ids.length>1;
   const w=textInput(e.w,'Mot','Mot pour '+drumNames(e.ids)+', actuellement « '+e.w+' »',12);
   const s=srcInput(e.src,'Origine de « '+e.w+' » (facultatif)');
-  const alone=dict.filter(x=>keyOf(x.ids)===key).length===1;
-  const star=iconBtn(SVG_STAR,alone?'« '+e.w+' » est le seul mot, rien à choisir':isPrimary?'« '+e.w+' » est le mot affiché':'Afficher « '+e.w+' » à la place');
-  star.title=alone?'Seul mot : pas de choix possible':isPrimary?'Mot affiché partout':'Afficher ce mot à la place';
+  const plusForm=key.split('+').map(x=>singleWord(dict,x)).join('+');
+  const alone=!isCombo&&dict.filter(x=>keyOf(x.ids)===key).length===1;
+  const star=iconBtn(SVG_STAR,alone?'« '+e.w+' » est le seul mot, rien à choisir':isPrimary?'« '+e.w+' » est le mot affiché'+(isCombo?' ; touche pour afficher « '+plusForm+' » à la place':''):'Afficher « '+e.w+' » à la place'+(e.plus?' de « '+plusForm+' »':''));
+  star.title=alone?'Seul mot : pas de choix possible':isPrimary?(isCombo?'Mot affiché : touche pour afficher « '+plusForm+' »':'Mot affiché partout'):'Afficher ce mot à la place';
   star.setAttribute('aria-pressed',String(isPrimary));
   if(alone){star.setAttribute('aria-disabled','true');star.classList.add('off');}
   const del=iconBtn(SVG_X,'Retirer « '+e.w+' »');del.title='Retirer ce mot';
@@ -4096,8 +4101,17 @@ function entryRow(e,i,showIds){
   });
   s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Origine notée.',false,k);});
   star.addEventListener('click',()=>{
-    if(alone){dmsg(e.ids.length>1?'« '+e.w+' » est le seul mot de cette frappe : ajoute un autre mot pour la même frappe si tu veux choisir lequel afficher.':'« '+e.w+' » est le seul mot de ce fût : ajoute un autre mot plus bas si tu veux choisir lequel afficher.',false,k);return;}
+    if(alone){dmsg('« '+e.w+' » est le seul mot de ce fût : ajoute un autre mot plus bas si tu veux choisir lequel afficher.',false,k);return;}
+    if(isCombo&&isPrimary){
+      e.plus=true;refocus={e,role:'star'};
+      dmsg('Étoile retirée : cette frappe s\'affiche maintenant « '+plusForm+' ». Retouche l\'étoile pour réafficher « '+e.w+' ».',false,k);commit();return;
+    }
+    if(isCombo&&first===i&&e.plus){
+      delete e.plus;refocus={e,role:'star'};
+      dmsg('« '+e.w+' » est de nouveau le mot affiché pour cette frappe.',false,k);commit();return;
+    }
     if(isPrimary){dmsg('« '+e.w+' » est déjà le mot affiché. Pour en changer, touche l\'étoile d\'un autre mot : celui-ci passera automatiquement en second.',false,k);return;}
+    const old=dict[first];if(old&&old.plus)delete old.plus;
     dict.splice(i,1);dict.splice(first,0,e);refocus={e,role:'star'};dmsg('« '+e.w+' » est maintenant le mot affiché.',false,k);commit();
   });
   del.addEventListener('click',()=>{

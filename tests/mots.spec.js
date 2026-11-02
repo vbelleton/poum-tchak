@@ -95,9 +95,16 @@ test.describe('Dictionnaire', () => {
     expect(await o.inputValue()).toBe("Mot de départ de l'appli");
     // texte entier visible : pas de défilement caché
     expect(await o.evaluate((n) => n.scrollHeight <= n.clientHeight + 1)).toBe(true);
-    // mot fondu seul : étoile pâle, message explicatif
-    const etoile = page.locator('#dictCombos .ib[aria-disabled="true"]').first();
-    await etoile.click({ force: true });
-    await expect(page.locator('.dm[data-k="combos"]')).toContainText('seul mot');
+    // mot fondu : l'étoile bascule entre le mot fondu et la forme avec « + »
+    const etoile = page.locator('#dictCombos .ib[data-role="star"]').first();
+    await expect(etoile).toHaveAttribute('aria-pressed', 'true');
+    await etoile.click();
+    await expect(page.locator('.dm[data-k="combos"]')).toContainText('Étoile retirée');
+    await expect(page.locator('#dictCombos .ib[data-role="star"]').first()).toHaveAttribute('aria-pressed', 'false');
+    await page.locator('#dictCombos .ib[data-role="star"]').first().click();
+    await expect(page.locator('.dm[data-k="combos"]')).toContainText('de nouveau le mot affiché');
+    await expect(page.locator('#dictCombos .ib[data-role="star"]').first()).toHaveAttribute('aria-pressed', 'true');
+    // tempo du haut caché quand on ne peut pas le régler
+    await expect(page.locator('#tempoRead')).toBeHidden();
   });
 });
