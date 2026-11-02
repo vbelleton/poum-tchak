@@ -221,6 +221,12 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .ib[aria-pressed="true"]{color:var(--ink)}
 .ib[aria-pressed="true"] svg{fill:currentColor}
+.ent-h{margin-top:2px}
+.ent-h span{font:600 11px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ent-h span:nth-child(n+3){text-align:center;font-size:13px;letter-spacing:0;color:#C8960C}
+.dict-help{margin:0 0 10px;padding-left:20px}
+.dict-help li{margin:3px 0}
+.ib[data-role=star][aria-pressed="true"]{color:#C8960C;border-color:#C8960C}
 .addrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) auto;gap:6px;margin-top:10px;align-items:center}
 .addrow input{font-size:15px;padding:7px 9px;min-width:0}
 .addrow .btn{min-height:38px;padding:6px 12px}
@@ -428,6 +434,9 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .bpm{display:flex;align-items:center;gap:2px;margin-left:auto}
 .bpm button{width:38px;padding:0;font-size:18px}
 .bpm input{width:58px;min-height:46px;text-align:center;font:600 18px var(--f-mono);color:var(--ink);background:transparent;border:0;border-radius:8px;padding:0;-moz-appearance:textfield;appearance:textfield}
+.bpm-v{position:relative;display:block;line-height:1}
+.bpm-v input{padding-bottom:12px}
+.bpm-u{position:absolute;left:0;right:0;bottom:5px;text-align:center;pointer-events:none;font:600 9.5px var(--f-mono);color:var(--muted);letter-spacing:.06em}
 .bpm input::-webkit-inner-spin-button,.bpm input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .bpm input:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
 .tapb{padding:0 12px}
@@ -574,6 +583,8 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 @media (max-height:760px){body.mn-live .mn-time{display:none}}
 .mn-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 body[data-tab="mains"] .stage{display:none}
+body[data-tab="parcours"] .dock,body[data-tab="mots"] .dock{display:none}
+body[data-tab="parcours"],body[data-tab="mots"]{padding-bottom:24px}
 body.mn-live .tabs,body.mn-live #p-mains>.hint,body.mn-live #p-mains .mn-tab,body.mn-live #p-mains .ctrl,body.mn-live #p-mains .mn-way,body.mn-live #p-mains .chk,body.mn-live #p-mains #mnMsg{display:none}
 body.mn-live .pc-bar{margin-top:6px}
 body.mn-live .foot{display:none}
@@ -639,7 +650,7 @@ body.mn-live .mn-count{height:2.2em}
   <!-- Parcours : une étape à la fois -->
   <section class="panel" role="tabpanel" id="p-parcours" aria-labelledby="t-parcours" hidden>
     <h2 class="sr">Parcours</h2>
-    <p class="hint first">Une étape à la fois, du plus simple au plus dur : une main seule, puis les deux, des noires aux doubles croches, avec des consignes à traduire entre deux. À 85 % pour chaque main, l'étape est réussie.</p>
+    <p class="hint first">Une étape à la fois, du plus simple au plus dur : une main seule, puis les deux, des noires aux doubles croches, avec des consignes à traduire entre deux. À 85 % de coups justes pour chaque main, l'étape est réussie ; si ça coince, le tempo ralentit tout seul. Le tempo se compte en BPM (battements par minute) : 60 BPM = un clic par seconde.</p>
     <div class="inst" id="inst" hidden>
       <div><b>Installe Poum Tchak</b><span id="instTxt">Une icône sur ton écran d'accueil, en plein écran, même sans réseau.</span></div>
       <button type="button" class="btn" id="instBtn">Installer</button>
@@ -862,7 +873,7 @@ body.mn-live .mn-count{height:2.2em}
 
     <h3>Traduire</h3>
     <p class="hint">Écris un rythme en mots ou en solfège : la mesure affichée se remplit. « . » est un silence, MAJUSCULES pour un accent, (parenthèses) pour une ghost note.</p>
-    <label class="f" for="txtPhrase">Onomatopées, un mot par pas</label>
+    <label class="f" for="txtPhrase">Onomatopées : un mot par case de la grille (en 4/4, 4 cases par temps), « . » pour un silence</label>
     <textarea id="txtPhrase" rows="3" autocapitalize="none" autocomplete="off" spellcheck="false"></textarea>
     <div class="row" style="margin-top:8px"><button type="button" class="btn" id="applyPhrase">Mettre dans la grille</button></div>
     <label class="f" for="txtSolf">Solfège rythmique, un mot par temps</label>
@@ -873,19 +884,24 @@ body.mn-live .mn-count{height:2.2em}
     <p class="msg" id="msg" role="status"></p>
 
     <h3>Dictionnaire</h3>
-    <p class="hint">Chaque fût a un mot principal (l'étoile) et des synonymes reconnus à la saisie. Ouvre un fût pour changer ses mots et noter leur source.</p>
+    <p class="hint">Chaque fût peut avoir plusieurs mots. Ouvre un fût pour les voir :</p>
+    <ul class="hint dict-help">
+      <li><b>Mot</b> : tous les mots de la liste sont compris quand tu écris un rythme (« boum » et « poum » donnent la grosse caisse).</li>
+      <li><b>Étoile ★</b> : le mot à l'étoile pleine est celui qu'on <em>affiche</em> partout (pads, phrases, consignes). Touche l'étoile d'un autre mot pour l'afficher à sa place.</li>
+      <li><b>Origine</b> : une simple note pour te souvenir d'où vient le mot (ton prof, une méthode, le beatbox…). Tu peux la laisser vide ; elle ne change rien au jeu.</li>
+    </ul>
     <p class="sr" id="dmsg" role="status"></p>
     <div class="refs" id="dictDrums"></div>
 
     <h3>Mots fondus</h3>
-    <p class="hint">Plusieurs fûts frappés ensemble se disent en un seul mot, comme « pak » pour grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + ».</p>
+    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot : « pak » = grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + » (« poum+tss »). L'étoile et l'origine marchent comme au-dessus.</p>
     <div class="refs"><details class="ref" id="combosDet">
       <summary data-k="combos"><span class="rw">Voir et modifier</span><span class="rc" id="comboCount"></span></summary>
       <div class="ents" id="dictCombos"></div>
       <div class="pick" id="comboPick" role="group" aria-label="Fûts de la nouvelle frappe"></div>
       <div class="addrow">
         <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot fondu">
-        <input type="text" id="comboSrc" placeholder="Source" maxlength="60" autocomplete="off" aria-label="Source du nouveau mot fondu">
+        <input type="text" id="comboSrc" placeholder="Ex. : mon prof" maxlength="60" autocomplete="off" aria-label="Origine du nouveau mot fondu (facultatif)">
         <button type="button" class="btn" id="comboAdd">Ajouter</button>
       </div>
       <p class="msg dm" data-k="combos"></p>
@@ -931,7 +947,7 @@ body.mn-live .mn-count{height:2.2em}
     <button type="button" class="ib" id="kvSetBtn" aria-label="Réglages de la vue" aria-expanded="false" aria-controls="kvSet"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="8" r="1.5"/><circle cx="12.5" cy="12" r="1.5"/></svg></button>
   </div>
   <div class="kv-set" id="kvSet" hidden>
-    <div class="kv-row"><span class="lab" id="lab-off">Décalage</span>
+    <div class="kv-row"><span class="lab" id="lab-off" title="ms = millièmes de seconde">Décalage (ms)</span>
       <div class="off" role="group" aria-labelledby="lab-off">
         <button type="button" class="ib" id="offDown" aria-label="Avancer la frappe de 10 millisecondes">−</button>
         <output id="offVal" aria-live="polite">0 ms</output>
@@ -991,7 +1007,7 @@ body.mn-live .mn-count{height:2.2em}
     <button type="button" class="tog" id="clic" aria-pressed="true">Clic</button>
     <div class="bpm">
       <button type="button" id="bpmDown" aria-label="Ralentir">−</button>
-      <input type="number" id="bpmIn" inputmode="numeric" min="40" max="220" step="1" value="100" aria-label="Tempo en BPM">
+      <label class="bpm-v" title="Tempo : battements (clics) par minute. 60 = un clic par seconde."><input type="number" id="bpmIn" inputmode="numeric" min="40" max="220" step="1" value="100" aria-label="Tempo en battements par minute (BPM)"><span class="bpm-u" aria-hidden="true">BPM</span></label>
       <button type="button" id="bpmUp" aria-label="Accélérer">+</button>
     </div>
     <button type="button" class="tapb" id="tap" aria-label="Tap : tape en rythme pour régler le tempo">Tap</button>
@@ -1043,7 +1059,7 @@ function defaultEntries(){
     s('tss','tss','Beatbox'),s('ts','tss','Beatbox'),
     s('tchaa','tchaa','Dérivé de tchak'),s('tcha','tchaa','Autre graphie'),s('tsss','tchaa','Beatbox'),
     s('psch','psch','Beatbox (psh)'),s('psh','psch','Beatbox'),s('crash','psch','Nom de la cymbale'),
-    ...Object.entries(COMBOS_DEFAULT).map(([k,v])=>({w:v,ids:k.split('+'),src:'Appli'}))
+    ...Object.entries(COMBOS_DEFAULT).map(([k,v])=>({w:v,ids:k.split('+'),src:"Mot de départ de l'appli"}))
   ];
 }
 const keyOf=ids=>IDS.filter(id=>ids.includes(id)).join('+');
@@ -1083,7 +1099,9 @@ function sanitizeDict(raw){
     const ids=IDS.filter(id=>e.ids.includes(id));
     if(!ids.length)return;
     seen.add(w);
-    out.push({w,ids,src:typeof e.src==='string'?e.src.trim().slice(0,60):''});
+    let src=typeof e.src==='string'?e.src.trim().slice(0,60):'';
+    if(src==='Appli')src="Mot de départ de l'appli";
+    out.push({w,ids,src});
   });
   return out.length?out:null;
 }
@@ -3625,7 +3643,7 @@ $('#applyPhrase').addEventListener('click',()=>{
   const m=M();const r=parsePhrase($('#txtPhrase').value,m,dict);
   if(r.bad.length){msg('Mot inconnu : « '+[...new Set(r.bad)].join(' », « ')+' ». Ajoute-le au dictionnaire, rien n\'a été changé.',true);return;}
   state.bars[state.bar]=r.grid;state.pattern=null;renderAll();
-  msg(r.extra?'Appliqué. '+r.extra+' mot(s) en trop ignoré(s), la mesure compte '+m.steps+' pas.':'Appliqué sur '+m.steps+' pas.');
+  msg(r.extra?'Mis dans la grille. '+r.extra+' mot(s) en trop ignoré(s) : la mesure compte '+m.steps+' cases.':'Mis dans la grille : '+m.steps+' cases.');
 });
 $('#applySolf').addEventListener('click',()=>{
   const m=M();const r=parseSolfege($('#txtSolf').value,m);
@@ -4040,6 +4058,11 @@ function textInput(value,placeholder,label,max){
 }
 const drumNames=ids=>ids.map(id=>DRUMS.find(d=>d.id===id).name).join(' + ');
 const kOf=e=>e.ids.length===1?e.ids[0]:'combos';
+function entHead(){
+  const h=el('div','ent ent-h');h.setAttribute('aria-hidden','true');
+  ['Mot','Origine','★',''].forEach(t=>h.appendChild(el('span',null,t)));
+  return h;
+}
 function entryRow(e,i,showIds){
   const row=el('div','ent');
   const key=keyOf(e.ids),k=kOf(e);
@@ -4047,20 +4070,21 @@ function entryRow(e,i,showIds){
   const first=dict.findIndex(x=>keyOf(x.ids)===key);
   const isPrimary=first===i;
   const w=textInput(e.w,'Mot','Mot pour '+drumNames(e.ids)+', actuellement « '+e.w+' »',12);
-  const s=textInput(e.src,'Source','Source de « '+e.w+' »',60);
-  const star=iconBtn(SVG_STAR,'Définir « '+e.w+' » comme mot principal');
+  const s=textInput(e.src,'Ex. : mon prof','Origine de « '+e.w+' » (facultatif)',60);
+  const star=iconBtn(SVG_STAR,isPrimary?'« '+e.w+' » est le mot affiché':'Afficher « '+e.w+' » à la place');
+  star.title=isPrimary?'Mot affiché partout':'Afficher ce mot à la place';
   star.setAttribute('aria-pressed',String(isPrimary));
-  const del=iconBtn(SVG_X,'Retirer « '+e.w+' »');
+  const del=iconBtn(SVG_X,'Retirer « '+e.w+' »');del.title='Retirer ce mot';
   [[w,'w'],[s,'s'],[star,'star'],[del,'del']].forEach(([n,role])=>{n._e=e;n.dataset.role=role;});
   w.addEventListener('change',()=>{
     const err=checkWord(dict,w.value,e.ids,i);
     if(err){dmsg(err,true,k);w.value=e.w;return;}
     e.w=w.value.trim().toLowerCase();refocus={e,role:'w'};dmsg('Mot enregistré : « '+e.w+' ».',false,k);commit();
   });
-  s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Source enregistrée.',false,k);});
+  s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Origine notée.',false,k);});
   star.addEventListener('click',()=>{
     if(isPrimary)return;
-    dict.splice(i,1);dict.splice(first,0,e);refocus={e,role:'star'};dmsg('« '+e.w+' » est le mot principal.',false,k);commit();
+    dict.splice(i,1);dict.splice(first,0,e);refocus={e,role:'star'};dmsg('« '+e.w+' » est maintenant le mot affiché.',false,k);commit();
   });
   del.addEventListener('click',()=>{
     const siblings=dict.filter(x=>keyOf(x.ids)===key).length;
@@ -4101,11 +4125,12 @@ function renderDict(){
     r.src.forEach(pair=>{const li=el('li');li.append(el('span',null,pair[0]),el('b',null,pair[1]));ul.appendChild(li);});
     det.appendChild(ul);
     const list=el('div','ents');
+    list.appendChild(entHead());
     dict.forEach((e,i)=>{if(keyOf(e.ids)===d.id)list.appendChild(entryRow(e,i,false));});
     det.appendChild(list);
     const add=el('div','addrow');
     const wi=textInput('','Nouveau mot','Nouveau mot pour '+d.name,12);wi.dataset.add=d.id;
-    const si=textInput('','Source','Source du nouveau mot pour '+d.name,60);
+    const si=textInput('','Ex. : mon prof','Origine du nouveau mot pour '+d.name+' (facultatif)',60);
     const ab=el('button','btn','Ajouter');ab.type='button';
     ab.setAttribute('aria-label','Ajouter le mot à '+d.name);
     ab.addEventListener('click',()=>addSingle(d.id,wi,si));
@@ -4116,7 +4141,7 @@ function renderDict(){
     det.appendChild(box);
     host.appendChild(det);
   });
-  const ch=$('#dictCombos');ch.innerHTML='';
+  const ch=$('#dictCombos');ch.innerHTML='';ch.appendChild(entHead());
   const combos=dict.map((e,i)=>({e,i})).filter(x=>x.e.ids.length>1);
   combos.sort((a,b)=>IDS.indexOf(a.e.ids[0])-IDS.indexOf(b.e.ids[0])||a.e.ids.length-b.e.ids.length);
   combos.forEach(x=>ch.appendChild(entryRow(x.e,x.i,true)));

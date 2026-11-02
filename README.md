@@ -10,7 +10,7 @@ Page en ligne : https://vbelleton.github.io/poum-tchak/
 
 En haut, la batterie s'allume à chaque frappe avec son mot ; plusieurs fûts
 frappés ensemble ont leur mot fondu (grosse caisse + caisse claire = « pak »).
-En bas, la lecture : clic, tempo (saisie directe, − et + qui défilent si on
+En bas, la lecture (cachée dans Parcours et Mots, où elle ne sert pas) : clic, tempo en BPM (battements par minute, 60 = un clic par seconde) (saisie directe, − et + qui défilent si on
 reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
 
 - **Parcours** : une étape à la fois, en 25 étapes et 5 chapitres (le temps,
@@ -74,7 +74,8 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   est réussie dès que les mesures tiennent ; arrêter n'est jamais un échec.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
   première lecture du rythme. La calibration apprend le son de chaque fût.
-- **Mots** : s'entraîner à traduire une consigne en onomatopées (trois niveaux ;
+- **Mots** (le dictionnaire s'explique : tous les mots d'un fût sont compris,
+  l'étoile ★ choisit celui qu'on affiche, l'origine est une note facultative) : s'entraîner à traduire une consigne en onomatopées (trois niveaux ;
   on répond sur une grille ou sur la batterie dessinée, coup par coup ; la
   réponse est vérifiée, chaque mot mal lu est expliqué, on peut
   l'écouter puis la jouer sur l'écran) ; traduire des onomatopées ou du solfège vers la grille, modifier le

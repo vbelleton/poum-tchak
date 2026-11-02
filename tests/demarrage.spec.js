@@ -61,4 +61,14 @@ test.describe('Démarrage et rubriques', () => {
     await expect(page.locator('#word')).toHaveText('pak');
     await expect(page.locator('#wsub')).toHaveText('poum + tchak');
   });
+
+  test('la barre du tempo dit son unité, et se cache là où elle ne sert pas', async ({ page }) => {
+    await expect(page.locator('.bpm-u')).toHaveText('BPM');
+    await expect(page.locator('#bpmIn')).toHaveAttribute('aria-label', /battements par minute/);
+    for (const [t, vu] of [['Parcours', false], ['Mots', false], ['Rythme', true], ['Pratique', true], ['Mains', true], ['Écoute', true]]) {
+      await rubrique(page, t);
+      if (vu) await expect(page.locator('.dock'), t).toBeVisible();
+      else await expect(page.locator('.dock'), t).toBeHidden();
+    }
+  });
 });

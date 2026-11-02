@@ -31,10 +31,11 @@ test.describe('Dictionnaire', () => {
     await page.getByRole('button', { name: 'Ajouter le mot à Tom basse' }).click();
     await expect(page.locator('.dm[data-k="toum"]')).toHaveText('Erreur : « boum » est déjà utilisé pour poum.');
     await page.getByLabel('Nouveau mot pour Tom basse', { exact: true }).fill('dong');
-    await page.getByLabel('Source du nouveau mot pour Tom basse').fill('Mon prof');
+    await page.getByLabel('Origine du nouveau mot pour Tom basse (facultatif)').fill('Mon prof');
     await page.getByRole('button', { name: 'Ajouter le mot à Tom basse' }).click();
     await expect(page.locator('.dm[data-k="toum"]')).toHaveText('« dong » ajouté.');
-    await page.getByRole('button', { name: 'Définir « dong » comme mot principal' }).click();
+    await page.getByRole('button', { name: 'Afficher « dong » à la place' }).click();
+    await expect(page.locator('.dm[data-k="toum"]')).toHaveText('« dong » est maintenant le mot affiché.');
     await expect(page.locator('#kit .ic:nth-child(4)')).toContainText('dong');
   });
 
@@ -80,5 +81,15 @@ test.describe('Dictionnaire', () => {
     await page.locator('#dictJson').fill('pas du json');
     await page.getByRole('button', { name: 'Charger ce texte' }).click();
     await expect(page.locator('.dm[data-k="tools"]')).toHaveText("Erreur : Ce texte n'est pas un dictionnaire valide.");
+  });
+
+  test('le dictionnaire s\'explique : étoile = mot affiché, origine facultative, plus de « Appli »', async ({ page }) => {
+    await expect(page.locator('.dict-help')).toContainText('Étoile');
+    await expect(page.locator('.dict-help')).toContainText('Origine');
+    await carte(page, 'poum').click();
+    await expect(page.getByRole('button', { name: '« poum » est le mot affiché' })).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#combosDet summary').click();
+    const origine = await page.locator('#dictCombos input[aria-label^="Origine"]').first().inputValue();
+    expect(origine).toBe("Mot de départ de l'appli");
   });
 });

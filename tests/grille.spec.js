@@ -112,9 +112,9 @@ test.describe('Réglages partagés', () => {
 test.describe('Traduire', () => {
   test('des onomatopées vers la grille, et retour', async ({ page }) => {
     await rubrique(page, 'Mots');
-    await page.getByLabel('Onomatopées, un mot par pas').fill('POUM . (tchak) . pak tss');
+    await page.locator('#txtPhrase').fill('POUM . (tchak) . pak tss');
     await page.locator('#applyPhrase').click();
-    await expect(page.locator('#msg')).toHaveText('Appliqué sur 16 pas.');
+    await expect(page.locator('#msg')).toHaveText('Mis dans la grille : 16 cases.');
     await rubrique(page, 'Rythme');
     await expect(cellule(page, 'poum', 0)).toHaveClass(/lv3/);
     await expect(cellule(page, 'tchak', 2)).toHaveClass(/lv1/);
