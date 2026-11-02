@@ -1721,6 +1721,13 @@ function showWord(ids,lv){
   wsubEl.textContent=list.length>1?list.map(W).join(' + '):'';
   wordEl.classList.add('hot');kvWordEl.classList.add('hot');
   clearTimeout(wordTimer);wordTimer=setTimeout(()=>{wordEl.classList.remove('hot');kvWordEl.classList.remove('hot');},420);
+  clearTimeout(titleTimer);titleTimer=setTimeout(backToTitle,4000);
+}
+/* Après un moment sans frappe, le haut de l'écran redevient le titre de l'appli. */
+let titleTimer=null;
+function backToTitle(){
+  if(state.playing||(typeof mn!=='undefined'&&mn.on)){titleTimer=setTimeout(backToTitle,4000);return;}
+  wordEl.textContent='poum tchak';wsubEl.textContent='';
 }
 function flash(ids,lv){lightIcons(ids);showWord(ids,lv);}
 /* Plusieurs fûts touchés en même temps (moins de 60 ms d'écart) forment une seule frappe. */
