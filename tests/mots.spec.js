@@ -88,8 +88,16 @@ test.describe('Dictionnaire', () => {
     await expect(page.locator('.dict-help')).toContainText('Origine');
     await carte(page, 'poum').click();
     await expect(page.getByRole('button', { name: '« poum » est le mot affiché' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '« poum » est le mot affiché' }).click();
+    await expect(page.locator('.dm[data-k="poum"]')).toContainText('déjà le mot affiché');
     await page.locator('#combosDet summary').click();
-    const origine = await page.locator('#dictCombos input[aria-label^="Origine"]').first().inputValue();
-    expect(origine).toBe("Mot de départ de l'appli");
+    const o = page.locator('#dictCombos textarea[aria-label^="Origine"]').first();
+    expect(await o.inputValue()).toBe("Mot de départ de l'appli");
+    // texte entier visible : pas de défilement caché
+    expect(await o.evaluate((n) => n.scrollHeight <= n.clientHeight + 1)).toBe(true);
+    // mot fondu seul : étoile pâle, message explicatif
+    const etoile = page.locator('#dictCombos .ib[aria-disabled="true"]').first();
+    await etoile.click({ force: true });
+    await expect(page.locator('.dm[data-k="combos"]')).toContainText('seul mot');
   });
 });

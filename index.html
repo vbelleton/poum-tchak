@@ -216,7 +216,9 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .ents{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
 .ent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 38px 38px;gap:6px;align-items:center;margin-top:6px}
 .ent .el{grid-column:1/-1;font:600 12px/1.3 var(--f-mono);color:var(--muted);margin-top:6px}
-.ent input{font-size:15px;padding:7px 9px;min-width:0}
+.ent input,.ent textarea{font-size:15px;padding:7px 9px;min-width:0}
+textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-sizing:content}
+.ib.off{opacity:.4;cursor:help}
 .ib{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:8px;width:38px;min-height:38px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);padding:0;touch-action:manipulation}
 .ib svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .ib[aria-pressed="true"]{color:var(--ink)}
@@ -228,7 +230,7 @@ select.sm{width:auto;min-height:40px;font-size:15px;padding:7px 9px}
 .dict-help li{margin:3px 0}
 .ib[data-role=star][aria-pressed="true"]{color:#C8960C;border-color:#C8960C}
 .addrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) auto;gap:6px;margin-top:10px;align-items:center}
-.addrow input{font-size:15px;padding:7px 9px;min-width:0}
+.addrow input,.addrow textarea{font-size:15px;padding:7px 9px;min-width:0}
 .addrow .btn{min-height:38px;padding:6px 12px}
 .pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .pick .chip{min-height:34px;padding:4px 11px}
@@ -887,21 +889,21 @@ body.mn-live .mn-count{height:2.2em}
     <p class="hint">Chaque fût peut avoir plusieurs mots. Ouvre un fût pour les voir :</p>
     <ul class="hint dict-help">
       <li><b>Mot</b> : tous les mots de la liste sont compris quand tu écris un rythme (« boum » et « poum » donnent la grosse caisse).</li>
-      <li><b>Étoile ★</b> : le mot à l'étoile pleine est celui qu'on <em>affiche</em> partout (pads, phrases, consignes). Touche l'étoile d'un autre mot pour l'afficher à sa place.</li>
-      <li><b>Origine</b> : une simple note pour te souvenir d'où vient le mot (ton prof, une méthode, le beatbox…). Tu peux la laisser vide ; elle ne change rien au jeu.</li>
+      <li><b>Étoile ★</b> : le mot à l'étoile pleine est celui qu'on <em>affiche</em> partout (pads, phrases, consignes). Pour en changer, touche l'étoile d'un autre mot : l'ancien passe en second (on ne « retire » pas une étoile). Une étoile pâle = mot seul, aucun choix possible.</li>
+      <li><b>Origine</b> : une simple note pour te souvenir d'où vient le mot (ton prof, une méthode, le beatbox…). Ce que tu écris reste entièrement visible (la case s'agrandit) ; « Ex. : mon prof » en grisé n'est qu'un exemple quand la case est vide. Elle ne change rien au jeu.</li>
     </ul>
     <p class="sr" id="dmsg" role="status"></p>
     <div class="refs" id="dictDrums"></div>
 
     <h3>Mots fondus</h3>
-    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot : « pak » = grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + » (« poum+tss »). L'étoile et l'origine marchent comme au-dessus.</p>
+    <p class="hint">Quand plusieurs fûts sont frappés en même temps, on dit un seul mot : « pak » = grosse caisse + caisse claire. Sans mot fondu, la frappe s'écrit avec « + » (« poum+tss »). L'étoile et l'origine marchent comme au-dessus : l'étoile ne sert que s'il y a deux mots pour la même frappe (ajoute-en un plus bas pour choisir).</p>
     <div class="refs"><details class="ref" id="combosDet">
       <summary data-k="combos"><span class="rw">Voir et modifier</span><span class="rc" id="comboCount"></span></summary>
       <div class="ents" id="dictCombos"></div>
       <div class="pick" id="comboPick" role="group" aria-label="Fûts de la nouvelle frappe"></div>
       <div class="addrow">
         <input type="text" id="comboWord" placeholder="Nouveau mot" maxlength="12" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="Nouveau mot fondu">
-        <input type="text" id="comboSrc" placeholder="Ex. : mon prof" maxlength="60" autocomplete="off" aria-label="Origine du nouveau mot fondu (facultatif)">
+        <textarea id="comboSrc" class="src" rows="1" placeholder="Ex. : mon prof" maxlength="60" autocomplete="off" aria-label="Origine du nouveau mot fondu (facultatif)"></textarea>
         <button type="button" class="btn" id="comboAdd">Ajouter</button>
       </div>
       <p class="msg dm" data-k="combos"></p>
@@ -4052,6 +4054,15 @@ function restoreFocus(){
 const SVG_STAR='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.9 4.2 4.6.5-3.4 3.1 1 4.5L8 11.4 3.9 13.8l1-4.5L1.5 6.2l4.6-.5z"/></svg>';
 const SVG_X='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>';
 function iconBtn(svg,label){const b=el('button','ib');b.type='button';b.innerHTML=svg;b.setAttribute('aria-label',label);return b;}
+function fitTA(t){t.style.height='auto';if(t.scrollHeight)t.style.height=t.scrollHeight+'px';}
+function fitAll(root){(root||document).querySelectorAll('textarea.src').forEach(fitTA);}
+function srcInput(value,label){
+  const t=el('textarea','src');t.rows=1;t.value=value;t.placeholder='Ex. : mon prof';t.maxLength=60;
+  t.setAttribute('aria-label',label);t.autocomplete='off';t.autocapitalize='none';t.spellcheck=false;
+  t.addEventListener('input',()=>fitTA(t));
+  t.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();t.blur();}});
+  return t;
+}
 function textInput(value,placeholder,label,max){
   const i=el('input');i.type='text';i.value=value;i.placeholder=placeholder;i.maxLength=max;
   i.setAttribute('aria-label',label);i.autocomplete='off';i.autocapitalize='none';i.spellcheck=false;return i;
@@ -4070,10 +4081,12 @@ function entryRow(e,i,showIds){
   const first=dict.findIndex(x=>keyOf(x.ids)===key);
   const isPrimary=first===i;
   const w=textInput(e.w,'Mot','Mot pour '+drumNames(e.ids)+', actuellement « '+e.w+' »',12);
-  const s=textInput(e.src,'Ex. : mon prof','Origine de « '+e.w+' » (facultatif)',60);
-  const star=iconBtn(SVG_STAR,isPrimary?'« '+e.w+' » est le mot affiché':'Afficher « '+e.w+' » à la place');
-  star.title=isPrimary?'Mot affiché partout':'Afficher ce mot à la place';
+  const s=srcInput(e.src,'Origine de « '+e.w+' » (facultatif)');
+  const alone=dict.filter(x=>keyOf(x.ids)===key).length===1;
+  const star=iconBtn(SVG_STAR,alone?'« '+e.w+' » est le seul mot, rien à choisir':isPrimary?'« '+e.w+' » est le mot affiché':'Afficher « '+e.w+' » à la place');
+  star.title=alone?'Seul mot : pas de choix possible':isPrimary?'Mot affiché partout':'Afficher ce mot à la place';
   star.setAttribute('aria-pressed',String(isPrimary));
+  if(alone){star.setAttribute('aria-disabled','true');star.classList.add('off');}
   const del=iconBtn(SVG_X,'Retirer « '+e.w+' »');del.title='Retirer ce mot';
   [[w,'w'],[s,'s'],[star,'star'],[del,'del']].forEach(([n,role])=>{n._e=e;n.dataset.role=role;});
   w.addEventListener('change',()=>{
@@ -4083,7 +4096,8 @@ function entryRow(e,i,showIds){
   });
   s.addEventListener('change',()=>{e.src=s.value.trim();saveStore();dmsg('Origine notée.',false,k);});
   star.addEventListener('click',()=>{
-    if(isPrimary)return;
+    if(alone){dmsg(e.ids.length>1?'« '+e.w+' » est le seul mot de cette frappe : ajoute un autre mot pour la même frappe si tu veux choisir lequel afficher.':'« '+e.w+' » est le seul mot de ce fût : ajoute un autre mot plus bas si tu veux choisir lequel afficher.',false,k);return;}
+    if(isPrimary){dmsg('« '+e.w+' » est déjà le mot affiché. Pour en changer, touche l\'étoile d\'un autre mot : celui-ci passera automatiquement en second.',false,k);return;}
     dict.splice(i,1);dict.splice(first,0,e);refocus={e,role:'star'};dmsg('« '+e.w+' » est maintenant le mot affiché.',false,k);commit();
   });
   del.addEventListener('click',()=>{
@@ -4116,7 +4130,7 @@ function renderDict(){
     const r=REF[d.id];
     const det=el('details','ref');det.style.setProperty('--c','var(--c-'+d.id+')');
     det.open=openDet.has(d.id);
-    det.addEventListener('toggle',()=>{if(det.open)openDet.add(d.id);else openDet.delete(d.id);});
+    det.addEventListener('toggle',()=>{if(det.open){openDet.add(d.id);fitAll(det);}else openDet.delete(d.id);});
     const count=dict.filter(e=>keyOf(e.ids)===d.id).length;
     const sum=el('summary');sum.dataset.k=d.id;
     sum.append(el('span','rw',W(d.id)),el('span','rn',d.name),el('span','rc',count+(count>1?' mots':' mot')));
@@ -4130,7 +4144,7 @@ function renderDict(){
     det.appendChild(list);
     const add=el('div','addrow');
     const wi=textInput('','Nouveau mot','Nouveau mot pour '+d.name,12);wi.dataset.add=d.id;
-    const si=textInput('','Ex. : mon prof','Origine du nouveau mot pour '+d.name+' (facultatif)',60);
+    const si=srcInput('','Origine du nouveau mot pour '+d.name+' (facultatif)');
     const ab=el('button','btn','Ajouter');ab.type='button';
     ab.setAttribute('aria-label','Ajouter le mot à '+d.name);
     ab.addEventListener('click',()=>addSingle(d.id,wi,si));
@@ -4146,6 +4160,7 @@ function renderDict(){
   combos.sort((a,b)=>IDS.indexOf(a.e.ids[0])-IDS.indexOf(b.e.ids[0])||a.e.ids.length-b.e.ids.length);
   combos.forEach(x=>ch.appendChild(entryRow(x.e,x.i,true)));
   if(!combos.length)ch.appendChild(el('p','hint','Aucune frappe simultanée nommée pour l\'instant.'));
+  fitAll($('#dictDrums'));fitAll($('#dictCombos'));
   $('#comboCount').textContent=combos.length+(combos.length>1?' mots':' mot');
 }
 const comboSel=new Set();
