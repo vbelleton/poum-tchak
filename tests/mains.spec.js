@@ -275,15 +275,15 @@ test.describe('Mains : une main, puis l\'autre', () => {
     await expect(page.locator('#mnWayTxt')).toContainText('Une main d\'abord');
     await suivreAnnonces(page);
     await page.locator('#play').click();
-    await jouer(page, ['l', 'r'], 24000);
+    await jouer(page, ['l', 'r'], 16000);
     const a = await page.evaluate(() => window.__annonces);
-    const ordre = ['Gauche seule', 'La droite entre !', 'Sans clic : garde le tempo', 'On inverse : droite seule'];
+    const ordre = ['Gauche seule', 'La droite entre !', 'Sans clic : garde le tempo'];
     let i = 0;
     for (const t of a) if (t === ordre[i]) i++;
     expect(i, a.join(' | ')).toBe(ordre.length);
-    // après l'inversion, la droite fait 1 coup et la gauche 2
-    await expect(page.locator('#mnR .mn-dot')).toHaveCount(4);
-    await page.locator('#play').click();
+    // plus d'inversion : la séance finit seule après les deux mesures sans clic
+    await expect(page.locator('#mnMsg')).toContainText('Séance terminée', { timeout: 8000 });
+    await expect(page.locator('body')).not.toHaveClass(/mn-live/);
     // à l'arrêt, le réglage d'origine revient
     await expect(page.locator('#mnColR .mn-opt[data-v="2"]')).toHaveAttribute('aria-checked', 'true');
   });
@@ -413,7 +413,7 @@ test.describe('Mains : savoir ce qu\'on joue', () => {
     // une main d'abord : la droite est au repos
     await expect(page.locator('#mnDoR')).toContainText('au repos', { timeout: 5000 });
     await expect(page.locator('#mnGoal .ph.on')).toHaveText('Gauche seule');
-    await expect(page.locator('#mnGoal .dots i')).toHaveCount(2);
+    await expect(page.locator('#mnGoal .dots i')).toHaveCount(1);
     // le compte suit la mesure : « 1 », « 2 », …
     const vus = await page.evaluate(async () => {
       const v = new Set(); const fin = performance.now() + 2500;

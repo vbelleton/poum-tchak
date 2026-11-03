@@ -1,4 +1,4 @@
-// Calage avant de jouer : 4 clics d'écoute, 8 frappes, le délai mesuré est compensé.
+// Calage express avant de jouer : 2 clics d'écoute, 5 frappes, le délai mesuré est compensé.
 const { test, expect, rubrique } = require('./outils/base');
 
 test.beforeEach(async ({ page }) => {
@@ -6,13 +6,13 @@ test.beforeEach(async ({ page }) => {
 });
 
 // Tape sur le grand bouton, « decal » ms après chacun des clics à frapper (n frappes).
-async function taperCalage(page, decal, n = 8) {
+async function taperCalage(page, decal, n = 5) {
   return page.evaluate(async ({ decal, n }) => {
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     while (!window.__cb().clicks.length) await sleep(10);
     const { clicks } = window.__cb();
     let faits = 0;
-    for (let i = 4; i < 12 && faits < n; i++) {
+    for (let i = 2; i < 7 && faits < n; i++) {
       const cible = clicks[i] + decal / 1000;
       while (window.__cb().now < cible) await sleep(2);
       document.querySelector('#cbTap').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
@@ -28,18 +28,32 @@ test.describe('Calage avant de jouer', () => {
     await page.locator('#play').click();
     await expect(page.locator('#calib')).toBeVisible();
     await expect(page.locator('#cbDo')).toContainText('Écoute');
-    expect(await taperCalage(page, 70)).toBe(8);
+    expect(await taperCalage(page, 70)).toBe(5);
     await expect(page.locator('#cbDo')).toHaveText("C'est calé !", { timeout: 4000 });
     await expect(page.locator('#cbRes')).toContainText('régulières');
-    await expect(page.locator('#cbDots i.on')).toHaveCount(8);
+    await expect(page.locator('#cbDots i.on')).toHaveCount(5);
     const off = parseInt((await page.locator('#offVal').textContent()).replace('+', ''), 10);
     expect(Math.abs(off - 70)).toBeLessThan(25);
     await page.locator('#cbGo').click();
     await expect(page.locator('#calib')).toBeHidden();
     await expect(page.locator('body')).toHaveClass(/mn-live/);
-    // une fois calé, on ne redemande pas
+    // une fois calé, on ne redemande pas (même après rechargement)
     await page.locator('#play').click();
     await expect(page.locator('body')).not.toHaveClass(/mn-live/);
+    await page.locator('#play').click();
+    await expect(page.locator('#calib')).toBeHidden();
+    await expect(page.locator('body')).toHaveClass(/mn-live/);
+  });
+
+  test('le calage est retenu : après rechargement, on ne redemande pas', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    await page.locator('#play').click();
+    await taperCalage(page, 40);
+    await expect(page.locator('#cbDo')).toHaveText("C'est calé !", { timeout: 4000 });
+    await page.locator('#cbGo').click();
+    await page.reload();
+    await page.evaluate(() => { window.__calibForce = true; });
+    await rubrique(page, 'Mains');
     await page.locator('#play').click();
     await expect(page.locator('#calib')).toBeHidden();
     await expect(page.locator('body')).toHaveClass(/mn-live/);
@@ -79,7 +93,7 @@ test.describe('Calage avant de jouer', () => {
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       while (!window.__cb().clicks.length) await sleep(10);
       const { clicks } = window.__cb();
-      for (let i = 4; i < 12; i++) {
+      for (let i = 2; i < 7; i++) {
         while (window.__cb().now < clicks[i] + 0.03) await sleep(2);
         document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
       }

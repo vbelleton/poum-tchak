@@ -794,7 +794,7 @@ body.mn-live .mn-count{height:2.2em}
   <!-- Mains : indépendance, n coups par temps à chaque main -->
   <section class="panel" role="tabpanel" id="p-mains" aria-labelledby="t-mains" hidden>
     <h2 class="sr">Mains</h2>
-    <p class="hint first">Choisis combien de coups chaque main fait par temps, puis Jouer. Après une mesure de décompte, tape à gauche et à droite : chaque main est notée à part. À la première partie, un calage de 8 frappes sur le clic mesure le délai du son (bouton « Caler » pour le refaire).</p>
+    <p class="hint first">Choisis combien de coups chaque main fait par temps, puis Jouer. Après une mesure de décompte, tape à gauche et à droite : chaque main est notée à part. Une seule fois, un calage express (5 frappes sur le clic, 5 secondes) mesure le délai du son (bouton « Caler » pour le refaire).</p>
     <div class="mn-tab">
       <div class="mn-col" id="mnColL" role="radiogroup" aria-label="Main gauche : coups par temps"><div class="mn-th"><span class="mn-hand mn-l" aria-hidden="true">G</span>Main gauche</div></div>
       <div class="mn-col" id="mnColR" role="radiogroup" aria-label="Main droite : coups par temps"><div class="mn-th"><span class="mn-hand mn-r" aria-hidden="true">D</span>Main droite</div></div>
@@ -987,7 +987,7 @@ body.mn-live .mn-count{height:2.2em}
         <output id="offVal" aria-live="polite">0 ms</output>
         <button type="button" class="ib" id="offUp" aria-label="Retarder la frappe de 10 millisecondes">+</button>
         <button type="button" class="chip" id="offAuto">Recaler</button>
-        <button type="button" class="chip" id="offCal">Caler (8 frappes)</button>
+        <button type="button" class="chip" id="offCal">Caler (5 frappes)</button>
       </div>
     </div>
     <div class="kv-row"><span class="lab" id="lab-snd">Sons</span>
@@ -1039,7 +1039,7 @@ body.mn-live .mn-count{height:2.2em}
 
 <section class="cb" id="calib" hidden role="dialog" aria-modal="true" aria-labelledby="cbTitle">
   <div class="cb-in">
-    <h2 id="cbTitle">Calage avant de jouer</h2>
+    <h2 id="cbTitle">Calage express</h2>
     <p class="cb-why">Le son met un peu de temps à sortir (encore plus avec des écouteurs Bluetooth). On le mesure avec quelques frappes, pour que tes coups soient jugés justes.</p>
     <p class="cb-do" id="cbDo" role="status"></p>
     <button type="button" class="cb-tap" id="cbTap">Tape ici<small>ou barre d'espace</small></button>
@@ -3122,7 +3122,7 @@ function mnLanes(){
    seule jusqu'à ce qu'elle tienne, puis l'autre entre, puis le clic s'efface, puis les
    mains échangent leurs rythmes. « Main ancre » : une main garde son rythme, l'autre
    change toutes les 2 mesures ; au bout du tour, les rôles s'inversent. */
-const MN_OK=85;
+const MN_OK=85,MN_NEED=1,MN_CONSEC=3;
 const MN_WAY={
   ensemble:'Les deux mains jouent dès le début.',
   empiler:'Une main d\'abord (celle qui fait le moins de coups). Quand elle tient 2 mesures à 85 %, l\'autre entre. Quand les deux tiennent, 2 mesures sans clic, puis les mains échangent leurs rythmes.',
@@ -3172,13 +3172,13 @@ function mnProg(k){
   mnEval(k);
   let msg='';
   if(k===0)msg=mnName(pg.first)[0].toUpperCase()+mnName(pg.first).slice(1)+' seule';
-  if(pg.ph==='A'&&pg.run>=2){
+  if(pg.ph==='A'&&pg.run>=MN_NEED){
     pg.ph='B';pg.since=k;pg.ev=k;pg.run=0;pg.bStart=k;pg.act=['l','r'];
     msg='La '+mnName(mnOther(pg.first))+' entre !';
-  }else if(pg.ph==='B'&&pg.run>=2){
+  }else if(pg.ph==='B'&&pg.run>=MN_NEED){
     pg.ph='C';pg.since=k;pg.ev=k;pg.run=0;pg.cStart=k;
     msg='Sans clic : garde le tempo';
-    if(mn.goal)pg.stopAt=k+2;
+    pg.stopAt=k+2;
   }else if(pg.ph==='C'&&k>=pg.cStart+2){
     if(!pg.swapped){
       pg.swapped=true;mn.sel={l:sel.r,r:sel.l};
@@ -3268,9 +3268,9 @@ function mnGoalAt(){
   const pg=mn.pg;
   if(pg&&pg.ph!=='X'){
     const f=mnName(pg.first),o=mnName(mnOther(pg.first));
-    const phases=[f[0].toUpperCase()+f.slice(1)+' seule','+ '+o,'Sans clic',pg.swapped?'Libre':'On inverse'];
+    const phases=[f[0].toUpperCase()+f.slice(1)+' seule','+ '+o,'Sans clic'];
     const at={A:0,B:1,C:2,L:3}[pg.ph];
-    return {phases,at,need:pg.ph==='A'||pg.ph==='B'?2:0,run:Math.min(2,pg.run)};
+    return {phases,at,need:pg.ph==='A'||pg.ph==='B'?MN_NEED:0,run:Math.min(MN_NEED,pg.run)};
   }
   if(mn.goal&&mn.goal.consec)return {need:mn.goal.consec,run:Math.min(mn.goal.consec,mn.gr),txt:'mesures justes de suite'};
   return null;
@@ -3298,6 +3298,11 @@ function mnTick(){
         else mnSlow(mn.bar);
       }
       if(b===0&&!mn.goal&&mn.pg){mnAdaptEval(mn.bar);mnSlow(mn.bar);}
+      /* Sans objectif imposé, la séance s'arrête toute seule : on ne reste pas des minutes à jouer. */
+      if(b===0&&!mn.goal&&!mn.goalEnd){
+        const pg=mn.pg,lim=mn.walk?32:mn.mode==='ancre'?16:mn.mode==='ensemble'?8:0;
+        if((lim&&mn.bar>=lim)||(pg&&pg.stopAt!=null&&mn.bar>=pg.stopAt))mn.goalEnd=mn.nextT;
+      }
       if(mn.goalEnd){mn.nextT+=beat;mn.beat++;continue;}
       if(b===0){
         mn.barT[mn.bar]=mn.nextT;
@@ -3379,6 +3384,10 @@ function mnGoalDone(){
   else ['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
   mnStop(true);
   if(g&&g.cb)g.cb(r,x);
+  else if(!g){
+    const t=['l','r'].filter(h=>r[h]!=null).map(h=>mnName(h)[0].toUpperCase()+mnName(h).slice(1)+' '+r[h]+' %').join(' · ');
+    $('#mnMsg').textContent='Séance terminée'+(t?' : '+t:'')+'. Rejoue quand tu veux, ça repart tout de suite.';
+  }
 }
 function mnStop(fromGoal){
   if(!mn.on)return;
@@ -3535,12 +3544,16 @@ function holdRepeat(btn,delta){
 }
 holdRepeat($('#bpmDown'),-1);holdRepeat($('#bpmUp'),1);
 $('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
-/* ---------- Calage avant de jouer ----------
+/* ---------- Calage express ----------
    4 clics pour écouter, puis 8 clics sur lesquels tu frappes. Le retard médian de tes frappes
    devient le décalage de l'entrée utilisée (écran, batterie MIDI ou micro). Demandé une fois par
    séance et par entrée, et de nouveau si le délai du son change (écouteurs Bluetooth branchés…). */
-const CB_BPM=80,CB_LISTEN=4,CB_TAPS=8;
+const CB_BPM=100,CB_LISTEN=2,CB_TAPS=5,CB_MIN=4;
+const CB_KEY='poumtchak.calib';
+let cbMem={};try{cbMem=JSON.parse(localStorage.getItem(CB_KEY)||'{}')||{};}catch(e){}
 const cb={on:false,src:'screen',go:null,t0:0,clicks:[],taps:[],raf:0,done:{},lat:{},endT:0,lastK:-9};
+Object.keys(cbMem).forEach(k=>{if(typeof cbMem[k]==='number'){cb.done[k]=true;cb.lat[k]=cbMem[k];}});
+function cbRemember(src){cb.done[src]=true;cb.lat[src]=outLat();cbMem[src]=cb.lat[src];try{localStorage.setItem(CB_KEY,JSON.stringify(cbMem));}catch(e){}}
 const CB_WHERE={screen:'sur le grand bouton',midi:'sur ta batterie MIDI',mic:'sur ta batterie'};
 const mnSrc=()=>mn.midi?'midi':'screen';
 const kvSrc=()=>kvMidi?'midi':kvMic?'mic':'screen';
@@ -3551,7 +3564,7 @@ function cbNeeded(src){
   if(!cb.done[src])return true;
   return Math.abs(outLat()-(cb.lat[src]||0))>0.03;
 }
-function withCalib(src,go){if(cbNeeded(src))cbOpen(src,go);else go();}
+function withCalib(src,go){ensureAudio();if(cbNeeded(src))cbOpen(src,go);else go();}
 function cbOpen(src,go){
   if(!ensureAudio()){if(go)go();return;}
   cb.src=src;cb.go=go||null;
@@ -3628,7 +3641,7 @@ function cbEnd(){
   $('#cbTap').classList.remove('go');
   $('#cbSkip').hidden=true;$('#cbAgain').hidden=false;$('#cbGo').hidden=false;
   const n=cb.taps.length;
-  if(n<5){
+  if(n<CB_MIN){
     $('#cbDo').textContent='Pas assez de frappes ('+n+' sur '+CB_TAPS+').';
     $('#cbRes').textContent='Recommence en tapant en même temps que chaque clic, ou joue sans caler.';
     if(cb.go)$('#cbGo').textContent='Jouer sans caler';
@@ -3636,7 +3649,7 @@ function cbEnd(){
   }
   const ds=cb.taps.map(x=>x.d*1000),med=cbMed(ds),mad=cbMed(ds.map(d=>Math.abs(d-med)));
   cbSet(cb.src,Math.round(med));
-  cb.done[cb.src]=true;cb.lat[cb.src]=outLat();
+  cbRemember(cb.src);
   const tot=Math.max(0,Math.round(outLat()*1000+med));
   $('#cbDo').textContent='C\'est calé !';
   $('#cbRes').textContent='Délai compensé : '+tot+' ms. '+(mad<=25?'Tes frappes étaient très régulières.':mad<=50?'Tes frappes étaient assez régulières.':'Tes frappes étaient un peu irrégulières : recommence si tu veux un calage plus précis.');
@@ -3654,10 +3667,10 @@ $('#cbTap').addEventListener('click',e=>{if(e.detail===0)cbScreenTap();});
 $('#cbTap').addEventListener('contextmenu',e=>e.preventDefault());
 $('#cbAgain').addEventListener('click',()=>{$('#cbGo').textContent=cb.go?'Jouer':'OK';cbRun();});
 $('#cbGo').addEventListener('click',cbFinish);
-$('#cbSkip').addEventListener('click',()=>{cb.done[cb.src]=true;cb.lat[cb.src]=outLat();cbFinish();});
+$('#cbSkip').addEventListener('click',()=>{cbRemember(cb.src);cbFinish();});
 document.addEventListener('keydown',e=>{
   if($('#calib').hidden)return;
-  if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cb.done[cb.src]=true;cb.lat[cb.src]=outLat();cbFinish();return;}
+  if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cbRemember(cb.src);cbFinish();return;}
   if(!cb.on||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
   const k=e.key.toLowerCase();
   if(k===' '||k==='f'||k==='j'||k==='enter'){e.preventDefault();e.stopImmediatePropagation();cbScreenTap();}
@@ -4175,8 +4188,8 @@ function pcStart(id,bpm){
     mn.sel={l:st.l,r:st.r};mnRender();
     setBpm(pc.bpm);
     const f=two?mnFirst(mn.sel):'';
-    pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue : il faut 4 bonnes mesures de suite.')+' Le tempo ralentit tout seul si ça coince.','',[pcQuitBtn]);
-    mn.goal={consec:two?0:4,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Pas de souci, on s\'arrête là. Tu peux reprendre quand tu veux'+(state.bpm<pc.bpm?', à '+state.bpm+' BPM, un peu plus lent.':'.'),'',[['Reprendre'+(state.bpm<pc.bpm?' à '+state.bpm+' BPM':''),()=>pcStart(id,state.bpm)],pcQuitBtn])};
+    pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue : il faut '+MN_CONSEC+' bonnes mesures de suite.')+' Le tempo ralentit tout seul si ça coince.','',[pcQuitBtn]);
+    mn.goal={consec:two?0:MN_CONSEC,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Pas de souci, on s\'arrête là. Tu peux reprendre quand tu veux'+(state.bpm<pc.bpm?', à '+state.bpm+' BPM, un peu plus lent.':'.'),'',[['Reprendre'+(state.bpm<pc.bpm?' à '+state.bpm+' BPM':''),()=>pcStart(id,state.bpm)],pcQuitBtn])};
     withCalib(mnSrc(),mnPlay);
   }else{
     showTab('mots');

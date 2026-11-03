@@ -16,7 +16,7 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
 - **Parcours** : une étape à la fois, en 25 étapes et 5 chapitres (le temps,
   croches, triolets, doubles croches, mélanges). Chaque étape lance le bon
   exercice tout réglé : une main seule, puis les deux, ou 3 consignes à
-  traduire. À 85 % pour chaque main sur 4 mesures, l'étape est réussie et la
+  traduire. À 85 % pour chaque main sur 3 mesures de suite, l'étape est réussie et la
   suivante s'ouvre ; sinon on recommence, plus lentement si besoin. La
   progression et le meilleur tempo sont gardés.
 
@@ -59,10 +59,12 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   « Enchaîner les 16 duos » passe de 1 contre 1 à 4 contre 4.
   Trois façons de travailler : **ensemble** ; **une main, puis l'autre** (comme
   sur le papier : la main qui fait le moins de coups seule, l'autre entre quand
-  elle tient 2 mesures à 85 %, puis 2 mesures sans clic, puis les mains
-  échangent leurs rythmes) ; **main ancre** (une main garde son rythme, l'autre
+  elle tient une mesure à 85 %, puis 2 mesures sans clic, et la séance
+  s'arrête) ; **main ancre** (une main garde son rythme, l'autre
   passe par 1, 2, 3, 4 coups par temps, puis les rôles s'inversent). Les étapes
-  à deux mains du Parcours se font une main, puis l'autre.
+  à deux mains du Parcours se font une main, puis l'autre. Sans objectif imposé,
+  la séance s'arrête seule (8 mesures en ensemble, 16 en main ancre, 32 pour
+  les 16 duos) et donne ton score ; on rejoue d'un geste.
   Avant de jouer, une mesure d'écoute fait entendre ce qu'il faut jouer. Pendant
   le jeu : ce que fait chaque main (« Droite : 2 coups · ti-ti »), le compte
   affiché (« 1 et 2 et… »), et l'objectif (étape en cours, mesures réussies).
