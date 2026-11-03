@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" translate="no">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)">
@@ -239,7 +240,7 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
 .pick .chip{min-height:34px;padding:4px 11px}
 
 /* Jouer sur l'écran : une carte de lecture, une consigne, des zones à frapper */
-.kv{position:fixed;inset:0;z-index:6;margin:0;background:var(--bg);display:flex;flex-direction:column;gap:8px;
+.kv{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;position:fixed;inset:0;z-index:6;margin:0;background:var(--bg);display:flex;flex-direction:column;gap:8px;
   padding:calc(8px + env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) calc(92px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .kv-bar1{display:flex;align-items:center;gap:8px}
 .kv-bar1 select{flex:1 1 auto;width:auto;min-width:0;min-height:44px;font-size:15px}
@@ -594,6 +595,9 @@ body[data-tab="parcours"] .tempo-read,body[data-tab="mots"] .tempo-read{display:
 body.mn-live .tabs,body.mn-live #p-mains>.hint,body.mn-live #p-mains .mn-tab,body.mn-live #p-mains .ctrl,body.mn-live #p-mains .mn-way,body.mn-live #p-mains .chk,body.mn-live #p-mains #mnMsg{display:none}
 body.mn-live .pc-bar{margin-top:6px}
 body.mn-live .foot{display:none}
+/* Pendant le jeu, rien ne doit se sélectionner ni ouvrir de menu (copier, traduire, rechercher…). */
+body.mn-live,body.cb-open{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body.mn-live #p-mains,body.cb-open .cb{touch-action:manipulation}
 .cb{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:max(16px,env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
 .cb[hidden]{display:none}
 .cb-in{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;padding-top:8px}
@@ -3658,6 +3662,13 @@ document.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(k===' '||k==='f'||k==='j'||k==='enter'){e.preventDefault();e.stopImmediatePropagation();cbScreenTap();}
 },true);
+/* Jeu en cours : pas de sélection de texte, pas de menu au toucher long. */
+['selectstart','contextmenu','dragstart'].forEach(ev=>document.addEventListener(ev,e=>{
+  if(document.body.classList.contains('mn-live')||document.body.classList.contains('cb-open')||(kvOpen&&state.playing)){
+    const t=e.target;if(t&&t.closest&&t.closest('input,textarea,select'))return;
+    e.preventDefault();
+  }
+}));
 /* pour les tests */
 window.__cb=()=>({on:cb.on,clicks:cb.clicks.slice(),now:ctx?ctx.currentTime-outLat():0});
 $('#offCal').addEventListener('click',()=>cbOpen(kvSrc(),null));
