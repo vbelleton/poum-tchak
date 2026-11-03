@@ -3223,10 +3223,10 @@ function mnAdaptEval(k){
   }
 }
 function mnSlow(k){
-  if((!mn.goal&&!mn.pg)||mn.weak<2)return false;
+  if(mn.weak<2)return false;
   mn.weak=0;
   if(state.bpm<=40){mn.q.push({t:mn.nextT,say:'Prends ton temps, on reste à 40'});return false;}
-  const nb=Math.max(40,state.bpm-5);
+  const nb=Math.max(40,state.bpm-(state.bpm>=120?10:5));
   setBpm(nb);
   mn.q.push({t:mn.nextT,say:'On ralentit à '+nb+' BPM : prends ton temps'});
   mn.gr=0;mn.gStart=k+1;
@@ -3297,7 +3297,7 @@ function mnTick(){
         else if(mn.goal.bars&&mn.bar>=mn.goal.bars)mn.goalEnd=mn.nextT;
         else mnSlow(mn.bar);
       }
-      if(b===0&&!mn.goal&&mn.pg){mnAdaptEval(mn.bar);mnSlow(mn.bar);}
+      if(b===0&&!mn.goal){mnAdaptEval(mn.bar);mnSlow(mn.bar);}
       /* Sans objectif imposé, la séance s'arrête toute seule : on ne reste pas des minutes à jouer. */
       if(b===0&&!mn.goal&&!mn.goalEnd){
         const pg=mn.pg,lim=mn.walk?32:mn.mode==='ancre'?16:mn.mode==='ensemble'?8:0;

@@ -339,6 +339,20 @@ test.describe('Mains : on ne te laisse pas échouer', () => {
     expect(a.some((t) => t.startsWith('On ralentit à'))).toBe(true);
   });
 
+  test('même en jeu libre (ensemble), le tempo ralentit si tu n\'y arrives pas', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Mains');
+    await page.locator('#bpmIn').fill('200');
+    await page.locator('#bpmIn').press('Enter');
+    await page.locator('#mnWay').getByRole('button', { name: 'Ensemble' }).click();
+    await suivreAnnonces(page);
+    await page.locator('#play').click(); // on ne tape rien
+    await page.waitForTimeout(8000);
+    expect(+(await page.locator('#bpmIn').inputValue())).toBeLessThan(200);
+    const a = await page.evaluate(() => window.__annonces);
+    expect(a.some((t) => t.startsWith('On ralentit à'))).toBe(true);
+  });
+
   test('on ne ralentit pas quand ça se passe bien', async ({ page }) => {
     test.setTimeout(60_000);
     await rubrique(page, 'Mains');

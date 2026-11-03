@@ -71,7 +71,7 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   Pendant le jeu, la rubrique se réduit à l'essentiel : pas de batterie en haut,
   le score et le verdict de chaque main au-dessus de son pad (hors du pouce), et
   rien ne bouge.
-  On ne te laisse pas échouer : si deux mesures de suite sont trop faibles
+  On ne te laisse pas échouer, dans tous les modes (même en jeu libre) : si deux mesures de suite sont trop faibles
   (moins de 70 %), le tempo baisse de 5 BPM tout seul, jusqu'à 40, et l'étape
   est réussie dès que les mesures tiennent ; arrêter n'est jamais un échec.
 - **Écoute** : le micro ou un fichier audio, pour trouver le tempo et une
