@@ -3107,7 +3107,8 @@ function mnTap(h,at){
   mnHit(h);
   if(!ensureAudio())return;
   if(mn.sound==='clic'||(!mn.on&&mn.sound==='tout'))voice(h==='l'?'doum':'tchak',ctx.currentTime,0.9);
-  mnJudge(h,at!=null?at:ctx.currentTime-latency());
+  /* Test du jour : n'importe quel pad compte, une seule main joue. */
+  mnJudge(mn.place?'r':h,at!=null?at:ctx.currentTime-latency());
 }
 ['l','r'].forEach(h=>{
   const pad=$(h==='l'?'#mnPadL':'#mnPadR');
@@ -3497,7 +3498,7 @@ function mnMidi(e){
   try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.performanceTime)t=o.contextTime+(e.timeStamp-o.performanceTime)/1000;else t=ctx.currentTime-(performance.now()-e.timeStamp)/1000;}catch(err){}
   const h=id==='tchak'?'r':'l';
   mnHit(h);
-  mnJudge(h,t-midiLatency());
+  mnJudge(mn.place?'r':h,t-midiLatency());
 }
 $('#mnMidi').addEventListener('click',async()=>{
   if(mn.midi){mn.midi=false;midiBind();$('#mnMidi').setAttribute('aria-pressed','false');$('#mnMsg').textContent='MIDI coupé.';return;}
@@ -3788,12 +3789,12 @@ function plStart(){
   mnStop();
   if(state.tab!=='mains')showTab('mains');
   $('#mnRes').hidden=true;
-  mn.place={ev:0,fail:0,best:0,orig:{sel:{l:mn.sel.l,r:mn.sel.r},mode:mn.mode,walk:mn.walk}};
+  mn.place={ev:0,fail:0,lead:0,best:0,orig:{sel:{l:mn.sel.l,r:mn.sel.r},mode:mn.mode,walk:mn.walk}};
   mn.barBpm=[];
   mn.mode='ensemble';mn.walk=false;$('#mnWalk').checked=false;mn.sel={l:-1,r:2};mnRender();
   setBpm(PL_START);
   mn.goal={place:true,cb:()=>plDone(),abort:()=>plAbort()};
-  $('#mnMsg').textContent='Test du jour : croches main droite (« ti-ti »). Le tempo monte à chaque mesure, suis aussi longtemps que tu peux.';
+  $('#mnMsg').textContent='Test du jour : tape des croches (« ti-ti », 2 coups par temps) sur un pad. Le tempo monte à chaque mesure une fois que tu as trouvé le rythme.';
   withCalib(mnSrc(),mnPlay);
 }
 function plRestore(){
@@ -3807,14 +3808,15 @@ function plEval(k){
   while(P.ev<=k-2){
     const j=P.ev++,o=mn.bs[j],h=o&&o.r;
     const p=h&&h.n?100*h.ok/h.n:0;
-    if(p>=85){P.best=Math.max(P.best,mn.barBpm[j]||0);P.fail=0;}else P.fail++;
+    if(p>=85){P.best=Math.max(P.best,mn.barBpm[j]||0);P.fail=0;}else if(P.best>0)P.fail++;else P.lead++;
   }
 }
 function plTick(){
   plEval(mn.bar);
   const P=mn.place;
-  if(P.fail>=2||mn.bar>=40){mn.goalEnd=mn.nextT;return;}
-  if(mn.bar>0&&state.bpm<PL_MAX){setBpm(Math.min(PL_MAX,state.bpm+PL_STEP));mn.q.push({t:mn.nextT,say:state.bpm+' BPM'});}
+  if(P.fail>=2||(!P.best&&P.lead>=4)||mn.bar>=40){mn.goalEnd=mn.nextT;return;}
+  /* le tempo ne monte qu'une fois que tu as trouvé le rythme */
+  if(mn.bar>0&&P.best>0&&state.bpm<PL_MAX){setBpm(Math.min(PL_MAX,state.bpm+PL_STEP));mn.q.push({t:mn.nextT,say:state.bpm+' BPM'});}
   mn.barBpm[mn.bar]=state.bpm;
 }
 function plDone(){
@@ -3823,7 +3825,7 @@ function plDone(){
   if(!P||!P.best){
     setBpm(PL_START);
     box.innerHTML='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">?</div><div><h3>Test du jour</h3><p class="pr-score">Pas assez de coups justes pour mesurer.</p></div></div>'+
-      '<div class="pr-sec"><p class="pr-hint">Tape sur le pad Droite en même temps que les croches (2 coups par temps), dès la fin du décompte. Si le calage te semble faux, touche « Caler ».</p></div>'+
+      '<div class="pr-sec"><p class="pr-hint">Tape sur un pad, n\'importe lequel, en même temps que les croches (2 coups par temps), dès la fin du décompte ; le tempo ne monte qu\'une fois que tu as trouvé le rythme. Si le calage te semble faux, touche « Caler ».</p></div>'+
       '<div class="row pr-btns"><button type="button" class="btn" id="plAgain">Refaire le test</button><button type="button" class="btn ghost" id="plLater">Plus tard</button></div>';
     box.hidden=false;
     $('#plAgain').addEventListener('click',plStart);

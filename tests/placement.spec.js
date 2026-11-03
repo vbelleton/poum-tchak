@@ -59,12 +59,31 @@ test.describe('Test du jour', () => {
     await expect(page.locator('#mnColL .mn-opt[aria-checked="true"]')).toHaveAttribute('data-v', '2');
   });
 
+  test('on peut taper sur le pad gauche : n\'importe quel pad compte, et le tempo attend qu\'on ait trouvé le rythme', async ({ page }) => {
+    test.setTimeout(90_000);
+    await rubrique(page, 'Mains');
+    await page.locator('#p-mains .pl-go').click();
+    await expect(page.locator('body')).toHaveClass(/mn-live/);
+    const bpms = await page.evaluate(async () => {
+      const pad = document.querySelector('#mnPadL'); // pas le bon pad exprès
+      const vus = new Set(); const fin = performance.now() + 14000;
+      while (performance.now() < fin && document.body.classList.contains('mn-live')) {
+        vus.add(document.querySelector('#bpmIn').value);
+        const x = window.__mnExp('r');
+        if (x != null) { await new Promise((r) => setTimeout(r, x * 1000)); pad.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await new Promise((r) => setTimeout(r, 40)); }
+        else await new Promise((r) => setTimeout(r, 10));
+      }
+      return [...vus];
+    });
+    expect(bpms.length, bpms.join(',')).toBeGreaterThanOrEqual(2); // le tempo a monté parce que les frappes comptent
+  });
+
   test('sans aucun coup, on l\'explique et on peut recommencer', async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     await rubrique(page, 'Parcours');
     await page.locator('#p-parcours .pl-go').click();
     await expect(page.locator('body')).toHaveClass(/mn-live/);
-    await expect(page.locator('#mnRes')).toContainText('Pas assez de coups justes', { timeout: 30000 });
+    await expect(page.locator('#mnRes')).toContainText('Pas assez de coups justes', { timeout: 50000 });
     await expect(page.locator('#plAgain')).toBeVisible();
     await expect(page.locator('#bpmIn')).toHaveValue('60');
   });
