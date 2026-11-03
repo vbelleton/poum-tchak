@@ -94,6 +94,12 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   sur la batterie (meilleur score : 60, 75, 85, 95 %), Lecture des consignes
   (justes du premier coup : 3, 10, 25, 50), de Débutant à Expert, avec le
   prochain objectif ; et la courbe de précision des 20 dernières séances.
+- **Test du jour** : une fois par jour (bandeau en haut de Parcours et de
+  Mains, « Pas aujourd'hui » pour passer), 30 secondes de croches main droite
+  qui accélèrent de 8 BPM par mesure à partir de 60, tant que tu tiens 85 %.
+  Ta forme = le tempo le plus rapide tenu. Comparée à ton dernier test, avec
+  la courbe des 10 derniers ; la séance démarre à 80 % de ta forme, arrondi à
+  5 BPM. L'historique est dans Parcours, « Ta forme ».
 - **Calage avant de jouer** : avant la première partie de la séance (Mains,
   Parcours, Jouer sur l'écran, Défi), 4 clics d'écoute puis 8 frappes sur le
   clic, à 80 BPM. Le retard médian des frappes devient le décalage de l'entrée
