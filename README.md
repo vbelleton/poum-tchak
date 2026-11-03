@@ -83,6 +83,17 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   l'écouter puis la jouer sur l'écran) ; traduire des onomatopées ou du solfège vers la grille, modifier le
   dictionnaire, les mots fondus, partager le dictionnaire, et le référentiel du
   solfège rythmique.
+- **Progrès** : chaque séance (Mains, Jouer sur l'écran, consignes de Mots)
+  est gardée sur le téléphone. À la fin d'une séance de Mains, un bilan :
+  score et record de l'exercice, courbe des derniers scores, compétence
+  débloquée ou niveau gagné, tempo joué → tempo suivant (+5/+10 si les deux
+  mains tiennent à 85 %, −5 sous 70 %), précision par main, puis « Continuer
+  à N BPM » ou « Rejouer ». Dans Parcours, « Tes compétences » : Noires,
+  Croches, Triolets, Doubles croches (tempo tenu à 85 % : 60, 80, 100, 120
+  BPM), Indépendance (duos à rythmes différents réussis : 1, 4, 8, 12), Jeu
+  sur la batterie (meilleur score : 60, 75, 85, 95 %), Lecture des consignes
+  (justes du premier coup : 3, 10, 25, 50), de Débutant à Expert, avec le
+  prochain objectif ; et la courbe de précision des 20 dernières séances.
 - **Calage avant de jouer** : avant la première partie de la séance (Mains,
   Parcours, Jouer sur l'écran, Défi), 4 clics d'écoute puis 8 frappes sur le
   clic, à 80 BPM. Le retard médian des frappes devient le décalage de l'entrée

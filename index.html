@@ -598,6 +598,60 @@ body.mn-live .foot{display:none}
 /* Pendant le jeu, rien ne doit se sélectionner ni ouvrir de menu (copier, traduire, rechercher…). */
 body.mn-live,body.cb-open{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 body.mn-live #p-mains,body.cb-open .cb{touch-action:manipulation}
+.pr-res{position:relative;margin:12px 0;padding:0;overflow:hidden}
+.pr-x{position:absolute;right:8px;top:8px;z-index:1}
+.pr-sec{padding:12px 14px;border-top:1px solid var(--line)}
+.pr-top{display:flex;gap:12px;align-items:center;padding-right:52px;border-top:0}
+.pr-top h3{margin:0;font:800 19px/1.2 var(--f-display)}
+.pr-hex{flex:none;width:56px;height:62px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--ok);color:var(--ink-inv);display:flex;align-items:center;justify-content:center;font:800 16px var(--f-mono)}
+.pr-score{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.pr-score b{font:800 22px var(--f-mono);color:var(--ink)}
+.pr-score .new{color:var(--ok);font-weight:700}
+.pr-k{margin:0 0 6px;font:600 11.5px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pr-spark{display:block;width:100%;height:86px}
+.pr-spark .l{fill:none;stroke:var(--ok);stroke-width:2.5;vector-effect:non-scaling-stroke}
+.pr-spark .g{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.pr-spark .p{fill:var(--surface);stroke:var(--ok);stroke-width:2.5;vector-effect:non-scaling-stroke}
+.pr-spark .last{fill:var(--ink);stroke:var(--ink)}
+.pr-spark .t{font:700 14px var(--f-mono);fill:var(--ink)}
+.pr-sk{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.pr-sk .ico{flex:none;width:40px;height:40px;border-radius:50%;border:2.5px solid var(--edge);display:flex;align-items:center;justify-content:center;font:800 15px var(--f-mono);color:var(--muted)}
+.pr-sk:not(.lv0) .ico{border-color:var(--ok);color:var(--ok)}
+.pr-sk.lv0{opacity:.72}
+.pr-sk .tx{min-width:0;display:flex;flex-direction:column;gap:2px;flex:1}
+.pr-sk b{font:700 15px var(--f-display)}
+.pr-sk .pr-lv{white-space:nowrap;font:600 11.5px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pr-sk .bar{display:block;height:6px;border-radius:3px;background:var(--line);margin:4px 0 2px;overflow:hidden}
+.pr-sk .bar i{display:block;height:100%;background:var(--ok);border-radius:3px}
+.pr-sk small{font-size:12.5px;color:var(--muted);line-height:1.35}
+.pr-sk.big{border:0;padding:0;background:none}
+.pr-sk.big .ico{width:56px;height:56px;font-size:20px}
+.pr-sk.big b{font-size:20px}
+.pr-more{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.pr-tempo{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:6px}
+.pr-tempo b{display:block;font:300 38px/1 var(--f-mono)}
+.pr-tempo .nx b{color:var(--ok);font-weight:500}
+.pr-tempo small{font:600 11px var(--f-mono);color:var(--muted)}
+.pr-gauge{width:120px;height:64px}
+.pr-gauge .arc{fill:none;stroke-width:12}
+.pr-gauge .nd{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+.pr-gauge .hub{fill:var(--surface);stroke:var(--edge)}
+.pr-gauge .hd{font:700 11px var(--f-mono);fill:var(--ink);text-anchor:middle}
+.pr-acc{display:flex;gap:18px;margin:0}
+.pr-acc span{font-size:14px;color:var(--muted)}
+.pr-acc b{font:700 22px var(--f-mono);color:var(--ink);margin-right:4px}
+.pr-hint{margin:6px 0 0;font-size:13.5px;color:var(--muted);line-height:1.4}
+.pr-btns{padding:12px 14px;border-top:1px solid var(--line)}
+.pr-btns .btn{flex:1;min-height:50px;font-size:16px}
+.pr-box h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pr-c{font:600 12px var(--f-mono);color:var(--muted)}
+.pr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-bottom:6px}
+.pr-hist{margin-bottom:18px}
+.pr-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:25;width:max-content;max-width:min(420px,calc(100% - 32px));background:var(--ink);color:var(--ink-inv);border-radius:14px;padding:10px 16px;display:flex;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.pr-toast b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;opacity:.8}
+.pr-toast.in{animation:prIn .35s ease-out}
+@keyframes prIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.pr-toast.in{animation:none}}
 .cb{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:max(16px,env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
 .cb[hidden]{display:none}
 .cb-in{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;padding-top:8px}
@@ -691,6 +745,7 @@ body.mn-live .mn-count{height:2.2em}
     </div>
     <div class="pc-prog"><div class="pc-meter" aria-hidden="true"><i id="pcMeter"></i></div><span id="pcProgTxt"></span></div>
     <div class="card pc-next" id="pcNext"></div>
+    <div class="pr-box" id="prBox"></div>
     <div id="pcList"></div>
   </section>
 
@@ -829,6 +884,7 @@ body.mn-live .mn-count{height:2.2em}
     </div>
     <label class="chk"><input type="checkbox" id="mnWalk"><span>Enchaîner les 16 duos (de 1 contre 1 à 4 contre 4), 2 mesures chacun</span></label>
     <p class="msg" id="mnMsg" role="status"></p>
+    <div class="card pr-res" id="mnRes" hidden aria-live="polite"></div>
     <p class="hint">Au-dessus de chaque pad, les coups descendent, grossissent et s'allument au moment de frapper. Modèle + clic : l'appli joue les deux mains (gauche = tom, droite = caisse claire). Clic seul : c'est toi qui fais le son. Sans son : rien ne sonne, tu n'entends que tes baguettes. Batterie MIDI : la caisse claire compte pour la main droite, les autres pads pour la gauche.</p>
   </section>
 
@@ -1036,6 +1092,8 @@ body.mn-live .mn-count{height:2.2em}
   </div>
   <div class="kv-pads l-kit" id="kvPads"><canvas class="kv-fall" id="kvFall" hidden aria-hidden="true"></canvas></div>
 </section>
+
+<div class="pr-toast" id="prToast" role="status" hidden></div>
 
 <section class="cb" id="calib" hidden role="dialog" aria-modal="true" aria-labelledby="cbTitle">
   <div class="cb-in">
@@ -1892,6 +1950,7 @@ function stop(){
   state.playing=false;clearInterval(timer);cancelAnimationFrame(rafId);
   queue.length=0;setNow(-1);$('#silFlag').hidden=true;
   if(kvOpen){PAD_ORDER.forEach(id=>padEls[id].classList.remove('cible','proche'));setVerdict(judged()?'Fini':'','');}
+  if(kvOpen&&judged()>=12)prToast(prAdd({g:'pratique',d:Date.now(),pct:pct(),n:judged(),score:sc.pts,bpm:state.bpm,defi:!!chal.on}).up);
   recent.length=0;updateScore();
   if(rampBase!=null&&state.bpm!==rampBase){
     const top=state.bpm;setBpm(rampBase);
@@ -3361,6 +3420,7 @@ function mnFrame(){
   mn.raf=requestAnimationFrame(mnFrame);
 }
 function mnPlay(){
+  $('#mnRes').hidden=true;
   stop();stopSong();stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
   mn.ae=0;mn.weak=0;mn.gr=0;mn.gStart=0;mn.glast=-1;
@@ -3382,6 +3442,7 @@ function mnGoalDone(){
   if(mn.pg){const o=mnProgResult();r=o.r;x=o.x;}
   else if(g&&g.consec&&mn.glast>=0){['l','r'].forEach(h=>{const p=mnRangePct(h,mn.glast-g.consec+1,mn.glast);if(p!=null)r[h]=p;});}
   else ['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
+  mn.pcEnd=!!(g&&g.cb);
   mnStop(true);
   if(g&&g.cb)g.cb(r,x);
   else if(!g){
@@ -3391,6 +3452,8 @@ function mnGoalDone(){
 }
 function mnStop(fromGoal){
   if(!mn.on)return;
+  const inPc=mn.pcEnd||!!(mn.goal&&mn.goal.cb);mn.pcEnd=false;
+  const rec=prMains();
   if(!fromGoal&&mn.goal){const g=mn.goal;mn.goal=null;mn.goalEnd=0;if(g.abort)g.abort();}
   mn.on=false;clearInterval(mn.timer);cancelAnimationFrame(mn.raf);mn.q.length=0;
   document.body.classList.remove('mn-live');
@@ -3405,6 +3468,7 @@ function mnStop(fromGoal){
     const pl=p('l'),pr=p('r');
     $('#mnMsg').textContent='Bilan : gauche '+pl+' %, droite '+pr+' %. '+(Math.abs(pl-pr)>=15?'La main '+(pl<pr?'gauche':'droite')+' a besoin de plus de travail : ralentis un peu.':pl>=85&&pr>=85?'Les deux mains tiennent : monte le tempo de 5.':'Continue à ce tempo.');
   }else mnRender();
+  if(rec){if(inPc)prToast(rec.up);else mnResShow(rec);}
   keepAwake(false);updateControls();
 }
 $('#mnWay').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.mode=b.dataset.v;if(mn.mode!=='ensemble'){mn.walk=false;$('#mnWalk').checked=false;}mnSave();mnRender();if(mn.on){mnStop();mnPlay();}});
@@ -3544,7 +3608,157 @@ function holdRepeat(btn,delta){
 }
 holdRepeat($('#bpmDown'),-1);holdRepeat($('#bpmUp'),1);
 $('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
-/* ---------- Calage express ----------
+/* ---------- Progrès : chaque séance est gardée, les compétences se débloquent ----------
+   Les compétences sont recalculées à partir de l'historique : rien à migrer si les règles changent. */
+const PR_KEY='poumtchak.progres';
+let pr={s:[],trad:{}};
+try{const o=JSON.parse(localStorage.getItem(PR_KEY)||'null');if(o&&Array.isArray(o.s))pr={s:o.s.slice(-400),trad:o.trad&&typeof o.trad==='object'?o.trad:{}};}catch(e){}
+function prSave(){try{localStorage.setItem(PR_KEY,JSON.stringify(pr));}catch(e){}}
+const PR_LV=['À débloquer','Débutant','Intermédiaire','Avancé','Expert'];
+const PR_SUB={1:['Noires','ta'],2:['Croches','ti-ti'],3:['Triolets','tri-o-let'],4:['Doubles croches','ti-ri-ti-ri']};
+function prSkills(){
+  const best={1:0,2:0,3:0,4:0},duos=new Set();let kit=0;
+  pr.s.forEach(x=>{
+    if(x.g==='mains'&&x.acc){
+      ['l','r'].forEach(h=>{const v=x[h],a=x.acc[h];if(v>=1&&v<=4&&a!=null&&a>=85)best[v]=Math.max(best[v],x.bpm);});
+      if(x.l!=null&&x.r!=null&&x.l>=0&&x.r>=0&&x.l!==x.r&&x.acc.l>=85&&x.acc.r>=85)duos.add(x.l+'-'+x.r);
+    }else if(x.g==='pratique'&&x.n>=12)kit=Math.max(kit,x.pct);
+  });
+  const trn=Object.values(pr.trad).reduce((a,b)=>a+(+b||0),0);
+  const mk=(id,name,ico,v,th,unit,what)=>({id,name,ico,v,th,unit,what,lv:th.filter(t=>v>=t).length});
+  const out=[1,2,3,4].map(n=>mk('sub'+n,PR_SUB[n][0],String(n),best[n],[60,80,100,120],'BPM',PR_SUB[n][1]+' ('+n+(n>1?' coups':' coup')+' par temps) à 85 %, dans Mains'));
+  out.push(mk('indep','Indépendance','≠',duos.size,[1,4,8,12],'duos','les deux mains sur des rythmes différents, à 85 %'));
+  out.push(mk('kit','Jeu sur la batterie','◎',kit,[60,75,85,95],'%','ton meilleur score dans « Jouer sur l\'écran »'));
+  out.push(mk('lect','Lecture des consignes','Aa',trn,[3,10,25,50],'consignes','traduites justes du premier coup, dans Mots'));
+  return out;
+}
+const prUnit=(s,v)=>s.unit==='%'?v+' %':v+' '+(s.unit==='consignes'&&v<2?'consigne':s.unit==='duos'&&v<2?'duo':s.unit);
+function prNext(s){
+  if(s.lv>=4)return 'Niveau maximum atteint.';
+  return (s.lv?'Prochain niveau':'Pour débloquer')+' : '+prUnit(s,s.th[s.lv])+(s.v?' (tu en es à '+prUnit(s,s.v)+')':'')+'.';
+}
+function prFrac(s){if(s.lv>=4)return 1;const a=s.lv?s.th[s.lv-1]:0,b=s.th[s.lv];return Math.max(0,Math.min(1,(s.v-a)/(b-a)));}
+function prAdd(x){
+  const before=prSkills();
+  pr.s.push(x);if(pr.s.length>400)pr.s.shift();prSave();
+  const after=prSkills(),up=after.map((s,i)=>Object.assign({},s,{from:before[i].lv})).filter(s=>s.lv>s.from);
+  prRender();
+  return {x,up};
+}
+function prTrad(lvl){
+  pr.trad[lvl]=(+pr.trad[lvl]||0)+1;
+  const before=prSkills();prSave();const after=prSkills();
+  prRender();prToast(after.map((s,i)=>Object.assign({},s,{from:before[i].lv})).filter(s=>s.lv>s.from));
+}
+const prUpTxt=s=>s.from===0?s.name+' : débloqué !':s.name+' : niveau '+PR_LV[s.lv].toLowerCase()+' !';
+let prToastT=0;
+function prToast(up){
+  if(!up||!up.length)return;
+  const t=$('#prToast');
+  t.innerHTML='<b>Compétence débloquée</b><span>'+up.map(prUpTxt).join(' · ')+'</span>';
+  t.hidden=false;t.classList.remove('in');void t.offsetWidth;t.classList.add('in');
+  clearTimeout(prToastT);prToastT=setTimeout(()=>{t.hidden=true;},4200);
+}
+/* Petite courbe : les dernières valeurs, la dernière mise en avant. */
+function prSpark(vals,opt){
+  opt=opt||{};
+  const W=320,H=opt.h||86,P=10,n=vals.length;
+  if(!n)return '';
+  const lo=opt.min!=null?opt.min:Math.min(...vals),hi=opt.max!=null?opt.max:Math.max(...vals);
+  const span=hi-lo||1;
+  const X=i=>n<2?W/2:P+i*(W-2*P-60)/(n-1),Y=v=>H-P-(v-lo)/span*(H-2*P);
+  const pts=vals.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+  let g='<svg class="pr-spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
+  vals.forEach((v,i)=>{g+='<line x1="'+X(i).toFixed(1)+'" x2="'+X(i).toFixed(1)+'" y1="'+(Y(v)+6).toFixed(1)+'" y2="'+H+'" class="g"/>';});
+  if(n>1)g+='<polyline points="'+pts+'" class="l"/>';
+  vals.forEach((v,i)=>{g+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="'+(i===n-1?6:4.5)+'" class="'+(i===n-1?'last':'p')+'"/>';});
+  g+='<text x="'+(X(n-1)+12).toFixed(1)+'" y="'+(Y(vals[n-1])+5).toFixed(1)+'" class="t">'+(opt.fmt?opt.fmt(vals[n-1]):vals[n-1])+'</text>';
+  return g+'</svg>';
+}
+/* La jauge du tempo : où tu es, où on va. */
+function prGauge(cur,next){
+  const R=46,cx=60,cy=56,ang=b=>Math.PI*(1-(Math.max(40,Math.min(220,b))-40)/180);
+  const pt=(b,r)=>[cx+r*Math.cos(ang(b)),cy-r*Math.sin(ang(b))];
+  let g='<svg class="pr-gauge" viewBox="0 0 120 64" aria-hidden="true">';
+  const cols=['var(--c-tss)','var(--c-doum)','var(--c-toum)','var(--c-tchak)'];
+  for(let i=0;i<4;i++){const a=40+i*45,b=a+45,[x1,y1]=pt(a,R),[x2,y2]=pt(b,R);g+='<path d="M'+x1.toFixed(1)+' '+y1.toFixed(1)+' A'+R+' '+R+' 0 0 1 '+x2.toFixed(1)+' '+y2.toFixed(1)+'" stroke="'+cols[i]+'" class="arc"/>';}
+  const [nx,ny]=pt(next,R-14);
+  const d=next-cur;
+  g+='<line x1="'+cx+'" y1="'+cy+'" x2="'+nx.toFixed(1)+'" y2="'+ny.toFixed(1)+'" class="nd"/><circle cx="'+cx+'" cy="'+cy+'" r="13" class="hub"/><text x="'+cx+'" y="'+(cy+4)+'" class="hd">'+(d>0?'+'+d:d<0?'−'+(-d):'=')+'</text>';
+  return g+'</svg>';
+}
+function prSkillCard(s,big){
+  return '<div class="pr-sk lv'+s.lv+(big?' big':'')+'"><span class="ico" aria-hidden="true">'+s.ico+'</span><div class="tx"><b>'+s.name+'</b><span class="pr-lv">'+(s.lv?'Niveau\u00a0: '+PR_LV[s.lv]:'À débloquer')+'</span>'+
+    '<span class="bar" aria-hidden="true"><i style="width:'+Math.round(prFrac(s)*100)+'%"></i></span><small>'+prNext(s)+'</small></div></div>';
+}
+const mnVal=v=>v<0?'repos':v===0?'1→4':String(v);
+function prTitle(x){
+  if(x.k==='duos')return 'Les 16 duos';
+  if(x.l<0)return 'Main droite seule · '+mnVal(x.r)+(x.r>1?' coups':' coup');
+  if(x.r<0)return 'Main gauche seule · '+mnVal(x.l)+(x.l>1?' coups':' coup');
+  return 'Gauche '+mnVal(x.l)+' · droite '+mnVal(x.r);
+}
+/* L'écran de fin d'une séance de Mains. */
+function mnResShow(rec){
+  const {x,up}=rec,box=$('#mnRes');
+  const same=pr.s.filter(y=>y.g==='mains'&&y.k===x.k).map(y=>y.score);
+  const prev=same.slice(0,-1),prevBest=prev.length?Math.max(...prev):0,best=Math.max(...same);
+  const isRec=prev.length>0&&x.score>prevBest;
+  const accs=Object.values(x.acc),minA=Math.min(...accs);
+  const next=minA>=85?Math.min(220,x.bpm+(x.bpm>=120?10:5)):minA<70?Math.max(40,x.bpm-5):x.bpm;
+  const skills=prSkills();
+  let sk=up[0]||null;
+  if(!sk){
+    const ids=[];
+    if(x.l>=0&&x.r>=0&&x.l!==x.r&&x.l!=null)ids.push('indep');
+    const hard=Math.max(x.l||0,x.r||0);if(hard>=1)ids.push('sub'+hard);
+    sk=skills.find(s=>ids.includes(s.id))||null;
+  }
+  const acc=['l','r'].filter(h=>x.acc[h]!=null).map(h=>'<span><b>'+x.acc[h]+' %</b> '+mnName(h)+'</span>').join('');
+  let h='<button type="button" class="ib pr-x" id="mnResX" aria-label="Fermer le bilan"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
+  h+='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">'+(x.k==='duos'?'16':mnVal(x.l<0?x.r:x.l)+'·'+mnVal(x.r<0?x.l:x.r))+'</div><div><h3>'+prTitle(x)+'</h3>'+
+    '<p class="pr-score"><b>'+x.score+'</b> points · '+(isRec?'<span class="new">nouveau record !</span>':'record : '+best)+'</p></div></div>';
+  h+='<div class="pr-sec">'+(same.length>1?'<p class="pr-k">Tes '+Math.min(12,same.length)+' derniers scores sur cet exercice</p>'+prSpark(same.slice(-12),{min:0}):'<p class="pr-hint">Première séance sur cet exercice : rejoue-le pour voir ta courbe de progrès.</p>')+'</div>';
+  if(sk){
+    h+='<div class="pr-sec"><p class="pr-k">'+(up.length?(sk.from===0?'Compétence débloquée':'Niveau gagné'):'Ta compétence')+'</p>'+prSkillCard(sk,true)+
+      (up.length>1?'<p class="pr-more">Aussi : '+up.slice(1).map(prUpTxt).join(' · ')+'</p>':'')+'</div>';
+  }
+  h+='<div class="pr-sec pr-tempo"><div><span class="pr-k">Tempo</span><b>'+x.bpm+'</b><small>BPM</small></div>'+prGauge(x.bpm,next)+
+    '<div class="nx"><span class="pr-k">Prochain</span><b>'+next+'</b><small>BPM</small></div></div>';
+  h+='<div class="pr-sec"><p class="pr-k">Précision</p><p class="pr-acc">'+acc+'</p><p class="pr-hint">'+
+    (minA>=85?'Les deux mains tiennent : on peut monter.':minA<70?'Ça coince : on redescend un peu.':'Encore un essai à ce tempo pour passer à 85 %.')+(x.pf?' Parfait sur '+x.pf+' % des coups justes.':'')+'</p></div>';
+  h+='<div class="row pr-btns"><button type="button" class="btn" id="mnResGo">'+(next!==x.bpm?'Continuer à '+next+' BPM':'Rejouer')+'</button>'+
+    (next!==x.bpm?'<button type="button" class="btn ghost" id="mnResAgain">Rejouer à '+x.bpm+'</button>':'')+'</div>';
+  box.innerHTML=h;box.hidden=false;
+  const go=b=>{box.hidden=true;setBpm(b);withCalib(mnSrc(),mnPlay);};
+  $('#mnResGo').addEventListener('click',()=>go(next));
+  const ag=$('#mnResAgain');if(ag)ag.addEventListener('click',()=>go(x.bpm));
+  $('#mnResX').addEventListener('click',()=>{box.hidden=true;});
+  requestAnimationFrame(()=>box.scrollIntoView({block:'start',behavior:'smooth'}));
+}
+function prMains(){
+  const st=mn.st;if(!st)return null;
+  if(st.l.n+st.r.n<8)return null;
+  const sel=mn.walk?null:(mn.pg&&mn.pg.swapped?mn.pg.orig:mn.sel);
+  const acc={};['l','r'].forEach(h=>{if(st[h].n)acc[h]=Math.round(100*st[h].ok/st[h].n);});
+  const ok=st.l.ok+st.r.ok,pf=st.l.pf+st.r.pf;
+  return prAdd({g:'mains',d:Date.now(),bpm:state.bpm,acc,score:Math.round((ok*10+pf*5)*state.bpm/80),
+    k:sel?sel.l+'-'+sel.r:'duos',l:sel?sel.l:null,r:sel?sel.r:null,mode:mn.mode,pf:ok?Math.round(100*pf/ok):0});
+}
+/* La section « Tes progrès » du Parcours. */
+function prRender(){
+  const host=$('#prBox');if(!host)return;
+  const sk=prSkills(),got=sk.filter(s=>s.lv>0).length;
+  let h='<h3>Tes compétences <span class="pr-c">'+got+' / '+sk.length+' débloquées</span></h3><div class="pr-grid">'+sk.map(s=>prSkillCard(s)).join('')+'</div>';
+  const vals=pr.s.slice(-20).map(x=>x.g==='mains'?Math.min(...Object.values(x.acc||{0:0})):x.pct||0);
+  const week=pr.s.filter(x=>Date.now()-x.d<7*864e5).length;
+  h+='<h3>Tes séances</h3>';
+  if(vals.length)h+='<div class="card pr-hist"><p class="pr-k">Précision des '+vals.length+' dernières séances</p>'+prSpark(vals,{min:0,max:100,fmt:v=>v+' %'})+
+    '<p class="pr-hint">'+pr.s.length+(pr.s.length>1?' séances':' séance')+' en tout, dont '+week+' cette semaine.</p></div>';
+  else h+='<p class="hint">Joue une séance dans Mains ou « Jouer sur l\'écran » : elle apparaîtra ici, avec ta précision et tes compétences gagnées.</p>';
+  host.innerHTML=h;
+}
+/* ---------- Calage avant de jouer ----------
    4 clics pour écouter, puis 8 clics sur lesquels tu frappes. Le retard médian de tes frappes
    devient le décalage de l'entrée utilisée (écran, batterie MIDI ou micro). Demandé une fois par
    séance et par entrée, et de nouveau si le délai du son change (écouteurs Bluetooth branchés…). */
@@ -3898,7 +4112,7 @@ function trKey(g){return IDS.map(id=>g[id].join('')).join('|');}
 function trNew(){
   let g,k,n=0;
   do{g=trMake(tr.lvl);k=trKey(g);n++;}while(k===tr.last&&n<20);
-  tr.last=k;tr.ans=g;tr.seen=false;tr.tries=0;
+  tr.last=k;tr.ans=g;tr.seen=false;tr.tries=0;tr.counted=false;
   tr.me={};IDS.forEach(id=>{tr.me[id]=new Array(8).fill(0);});
   tr.res=null;tr.step=0;
   trSay();trDraw();$('#trMsg').textContent='';$('#trPlay').hidden=true;
@@ -3997,6 +4211,7 @@ function trCheck(){
   if(!bad&&!miss){
     m.textContent=tr.seen?'C\'est la bonne grille.':'Juste ! Écoute-la, joue-la, puis Autre consigne.';
     m.className='msg';$('#trPlay').hidden=false;
+    if(!tr.seen&&tr.tries===1&&!tr.counted){tr.counted=true;prTrad(tr.lvl);}
     if(tr.goal){
       if(!tr.seen&&tr.tries===1)tr.goal.count++;
       const g=tr.goal;
@@ -4240,7 +4455,7 @@ function pcTradDone(st){
   pcBar(head+'Réussi : 3 consignes justes du premier coup.'+(last?' Tu as fini le parcours !':''),'ok',[
     ...(last?[]:[['Étape suivante : '+pcTitle(nx),()=>pcStart(nx.id)]]),pcQuitBtn]);
 }
-pcRender();
+pcRender();prRender();
 
 /* ---------- Dictionnaire éditable ---------- */
 let lastD=null,refocus=null;
