@@ -594,6 +594,29 @@ body[data-tab="parcours"] .tempo-read,body[data-tab="mots"] .tempo-read{display:
 body.mn-live .tabs,body.mn-live #p-mains>.hint,body.mn-live #p-mains .mn-tab,body.mn-live #p-mains .ctrl,body.mn-live #p-mains .mn-way,body.mn-live #p-mains .chk,body.mn-live #p-mains #mnMsg{display:none}
 body.mn-live .pc-bar{margin-top:6px}
 body.mn-live .foot{display:none}
+.cb{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:max(16px,env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.cb[hidden]{display:none}
+.cb-in{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;padding-top:8px}
+.cb h2{margin:0;font:800 24px/1.15 var(--f-display)}
+.cb-why{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
+.cb-do{margin:0;font:700 18px/1.35 var(--f-body);min-height:2.7em}
+.cb-tap{appearance:none;width:100%;height:clamp(150px,30vh,240px);border-radius:20px;border:2px solid var(--edge);background:var(--surface);color:var(--ink);font:800 26px var(--f-display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;transition:transform .06s,background .06s,border-color .1s}
+.cb-tap small{font:500 13px var(--f-mono);color:var(--muted)}
+.cb-tap.beat{border-color:var(--ink)}
+.cb-tap.go{border-color:var(--ok)}
+.cb-tap.hit{transform:scale(.97);background:color-mix(in srgb,var(--ok) 22%,var(--surface))}
+.cb-dots{display:flex;gap:8px;justify-content:center}
+.cb-dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--edge)}
+.cb-dots i.on{background:var(--ok);border-color:var(--ok)}
+.cb-dots i.now{border-color:var(--ink);transform:scale(1.2)}
+.cb-line{display:flex;align-items:center;gap:8px;font:500 12px var(--f-mono);color:var(--muted)}
+.cb-g{position:relative;flex:1;height:26px;border-radius:13px;background:var(--surface);border:1px solid var(--line)}
+.cb-g .mid{position:absolute;left:50%;top:3px;bottom:3px;width:2px;margin-left:-1px;background:var(--edge)}
+.cb-g b{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--ok);opacity:.8}
+.cb-res{margin:0;font-size:15px;line-height:1.45;min-height:1.4em}
+.cb-btns .btn{flex:1;min-height:48px}
+body.cb-open{overflow:hidden}
+@media (prefers-reduced-motion:reduce){.cb-tap{transition:none}}
 @media (min-height:780px){body.mn-live .mn-lane{height:170px}}
 body.mn-live .mn-count{height:2.2em}
 @media (max-height:760px){.mn-lane{height:104px!important}.mn-pad{height:92px!important}.mn-stat{height:4.4em}.mn-line{margin:3px 0}.mn-row .mn-beat{height:34px}}
@@ -767,7 +790,7 @@ body.mn-live .mn-count{height:2.2em}
   <!-- Mains : indépendance, n coups par temps à chaque main -->
   <section class="panel" role="tabpanel" id="p-mains" aria-labelledby="t-mains" hidden>
     <h2 class="sr">Mains</h2>
-    <p class="hint first">Choisis combien de coups chaque main fait par temps, puis Jouer. Après une mesure de décompte, tape à gauche et à droite : chaque main est notée à part.</p>
+    <p class="hint first">Choisis combien de coups chaque main fait par temps, puis Jouer. Après une mesure de décompte, tape à gauche et à droite : chaque main est notée à part. À la première partie, un calage de 8 frappes sur le clic mesure le délai du son (bouton « Caler » pour le refaire).</p>
     <div class="mn-tab">
       <div class="mn-col" id="mnColL" role="radiogroup" aria-label="Main gauche : coups par temps"><div class="mn-th"><span class="mn-hand mn-l" aria-hidden="true">G</span>Main gauche</div></div>
       <div class="mn-col" id="mnColR" role="radiogroup" aria-label="Main droite : coups par temps"><div class="mn-th"><span class="mn-hand mn-r" aria-hidden="true">D</span>Main droite</div></div>
@@ -798,6 +821,7 @@ body.mn-live .mn-count{height:2.2em}
         <button type="button" data-v="rien">Sans son</button>
       </div>
       <button type="button" class="btn ghost" id="mnMidi" aria-pressed="false">Batterie MIDI</button>
+      <button type="button" class="btn ghost" id="mnCal">Caler</button>
     </div>
     <label class="chk"><input type="checkbox" id="mnWalk"><span>Enchaîner les 16 duos (de 1 contre 1 à 4 contre 4), 2 mesures chacun</span></label>
     <p class="msg" id="mnMsg" role="status"></p>
@@ -959,6 +983,7 @@ body.mn-live .mn-count{height:2.2em}
         <output id="offVal" aria-live="polite">0 ms</output>
         <button type="button" class="ib" id="offUp" aria-label="Retarder la frappe de 10 millisecondes">+</button>
         <button type="button" class="chip" id="offAuto">Recaler</button>
+        <button type="button" class="chip" id="offCal">Caler (8 frappes)</button>
       </div>
     </div>
     <div class="kv-row"><span class="lab" id="lab-snd">Sons</span>
@@ -1006,6 +1031,23 @@ body.mn-live .mn-count{height:2.2em}
     </div>
   </div>
   <div class="kv-pads l-kit" id="kvPads"><canvas class="kv-fall" id="kvFall" hidden aria-hidden="true"></canvas></div>
+</section>
+
+<section class="cb" id="calib" hidden role="dialog" aria-modal="true" aria-labelledby="cbTitle">
+  <div class="cb-in">
+    <h2 id="cbTitle">Calage avant de jouer</h2>
+    <p class="cb-why">Le son met un peu de temps à sortir (encore plus avec des écouteurs Bluetooth). On le mesure avec quelques frappes, pour que tes coups soient jugés justes.</p>
+    <p class="cb-do" id="cbDo" role="status"></p>
+    <button type="button" class="cb-tap" id="cbTap">Tape ici<small>ou barre d'espace</small></button>
+    <div class="cb-dots" id="cbDots" aria-hidden="true"></div>
+    <div class="cb-line" id="cbLine" aria-hidden="true" hidden><span>tôt</span><div class="cb-g" id="cbG"><i class="mid"></i></div><span>tard</span></div>
+    <p class="cb-res" id="cbRes" role="status"></p>
+    <div class="row cb-btns">
+      <button type="button" class="btn ghost" id="cbSkip">Passer</button>
+      <button type="button" class="btn ghost" id="cbAgain" hidden>Recommencer</button>
+      <button type="button" class="btn" id="cbGo" hidden>Jouer</button>
+    </div>
+  </div>
 </section>
 
 <nav class="dock" aria-label="Lecture">
@@ -2508,6 +2550,7 @@ function micHits(ids,t,strength){
   if(!kvOpen||!kvMic||!live)return;
   live.pk=Math.max(live.pk*0.97,strength);
   if(strength<0.3*live.pk)return;
+  if(cb.on){cbTap('mic',t-outLat()-inLat());return;}
   ids.forEach(id=>{padFlash(id);judge(id,t-micLatency());});
 }
 /* Les numéros de notes de batterie General MIDI, ceux des Alesis (Nitro, DM10) et de la plupart des batteries électroniques. */
@@ -2541,7 +2584,7 @@ function midiMsg(e){
   if(!state.playing)midiTempo(t);
   judge(id,t-midiLatency());
 }
-function midiRoute(e){if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
+function midiRoute(e){if(cb.on){cbMidi(e);return;}if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
 function midiInputs(){return midiAcc?[...midiAcc.inputs.values()]:[];}
 function midiBind(){
   const ins=midiInputs();
@@ -3488,12 +3531,143 @@ function holdRepeat(btn,delta){
 }
 holdRepeat($('#bpmDown'),-1);holdRepeat($('#bpmUp'),1);
 $('#clic').addEventListener('click',()=>{state.click=!state.click;updateControls();});
+/* ---------- Calage avant de jouer ----------
+   4 clics pour écouter, puis 8 clics sur lesquels tu frappes. Le retard médian de tes frappes
+   devient le décalage de l'entrée utilisée (écran, batterie MIDI ou micro). Demandé une fois par
+   séance et par entrée, et de nouveau si le délai du son change (écouteurs Bluetooth branchés…). */
+const CB_BPM=80,CB_LISTEN=4,CB_TAPS=8;
+const cb={on:false,src:'screen',go:null,t0:0,clicks:[],taps:[],raf:0,done:{},lat:{},endT:0,lastK:-9};
+const CB_WHERE={screen:'sur le grand bouton',midi:'sur ta batterie MIDI',mic:'sur ta batterie'};
+const mnSrc=()=>mn.midi?'midi':'screen';
+const kvSrc=()=>kvMidi?'midi':kvMic?'mic':'screen';
+function cbNeeded(src){
+  let force=window.__calibForce===true;
+  /* tests automatiques : pas de calage imposé, sauf demande */
+  if(navigator.webdriver&&!force)return false;
+  if(!cb.done[src])return true;
+  return Math.abs(outLat()-(cb.lat[src]||0))>0.03;
+}
+function withCalib(src,go){if(cbNeeded(src))cbOpen(src,go);else go();}
+function cbOpen(src,go){
+  if(!ensureAudio()){if(go)go();return;}
+  cb.src=src;cb.go=go||null;
+  $('#calib').hidden=false;document.body.classList.add('cb-open');
+  $('#cbTap').hidden=src!=='screen';
+  $('#cbGo').textContent=cb.go?'Jouer':'OK';
+  cbRun();
+  setTimeout(()=>{const t=src==='screen'?$('#cbTap'):$('#cbSkip');if(t)t.focus({preventScroll:true});},50);
+}
+function cbClose(){
+  cb.on=false;cancelAnimationFrame(cb.raf);
+  $('#calib').hidden=true;document.body.classList.remove('cb-open');
+}
+function cbRun(){
+  cb.on=true;cb.taps=[];cb.lastK=-9;
+  const iv=60/CB_BPM;cb.t0=ctx.currentTime+0.3;cb.clicks=[];
+  for(let k=0;k<CB_LISTEN+CB_TAPS;k++){const t=cb.t0+k*iv;cb.clicks.push(t);clickSound(t,k%4===0);}
+  cb.endT=cb.clicks[cb.clicks.length-1]+0.45;
+  const d=$('#cbDots');d.innerHTML='';for(let i=0;i<CB_TAPS;i++)d.appendChild(document.createElement('i'));
+  $('#cbLine').hidden=true;$('#cbRes').textContent='';
+  $('#cbSkip').hidden=false;$('#cbAgain').hidden=true;$('#cbGo').hidden=true;
+  $('#cbDo').textContent='Écoute le clic…';
+  cancelAnimationFrame(cb.raf);cb.raf=requestAnimationFrame(cbFrame);
+}
+function cbFrame(){
+  if(!cb.on)return;
+  const heard=ctx.currentTime-outLat(),iv=60/CB_BPM;
+  const k=Math.floor((heard-cb.t0)/iv+0.0001);
+  if(k!==cb.lastK){
+    cb.lastK=k;
+    const tap=$('#cbTap');
+    if(k>=0&&k<CB_LISTEN+CB_TAPS){tap.classList.add('beat');setTimeout(()=>tap.classList.remove('beat'),110);}
+    tap.classList.toggle('go',k>=CB_LISTEN-1);
+    const where=CB_WHERE[cb.src];
+    if(k<0)$('#cbDo').textContent='Écoute le clic…';
+    else if(k<CB_LISTEN)$('#cbDo').textContent='Écoute : '+(k+1)+' / '+CB_LISTEN+'. Ensuite, tape '+where+' en même temps que chaque clic.';
+    else if(k<CB_LISTEN+CB_TAPS)$('#cbDo').textContent='À toi : tape '+where+' avec le clic ('+(k-CB_LISTEN+1)+' / '+CB_TAPS+').';
+    [...$('#cbDots').children].forEach((n,i)=>n.classList.toggle('now',i===k-CB_LISTEN));
+  }
+  if(ctx.currentTime>cb.endT){cbEnd();return;}
+  cb.raf=requestAnimationFrame(cbFrame);
+}
+/* raw : l'instant de la frappe, ramené sur l'horloge du son, délai de sortie déjà retiré. */
+function cbTap(src,raw){
+  if(!cb.on||src!==cb.src)return;
+  let bi=-1,bd=1e9;
+  cb.clicks.forEach((t,i)=>{const d=raw-t;if(Math.abs(d)<Math.abs(bd)){bd=d;bi=i;}});
+  if(bi<CB_LISTEN||Math.abs(bd)>0.32||cb.taps.some(x=>x.i===bi))return;
+  cb.taps.push({i:bi,d:bd});
+  const dot=$('#cbDots').children[bi-CB_LISTEN];if(dot)dot.classList.add('on');
+}
+function cbScreenTap(){
+  if(!cb.on||cb.src!=='screen'||!ctx)return;
+  const tap=$('#cbTap');tap.classList.add('hit');setTimeout(()=>tap.classList.remove('hit'),90);
+  cbTap('screen',ctx.currentTime-outLat());
+}
+function cbMidi(e){
+  const [st,note,vel]=e.data;
+  if((st&0xf0)!==0x90||!vel||!GM_DRUM[note])return;
+  ensureAudio();
+  let t=ctx.currentTime;
+  try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.performanceTime)t=o.contextTime+(e.timeStamp-o.performanceTime)/1000;else t=ctx.currentTime-(performance.now()-e.timeStamp)/1000;}catch(err){}
+  lightIcons([GM_DRUM[note]]);
+  cbTap('midi',t-outLat());
+}
+const cbMed=a=>{const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
+function cbSet(src,ms){
+  if(src==='screen')setOff(ms);
+  else{state.kvl[src==='midi'?'midiOff':'micOff']=Math.max(-200,Math.min(500,Math.round(ms)));save();}
+}
+function cbEnd(){
+  cb.on=false;cancelAnimationFrame(cb.raf);
+  [...$('#cbDots').children].forEach(n=>n.classList.remove('now'));
+  $('#cbTap').classList.remove('go');
+  $('#cbSkip').hidden=true;$('#cbAgain').hidden=false;$('#cbGo').hidden=false;
+  const n=cb.taps.length;
+  if(n<5){
+    $('#cbDo').textContent='Pas assez de frappes ('+n+' sur '+CB_TAPS+').';
+    $('#cbRes').textContent='Recommence en tapant en même temps que chaque clic, ou joue sans caler.';
+    if(cb.go)$('#cbGo').textContent='Jouer sans caler';
+    return;
+  }
+  const ds=cb.taps.map(x=>x.d*1000),med=cbMed(ds),mad=cbMed(ds.map(d=>Math.abs(d-med)));
+  cbSet(cb.src,Math.round(med));
+  cb.done[cb.src]=true;cb.lat[cb.src]=outLat();
+  const tot=Math.max(0,Math.round(outLat()*1000+med));
+  $('#cbDo').textContent='C\'est calé !';
+  $('#cbRes').textContent='Délai compensé : '+tot+' ms. '+(mad<=25?'Tes frappes étaient très régulières.':mad<=50?'Tes frappes étaient assez régulières.':'Tes frappes étaient un peu irrégulières : recommence si tu veux un calage plus précis.');
+  const g=$('#cbG');g.querySelectorAll('b').forEach(b=>b.remove());
+  ds.forEach(d=>{const b=document.createElement('b');b.style.left=(50+Math.max(-48,Math.min(48,(d-med)/2)))+'%';g.appendChild(b);});
+  $('#cbLine').hidden=false;
+  $('#cbGo').focus({preventScroll:true});
+}
+function cbFinish(){
+  const go=cb.go;cb.go=null;cbClose();
+  if(go)go();
+}
+$('#cbTap').addEventListener('pointerdown',e=>{e.preventDefault();cbScreenTap();});
+$('#cbTap').addEventListener('click',e=>{if(e.detail===0)cbScreenTap();});
+$('#cbTap').addEventListener('contextmenu',e=>e.preventDefault());
+$('#cbAgain').addEventListener('click',()=>{$('#cbGo').textContent=cb.go?'Jouer':'OK';cbRun();});
+$('#cbGo').addEventListener('click',cbFinish);
+$('#cbSkip').addEventListener('click',()=>{cb.done[cb.src]=true;cb.lat[cb.src]=outLat();cbFinish();});
+document.addEventListener('keydown',e=>{
+  if($('#calib').hidden)return;
+  if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cb.done[cb.src]=true;cb.lat[cb.src]=outLat();cbFinish();return;}
+  if(!cb.on||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
+  const k=e.key.toLowerCase();
+  if(k===' '||k==='f'||k==='j'||k==='enter'){e.preventDefault();e.stopImmediatePropagation();cbScreenTap();}
+},true);
+/* pour les tests */
+window.__cb=()=>({on:cb.on,clicks:cb.clicks.slice(),now:ctx?ctx.currentTime-outLat():0});
+$('#offCal').addEventListener('click',()=>cbOpen(kvSrc(),null));
+$('#mnCal').addEventListener('click',()=>{if(mn.on)mnStop();cbOpen(mnSrc(),null);});
 $('#play').addEventListener('click',()=>{
-  if(state.tab==='mains'){if(mn.on)mnStop();else mnPlay();return;}
+  if(state.tab==='mains'){if(mn.on)mnStop();else withCalib(mnSrc(),mnPlay);return;}
   const wasDrill=drill;
   drill=null;state.mute=false;
   if(wasDrill==='mic'&&state.live)stopLive();
-  if(state.playing)stop();else play();
+  if(state.playing)stop();else if(kvOpen)withCalib(kvSrc(),play);else play();
   if(wasDrill)$('#drillMsg').textContent='';
   updateDrillUI();
 });
@@ -3992,7 +4166,7 @@ function pcStart(id,bpm){
     const f=two?mnFirst(mn.sel):'';
     pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue : il faut 4 bonnes mesures de suite.')+' Le tempo ralentit tout seul si ça coince.','',[pcQuitBtn]);
     mn.goal={consec:two?0:4,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Pas de souci, on s\'arrête là. Tu peux reprendre quand tu veux'+(state.bpm<pc.bpm?', à '+state.bpm+' BPM, un peu plus lent.':'.'),'',[['Reprendre'+(state.bpm<pc.bpm?' à '+state.bpm+' BPM':''),()=>pcStart(id,state.bpm)],pcQuitBtn])};
-    mnPlay();
+    withCalib(mnSrc(),mnPlay);
   }else{
     showTab('mots');
     tr.lvl=st.lvl;try{localStorage.setItem(TR_KEY,String(tr.lvl));}catch(e){}

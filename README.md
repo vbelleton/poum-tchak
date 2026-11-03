@@ -81,6 +81,13 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   l'écouter puis la jouer sur l'écran) ; traduire des onomatopées ou du solfège vers la grille, modifier le
   dictionnaire, les mots fondus, partager le dictionnaire, et le référentiel du
   solfège rythmique.
+- **Calage avant de jouer** : avant la première partie de la séance (Mains,
+  Parcours, Jouer sur l'écran, Défi), 4 clics d'écoute puis 8 frappes sur le
+  clic, à 80 BPM. Le retard médian des frappes devient le décalage de l'entrée
+  utilisée (écran, batterie MIDI ou micro) ; la dispersion dit si les frappes
+  étaient régulières. Redemandé si le délai du son change (écouteurs
+  Bluetooth), et à la demande par « Caler » (Mains) ou « Caler (8 frappes) »
+  (réglages de la vue de jeu). « Passer » joue sans caler.
 
 ## Limites connues
 
