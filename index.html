@@ -602,11 +602,17 @@ body.mn-live #p-mains,body.cb-open .cb{touch-action:manipulation}
 .pl-ban b{display:block;font:800 17px var(--f-display)}
 .pl-ban span{font-size:14px;color:var(--muted)}
 .pl-ban .btn{flex:1;min-height:46px}
-.pr-res{position:relative;margin:12px 0;padding:0;overflow:hidden}
+.pr-res{position:fixed;inset:0;z-index:28;background:var(--bg);overflow:auto;overscroll-behavior:contain;padding:max(10px,env(safe-area-inset-top,0px)) 0 calc(16px + env(safe-area-inset-bottom,0px))}
+.pr-res>*{max-width:520px;margin-left:auto;margin-right:auto}
+.pr-res .pr-in{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin:8px 12px;overflow:hidden}
+body.res-open{overflow:hidden}
 .pr-x{position:absolute;right:8px;top:8px;z-index:1}
 .pr-sec{padding:12px 14px;border-top:1px solid var(--line)}
 .pr-top{display:flex;gap:12px;align-items:center;padding-right:52px;border-top:0}
 .pr-top h3{margin:0;font:800 19px/1.2 var(--f-display)}
+.pr-hex.ko{background:var(--warn)}
+.pr-txt{margin:0;font-size:15.5px;line-height:1.5}
+.pr-btns{flex-wrap:wrap}
 .pr-hex{flex:none;width:56px;height:62px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--ok);color:var(--ink-inv);display:flex;align-items:center;justify-content:center;font:800 16px var(--f-mono)}
 .pr-score{margin:4px 0 0;font-size:14px;color:var(--muted)}
 .pr-score b{font:800 22px var(--f-mono);color:var(--ink)}
@@ -651,7 +657,7 @@ body.mn-live #p-mains,body.cb-open .cb{touch-action:manipulation}
 .pr-c{font:600 12px var(--f-mono);color:var(--muted)}
 .pr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-bottom:6px}
 .pr-hist{margin-bottom:18px}
-.pr-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:25;width:max-content;max-width:min(420px,calc(100% - 32px));background:var(--ink);color:var(--ink-inv);border-radius:14px;padding:10px 16px;display:flex;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.pr-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:29;width:max-content;max-width:min(420px,calc(100% - 32px));background:var(--ink);color:var(--ink-inv);border-radius:14px;padding:10px 16px;display:flex;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .pr-toast b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;opacity:.8}
 .pr-toast.in{animation:prIn .35s ease-out}
 @keyframes prIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -747,7 +753,7 @@ body.mn-live .mn-count{height:2.2em}
       <button type="button" class="btn" id="instBtn">Installer</button>
       <button type="button" class="inst-x" id="instX" aria-label="Plus tard">×</button>
     </div>
-    <div class="pl-ban card" hidden><div><b>Test du jour</b><span>30 secondes pour mesurer ta forme : la séance partira au bon tempo.</span></div><div class="row"><button type="button" class="btn pl-go">Faire le test</button><button type="button" class="btn ghost pl-no">Pas aujourd'hui</button></div></div>
+    <div class="pl-ban card" hidden><div><b>Test du jour</b><span>Moins d'une minute pour mesurer ta forme : la séance partira au bon tempo.</span></div><div class="row"><button type="button" class="btn pl-go">Faire le test</button><button type="button" class="btn ghost pl-no">Pas aujourd'hui</button></div></div>
     <div class="pc-prog"><div class="pc-meter" aria-hidden="true"><i id="pcMeter"></i></div><span id="pcProgTxt"></span></div>
     <div class="card pc-next" id="pcNext"></div>
     <div class="pr-box" id="prBox"></div>
@@ -889,8 +895,7 @@ body.mn-live .mn-count{height:2.2em}
     </div>
     <label class="chk"><input type="checkbox" id="mnWalk"><span>Enchaîner les 16 duos (de 1 contre 1 à 4 contre 4), 2 mesures chacun</span></label>
     <p class="msg" id="mnMsg" role="status"></p>
-    <div class="pl-ban card" hidden><div><b>Test du jour</b><span>30 secondes pour mesurer ta forme : la séance partira au bon tempo.</span></div><div class="row"><button type="button" class="btn pl-go">Faire le test</button><button type="button" class="btn ghost pl-no">Pas aujourd'hui</button></div></div>
-    <div class="card pr-res" id="mnRes" hidden aria-live="polite"></div>
+    <div class="pl-ban card" hidden><div><b>Test du jour</b><span>Moins d'une minute pour mesurer ta forme : la séance partira au bon tempo.</span></div><div class="row"><button type="button" class="btn pl-go">Faire le test</button><button type="button" class="btn ghost pl-no">Pas aujourd'hui</button></div></div>
     <p class="hint">Au-dessus de chaque pad, les coups descendent, grossissent et s'allument au moment de frapper. Modèle + clic : l'appli joue les deux mains (gauche = tom, droite = caisse claire). Clic seul : c'est toi qui fais le son. Sans son : rien ne sonne, tu n'entends que tes baguettes. Batterie MIDI : la caisse claire compte pour la main droite, les autres pads pour la gauche.</p>
   </section>
 
@@ -1099,6 +1104,7 @@ body.mn-live .mn-count{height:2.2em}
   <div class="kv-pads l-kit" id="kvPads"><canvas class="kv-fall" id="kvFall" hidden aria-hidden="true"></canvas></div>
 </section>
 
+<div class="pr-res" id="mnRes" hidden role="dialog" aria-modal="true" aria-label="Résultat"></div>
 <div class="pr-toast" id="prToast" role="status" hidden></div>
 
 <section class="cb" id="calib" hidden role="dialog" aria-modal="true" aria-labelledby="cbTitle">
@@ -3050,8 +3056,8 @@ function mnNewStats(){return {l:{n:0,ok:0,pf:0,miss:0,extra:0,offs:[]},r:{n:0,ok
 function mnStat(h,verdict,kind){
   const s=mn.st[h],el=$(h==='l'?'#mnStatL':'#mnStatR');
   if(!s.n&&!s.extra){el.textContent='';return;}
-  const pct=s.n?Math.round(100*s.ok/s.n):0;
-  let txt='<span><b>'+pct+' %</b> justes ('+s.ok+'/'+s.n+')'+(s.extra?' · '+s.extra+' en trop':'')+'</span>';
+  const pct=Math.round(mnPct(s.ok,s.n,s.extra));
+  let txt='<span><b>'+pct+' %</b> justes ('+s.ok+'/'+s.n+')'+(s.extra?' · '+s.extra+' en trop, comptés comme ratés':'')+'</span>';
   if(s.offs.length>=4){
     const m=s.offs.reduce((a,b)=>a+b,0)/s.offs.length;
     const mm=Math.round(m*1000);
@@ -3068,7 +3074,7 @@ function mnJudge(h,at){
   if(!best||Math.abs(bd)>win){
     /* pas encore commencé : on ne compte rien */
     if(at<mn.startT-0.15)return;
-    mn.st[h].extra++;mnStat(h,'En trop','err');return;
+    mn.st[h].extra++;mnBS(mnBarAt(at),h,null);mnStat(h,'En trop','err');return;
   }
   best.done=true;best.hit=true;best.res=Math.abs(bd)<=0.085?'ok':'warn';
   mnBS(best.bar,h,Math.abs(bd)<=0.085);
@@ -3195,14 +3201,18 @@ const MN_WAY={
   ancre:'Une main garde son rythme, l\'autre passe par 1, 2, 3 puis 4 coups par temps, 2 mesures chacun. Puis on inverse les rôles.'
 };
 function mnBS(bar,h,ok){
-  if(bar==null)return;
-  const o=mn.bs[bar]||(mn.bs[bar]={l:{n:0,ok:0},r:{n:0,ok:0}});
+  if(bar==null||bar<0)return;
+  const o=mn.bs[bar]||(mn.bs[bar]={l:{n:0,ok:0,x:0},r:{n:0,ok:0,x:0}});
+  if(ok===null){o[h].x++;return;}
   o[h].n++;if(ok)o[h].ok++;
 }
-function mnBarPct(j,h){const o=mn.bs[j];return o&&o[h].n?100*o[h].ok/o[h].n:null;}
+/* Pas de triche : un coup en trop compte comme un coup raté. Taper sans arrêt ne fait pas monter le score. */
+const mnPct=(ok,n,x)=>(n+(x||0))?100*ok/(n+(x||0)):0;
+function mnBarAt(t){let k=-1;for(let i=0;i<mn.barT.length;i++){if(mn.barT[i]!=null&&mn.barT[i]<=t+0.05)k=i;}return k;}
+function mnBarPct(j,h){const o=mn.bs[j];return o&&o[h].n?mnPct(o[h].ok,o[h].n,o[h].x):null;}
 function mnRangePct(h,a,b){
-  let n=0,ok=0;for(let j=a;j<=b;j++){const o=mn.bs[j];if(o){n+=o[h].n;ok+=o[h].ok;}}
-  return n?Math.round(100*ok/n):null;
+  let n=0,ok=0,x=0;for(let j=a;j<=b;j++){const o=mn.bs[j];if(o){n+=o[h].n;ok+=o[h].ok;x+=o[h].x||0;}}
+  return n?Math.round(mnPct(ok,n,x)):null;
 }
 const mnWeight=v=>v===0?4.5:v;
 const mnFirst=sel=>mnWeight(sel.l)<mnWeight(sel.r)?'l':'r';
@@ -3280,7 +3290,7 @@ function mnAdaptEval(k){
     const o=mn.bs[j];
     if(!o||(o.l.n+o.r.n)===0)continue;
     const act=['l','r'].filter(h=>o[h].n>0);
-    const pcs=act.map(h=>100*o[h].ok/o[h].n);
+    const pcs=act.map(h=>mnPct(o[h].ok,o[h].n,o[h].x));
     const weak=pcs.some(x=>x<MN_WEAK),good=pcs.every(x=>x>=MN_OK);
     mn.weak=weak?mn.weak+1:0;
     if(mn.goal&&mn.goal.consec){
@@ -3430,7 +3440,7 @@ function mnFrame(){
   mn.raf=requestAnimationFrame(mnFrame);
 }
 function mnPlay(){
-  $('#mnRes').hidden=true;
+  sheetClose();
   stop();stopSong();stopLive();
   if(!ensureAudio()){setWork('Le son n\'est pas disponible sur cet appareil.');return;}
   mn.ae=0;mn.weak=0;mn.gr=0;mn.gStart=0;mn.glast=-1;
@@ -3451,7 +3461,7 @@ function mnGoalDone(){
   let r={},x=null;
   if(mn.pg){const o=mnProgResult();r=o.r;x=o.x;}
   else if(g&&g.consec&&mn.glast>=0){['l','r'].forEach(h=>{const p=mnRangePct(h,mn.glast-g.consec+1,mn.glast);if(p!=null)r[h]=p;});}
-  else ['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(100*st[h].ok/st[h].n);});
+  else ['l','r'].forEach(h=>{if(st[h].n)r[h]=Math.round(mnPct(st[h].ok,st[h].n,st[h].extra));});
   mn.pcEnd=!!(g&&g.cb);
   mnStop(true);
   if(g&&g.cb)g.cb(r,x);
@@ -3474,7 +3484,7 @@ function mnStop(fromGoal){
   $('#mnCount').textContent='';
   mnMark(-1);mnLanes();
   if(mn.st&&(mn.st.l.n||mn.st.r.n)){
-    const p=h=>mn.st[h].n?Math.round(100*mn.st[h].ok/mn.st[h].n):0;
+    const p=h=>mn.st[h].n?Math.round(mnPct(mn.st[h].ok,mn.st[h].n,mn.st[h].extra)):0;
     const pl=p('l'),pr=p('r');
     $('#mnMsg').textContent='Bilan : gauche '+pl+' %, droite '+pr+' %. '+(Math.abs(pl-pr)>=15?'La main '+(pl<pr?'gauche':'droite')+' a besoin de plus de travail : ralentis un peu.':pl>=85&&pr>=85?'Les deux mains tiennent : monte le tempo de 5.':'Continue à ce tempo.');
   }else mnRender();
@@ -3708,6 +3718,14 @@ function prTitle(x){
   if(x.r<0)return 'Main gauche seule · '+mnVal(x.l)+(x.l>1?' coups':' coup');
   return 'Gauche '+mnVal(x.l)+' · droite '+mnVal(x.r);
 }
+/* Le résultat d'une séance ou d'une étape : toujours au même endroit, en plein écran, rien à chercher. */
+function sheetOpen(html){
+  const b=$('#mnRes');b.innerHTML='<div class="pr-in">'+html+'</div>';b.hidden=false;b.scrollTop=0;
+  document.body.classList.add('res-open');
+  setTimeout(()=>{const f=b.querySelector('.pr-btns .btn');if(f)f.focus({preventScroll:true});},60);
+}
+function sheetClose(){$('#mnRes').hidden=true;document.body.classList.remove('res-open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#mnRes').hidden){e.preventDefault();sheetClose();}});
 /* L'écran de fin d'une séance de Mains. */
 function mnResShow(rec){
   const {x,up}=rec,box=$('#mnRes');
@@ -3739,18 +3757,17 @@ function mnResShow(rec){
     (minA>=85?'Les deux mains tiennent : on peut monter.':minA<70?'Ça coince : on redescend un peu.':'Encore un essai à ce tempo pour passer à 85 %.')+(x.pf?' Parfait sur '+x.pf+' % des coups justes.':'')+'</p></div>';
   h+='<div class="row pr-btns"><button type="button" class="btn" id="mnResGo">'+(next!==x.bpm?'Continuer à '+next+' BPM':'Rejouer')+'</button>'+
     (next!==x.bpm?'<button type="button" class="btn ghost" id="mnResAgain">Rejouer à '+x.bpm+'</button>':'')+'</div>';
-  box.innerHTML=h;box.hidden=false;
-  const go=b=>{box.hidden=true;setBpm(b);withCalib(mnSrc(),mnPlay);};
+  sheetOpen(h);
+  const go=b=>{sheetClose();setBpm(b);withCalib(mnSrc(),mnPlay);};
   $('#mnResGo').addEventListener('click',()=>go(next));
   const ag=$('#mnResAgain');if(ag)ag.addEventListener('click',()=>go(x.bpm));
-  $('#mnResX').addEventListener('click',()=>{box.hidden=true;});
-  requestAnimationFrame(()=>box.scrollIntoView({block:'start',behavior:'smooth'}));
+  $('#mnResX').addEventListener('click',sheetClose);
 }
 function prMains(){
   const st=mn.st;if(!st)return null;
   if(st.l.n+st.r.n<8)return null;
   const sel=mn.walk?null:(mn.pg&&mn.pg.swapped?mn.pg.orig:mn.sel);
-  const acc={};['l','r'].forEach(h=>{if(st[h].n)acc[h]=Math.round(100*st[h].ok/st[h].n);});
+  const acc={};['l','r'].forEach(h=>{if(st[h].n)acc[h]=Math.round(mnPct(st[h].ok,st[h].n,st[h].extra));});
   const ok=st.l.ok+st.r.ok,pf=st.l.pf+st.r.pf;
   return prAdd({g:'mains',d:Date.now(),bpm:state.bpm,acc,score:Math.round((ok*10+pf*5)*state.bpm/80),
     k:sel?sel.l+'-'+sel.r:'duos',l:sel?sel.l:null,r:sel?sel.r:null,mode:mn.mode,pf:ok?Math.round(100*pf/ok):0});
@@ -3773,9 +3790,9 @@ function prRender(){
   const pb=$('#prPlace');if(pb)pb.addEventListener('click',()=>plStart());
 }
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
-   Croches main droite. Départ à 60 BPM, +8 à chaque mesure tant que tu suis.
+   Croches main droite. Départ à 50 BPM, +8 à chaque mesure tant que tu suis.
    Deux mesures de suite sous 85 % : c'est fini. Ta forme = le tempo le plus rapide tenu à 85 %. */
-const PL_START=60,PL_STEP=8,PL_MAX=200,PL_RATIO=0.8;
+const PL_START=50,PL_STEP=8,PL_MAX=200,PL_RATIO=0.8;
 const plDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+(x.getMonth()+1)+'-'+x.getDate();};
 function plList(){return Array.isArray(pr.place)?pr.place:(pr.place=[]);}
 function plToday(){const L=plList(),t=plDay(Date.now());return L.find(x=>plDay(x.d)===t)||null;}
@@ -3788,7 +3805,7 @@ function plBanners(){
 function plStart(){
   mnStop();
   if(state.tab!=='mains')showTab('mains');
-  $('#mnRes').hidden=true;
+  sheetClose();
   mn.place={ev:0,fail:0,lead:0,best:0,orig:{sel:{l:mn.sel.l,r:mn.sel.r},mode:mn.mode,walk:mn.walk}};
   mn.barBpm=[];
   mn.mode='ensemble';mn.walk=false;$('#mnWalk').checked=false;mn.sel={l:-1,r:2};mnRender();
@@ -3807,7 +3824,7 @@ function plEval(k){
   const P=mn.place;if(!P)return;
   while(P.ev<=k-2){
     const j=P.ev++,o=mn.bs[j],h=o&&o.r;
-    const p=h&&h.n?100*h.ok/h.n:0;
+    const p=h&&h.n?mnPct(h.ok,h.n,h.x):0;
     if(p>=85){P.best=Math.max(P.best,mn.barBpm[j]||0);P.fail=0;}else if(P.best>0)P.fail++;else P.lead++;
   }
 }
@@ -3821,15 +3838,13 @@ function plTick(){
 }
 function plDone(){
   const P=mn.place;plRestore();
-  const box=$('#mnRes');
   if(!P||!P.best){
     setBpm(PL_START);
-    box.innerHTML='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">?</div><div><h3>Test du jour</h3><p class="pr-score">Pas assez de coups justes pour mesurer.</p></div></div>'+
+    sheetOpen('<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">?</div><div><h3>Test du jour</h3><p class="pr-score">Pas assez de coups justes pour mesurer.</p></div></div>'+
       '<div class="pr-sec"><p class="pr-hint">Tape sur un pad, n\'importe lequel, en même temps que les croches (2 coups par temps), dès la fin du décompte ; le tempo ne monte qu\'une fois que tu as trouvé le rythme. Si le calage te semble faux, touche « Caler ».</p></div>'+
-      '<div class="row pr-btns"><button type="button" class="btn" id="plAgain">Refaire le test</button><button type="button" class="btn ghost" id="plLater">Plus tard</button></div>';
-    box.hidden=false;
+      '<div class="row pr-btns"><button type="button" class="btn" id="plAgain">Refaire le test</button><button type="button" class="btn ghost" id="plLater">Plus tard</button></div>');
     $('#plAgain').addEventListener('click',plStart);
-    $('#plLater').addEventListener('click',()=>{box.hidden=true;});
+    $('#plLater').addEventListener('click',sheetClose);
     return;
   }
   const L=plList(),prev=L.length?L[L.length-1]:null;
@@ -3845,12 +3860,11 @@ function plDone(){
     '<div class="nx"><span class="pr-k">On part à</span><b>'+start+'</b><small>BPM</small></div></div>';
   h+='<div class="pr-sec"><p class="pr-hint">'+(diff!=null&&diff<=-16?'Moins en forme qu\'avant : c\'est normal certains jours. On part plus doucement, ça viendra.':'Pour bien travailler, on démarre un peu sous ta forme : '+Math.round(PL_RATIO*100)+' %, soit '+start+' BPM.')+'</p></div>';
   h+='<div class="row pr-btns"><button type="button" class="btn" id="plPlay">Jouer à '+start+' BPM</button><button type="button" class="btn ghost" id="plPc">Parcours</button></div>';
-  box.innerHTML=h;box.hidden=false;
-  $('#plPlay').addEventListener('click',()=>{box.hidden=true;withCalib(mnSrc(),mnPlay);});
-  $('#plPc').addEventListener('click',()=>{box.hidden=true;showTab('parcours');});
-  $('#plX').addEventListener('click',()=>{box.hidden=true;});
+  sheetOpen(h);
+  $('#plPlay').addEventListener('click',()=>{sheetClose();withCalib(mnSrc(),mnPlay);});
+  $('#plPc').addEventListener('click',()=>{sheetClose();showTab('parcours');});
+  $('#plX').addEventListener('click',sheetClose);
   plBanners();prRender();
-  requestAnimationFrame(()=>box.scrollIntoView({block:'start',behavior:'smooth'}));
 }
 document.querySelectorAll('.pl-go').forEach(b=>b.addEventListener('click',plStart));
 document.querySelectorAll('.pl-no').forEach(b=>b.addEventListener('click',()=>{try{localStorage.setItem('poumtchak.test.passe',plDay(Date.now()));}catch(e){}plBanners();}));
@@ -4305,6 +4319,8 @@ function trCheck(){
   });
   trDraw();
   const m=$('#trMsg');
+  /* le verdict doit se voir sans chercher */
+  requestAnimationFrame(()=>{const r=m.getBoundingClientRect();if(r.bottom>innerHeight-20||r.top<0)m.scrollIntoView({block:'center',behavior:'smooth'});});
   if(!bad&&!miss){
     m.textContent=tr.seen?'C\'est la bonne grille.':'Juste ! Écoute-la, joue-la, puis Autre consigne.';
     m.className='msg';$('#trPlay').hidden=false;
@@ -4391,30 +4407,30 @@ const PC_CH=[
 const PM=(id,ch,l,r,bpm,tip)=>({id,ch,type:'mains',l,r,bpm,tip});
 const PT=(id,ch,lvl,tip)=>({id,ch,type:'trad',lvl,need:3,tip});
 const PC_STEPS=[
-  PM('d1',0,-1,1,60,'Main droite seule, une frappe sur chaque clic. Compte « 1, 2, 3, 4 » à voix haute.'),
-  PM('g1',0,1,-1,60,'Même chose avec la main gauche. Elle est souvent en retard : écoute bien le clic.'),
-  PM('gd1',0,1,1,60,'Les deux mains ensemble, comme si elles n\'en faisaient qu\'une.'),
-  PM('d2',1,-1,2,60,'Main droite, deux coups par temps. Dis « ti-ti » en jouant.'),
-  PM('g2',1,2,-1,60,'Main gauche, deux coups par temps.'),
-  PM('g1d2',1,1,2,60,'La gauche garde le temps, la droite fait le double. Le premier coup tombe ensemble.'),
-  PM('g2d1',1,2,1,60,'On inverse : la droite garde le temps, la gauche double.'),
-  PM('g2d2',1,2,2,70,'Les deux mains en croches, ensemble, un peu plus vite.'),
+  PM('d1',0,-1,1,50,'Main droite seule, une frappe sur chaque clic. Compte « 1, 2, 3, 4 » à voix haute.'),
+  PM('g1',0,1,-1,50,'Même chose avec la main gauche. Elle est souvent en retard : écoute bien le clic.'),
+  PM('gd1',0,1,1,50,'Les deux mains ensemble, comme si elles n\'en faisaient qu\'une.'),
+  PM('d2',1,-1,2,50,'Main droite, deux coups par temps. Dis « ti-ti » en jouant.'),
+  PM('g2',1,2,-1,50,'Main gauche, deux coups par temps.'),
+  PM('g1d2',1,1,2,50,'La gauche garde le temps, la droite fait le double. Le premier coup tombe ensemble.'),
+  PM('g2d1',1,2,1,50,'On inverse : la droite garde le temps, la gauche double.'),
+  PM('g2d2',1,2,2,60,'Les deux mains en croches, ensemble, un peu plus vite.'),
   PT('t1',1,1,'Lis la consigne comme ton prof la dirait : grosse caisse et caisse claire.'),
-  PM('d3',2,-1,3,55,'Trois coups bien égaux par temps : « tri-o-let ». Ne te presse pas sur le dernier.'),
-  PM('g3',2,3,-1,55,'Les triolets à la main gauche.'),
-  PM('g1d3',2,1,3,55,'La gauche garde le temps, la droite fait les triolets.'),
-  PM('g3d1',2,3,1,55,'On inverse : triolets à gauche.'),
+  PM('d3',2,-1,3,45,'Trois coups bien égaux par temps : « tri-o-let ». Ne te presse pas sur le dernier.'),
+  PM('g3',2,3,-1,45,'Les triolets à la main gauche.'),
+  PM('g1d3',2,1,3,45,'La gauche garde le temps, la droite fait les triolets.'),
+  PM('g3d1',2,3,1,45,'On inverse : triolets à gauche.'),
   PT('t2',2,2,'Le charley arrive, et avec lui les mots fondus : « pouts », « tchats ».'),
-  PM('d4',3,-1,4,55,'Quatre coups par temps : « ti-ri-ti-ri ». Garde les baguettes basses.'),
-  PM('g4',3,4,-1,55,'Les doubles croches à gauche.'),
-  PM('g1d4',3,1,4,55,'La gauche garde le temps, la droite en doubles.'),
-  PM('g2d4',3,2,4,55,'Croches à gauche, doubles à droite : la gauche tombe sur 1 coup sur 2 de la droite.'),
-  PM('g4d2',3,4,2,55,'On inverse.'),
-  PM('g2d3',4,2,3,50,'Deux contre trois : seul le premier coup de chaque temps tombe ensemble. Écoute d\'abord, puis joue.'),
-  PM('g3d2',4,3,2,50,'Trois contre deux.'),
-  PM('g1dv',4,1,0,50,'La droite change à chaque temps : 1, 2, 3 puis 4 coups. La gauche reste sur le temps.'),
-  PM('gvd1',4,0,1,50,'On inverse : c\'est la gauche qui change.'),
-  PM('g3d4',4,3,4,45,'Le plus dur : trois contre quatre. Très lentement, en mode Modèle + clic d\'abord.'),
+  PM('d4',3,-1,4,45,'Quatre coups par temps : « ti-ri-ti-ri ». Garde les baguettes basses.'),
+  PM('g4',3,4,-1,45,'Les doubles croches à gauche.'),
+  PM('g1d4',3,1,4,45,'La gauche garde le temps, la droite en doubles.'),
+  PM('g2d4',3,2,4,45,'Croches à gauche, doubles à droite : la gauche tombe sur 1 coup sur 2 de la droite.'),
+  PM('g4d2',3,4,2,45,'On inverse.'),
+  PM('g2d3',4,2,3,40,'Deux contre trois : seul le premier coup de chaque temps tombe ensemble. Écoute d\'abord, puis joue.'),
+  PM('g3d2',4,3,2,40,'Trois contre deux.'),
+  PM('g1dv',4,1,0,40,'La droite change à chaque temps : 1, 2, 3 puis 4 coups. La gauche reste sur le temps.'),
+  PM('gvd1',4,0,1,40,'On inverse : c\'est la gauche qui change.'),
+  PM('g3d4',4,3,4,40,'Le plus dur : trois contre quatre. Très lentement, en mode Modèle + clic d\'abord.'),
   PT('t3',4,3,'Consignes avec toms, crash et petit roulement.')
 ];
 const pc={done:{},cur:PC_STEPS[0].id,active:null,bpm:0};
@@ -4476,6 +4492,12 @@ function pcBar(txt,kind,btns){
   $('#pcBarTxt').innerHTML=txt;
   const host=$('#pcBarBtns');host.innerHTML='';
   btns.forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.addEventListener('click',fn);host.appendChild(b);});
+  if(kind==='ok'||kind==='ko'){
+    sheetOpen('<div class="pr-sec pr-top"><div class="pr-hex'+(kind==='ko'?' ko':'')+'" aria-hidden="true">'+(kind==='ok'?'✓':'…')+'</div><div><h3>'+(kind==='ok'?'Étape réussie':'Pas encore')+'</h3></div></div>'+
+      '<div class="pr-sec"><p class="pr-txt">'+txt+'</p></div><div class="row pr-btns" id="pcSheetBtns"></div>');
+    const sh=$('#pcSheetBtns');
+    btns.forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.addEventListener('click',()=>{sheetClose();fn();});sh.appendChild(b);});
+  }
 }
 function pcRestoreMode(){if(pc.mode!=null){mn.mode=pc.mode;pc.mode=null;mnRender();}}
 function pcQuit(){

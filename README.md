@@ -96,10 +96,17 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   prochain objectif ; et la courbe de précision des 20 dernières séances.
 - **Test du jour** : une fois par jour (bandeau en haut de Parcours et de
   Mains, « Pas aujourd'hui » pour passer), 30 secondes de croches main droite
-  qui accélèrent de 8 BPM par mesure à partir de 60, tant que tu tiens 85 %.
+  qui accélèrent de 8 BPM par mesure à partir de 50 (le tempo attend que tu aies trouvé le rythme ; n'importe quel pad compte), tant que tu tiens 85 %.
   Ta forme = le tempo le plus rapide tenu. Comparée à ton dernier test, avec
   la courbe des 10 derniers ; la séance démarre à 80 % de ta forme, arrondi à
   5 BPM. L'historique est dans Parcours, « Ta forme ».
+- **Pas de triche** : dans Mains, chaque coup en trop compte comme un coup
+  raté ; marteler le pad ne fait pas réussir. Les étapes du Parcours
+  démarrent bas (50 BPM pour la première, jamais sous 40) pour réussir pour
+  de vrai.
+- **Résultats en plein écran** : fin de séance de Mains, test du jour et
+  résultat d'une étape du Parcours s'ouvrent par-dessus tout, boutons
+  compris ; rien à chercher en faisant défiler.
 - **Calage avant de jouer** : avant la première partie de la séance (Mains,
   Parcours, Jouer sur l'écran, Défi), 4 clics d'écoute puis 8 frappes sur le
   clic, à 80 BPM. Le retard médian des frappes devient le décalage de l'entrée

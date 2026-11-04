@@ -21,7 +21,7 @@ test.describe('Parcours', () => {
     await expect(page.locator('.mn-tab')).toBeHidden(); // pendant l'étape, seulement l'essentiel
     await expect(page.locator('#mnL .mn-dot')).toHaveCount(0); // main gauche au repos
     await expect(page.locator('#mnR .mn-dot')).toHaveCount(4);
-    await expect(page.locator('#bpmIn')).toHaveValue('60');
+    await expect(page.locator('#bpmIn')).toHaveValue('50');
     await expect(page.locator('#pcBar')).toContainText('Étape 1/25');
     // la main droite joue en rythme jusqu'à la fin
     await page.evaluate(async () => {
@@ -37,7 +37,7 @@ test.describe('Parcours', () => {
       }
     });
     await expect(page.locator('#pcBar')).toHaveClass(/ok/, { timeout: 5000 });
-    await expect(page.locator('#pcBar')).toContainText('Réussi à 60 BPM');
+    await expect(page.locator('#pcBar')).toContainText('Réussi à 50 BPM');
     await expect(page.locator('#pcBar')).toContainText('droite');
     await expect(page.locator('#pcBarTxt')).not.toContainText('gauche'); // la main au repos n'est pas notée
     await expect(page.locator('#pcBarBtns')).toContainText('Étape suivante : Main gauche seule');
@@ -130,8 +130,11 @@ test.describe('Parcours à deux mains', () => {
     });
     await expect(page.locator('#pcBar')).toHaveClass(/ok/);
     await expect(page.locator('#pcBarTxt')).toContainText('sans clic');
+    // le résultat s'affiche en plein écran, sans chercher
+    await expect(page.locator('#mnRes')).toBeVisible();
+    await expect(page.locator('#mnRes')).toContainText('Étape réussie');
     // la façon de travailler de l'utilisateur est rendue
-    await page.locator('#pcBarBtns').getByRole('button', { name: "Quitter l'étape" }).click();
+    await page.locator('#mnRes').getByRole('button', { name: "Quitter l'étape" }).click();
     await rubrique(page, 'Mains');
     await expect(page.locator('#mnWay [aria-pressed="true"]')).toHaveText('Ensemble');
   });
@@ -141,10 +144,10 @@ test.describe('Parcours : jamais d\'échec', () => {
   test('une étape qu\'on ne réussit pas ralentit, sans message d\'échec', async ({ page }) => {
     test.setTimeout(60_000);
     await rubrique(page, 'Parcours');
-    await page.locator('.pc-st').nth(7).click(); // 2 contre 2 à 70
+    await page.locator('.pc-st').nth(7).click(); // 2 contre 2 à 60
     await page.locator('#pcGo').click();
-    await page.waitForTimeout(14000);
-    expect(+(await page.locator('#bpmIn').inputValue())).toBeLessThan(70);
+    await expect(page.locator('#bpmIn')).toHaveValue('60');
+    await expect.poll(async () => +(await page.locator('#bpmIn').inputValue()), { timeout: 30000 }).toBeLessThan(60);
     await expect(page.locator('#pcBar')).not.toContainText('Pas encore');
     await page.locator('#play').click();
     await expect(page.locator('#pcBar')).toContainText('Pas de souci');

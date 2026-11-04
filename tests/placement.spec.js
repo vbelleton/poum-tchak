@@ -19,7 +19,7 @@ test.describe('Test du jour', () => {
     await rubrique(page, 'Mains');
     await page.locator('#p-mains .pl-go').click();
     await expect(page.locator('body')).toHaveClass(/mn-live/);
-    await expect(page.locator('#bpmIn')).toHaveValue('60');
+    await expect(page.locator('#bpmIn')).toHaveValue('50');
     // on tape toutes les croches de la main droite jusqu'à ce qu'on décroche
     await page.evaluate(async () => {
       const pad = document.querySelector('#mnPadR');
@@ -43,7 +43,7 @@ test.describe('Test du jour', () => {
     const m = await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.progres')));
     expect(m.place.length).toBe(1);
     const best = m.place[0].bpm;
-    expect(best).toBeGreaterThanOrEqual(68);
+    expect(best).toBeGreaterThanOrEqual(58);
     expect(best).toBeLessThan(110);
     // la séance part à ~80 % de la forme, arrondie à 5
     const depart = Math.round((best * 0.8) / 5) * 5;
@@ -51,6 +51,9 @@ test.describe('Test du jour', () => {
     await expect(page.locator('#plPlay')).toHaveText('Jouer à ' + depart + ' BPM');
     // il n'est plus proposé aujourd'hui, et l'historique est dans Parcours
     await expect(page.locator('#p-mains .pl-ban')).toBeHidden();
+    // le résultat est en plein écran par-dessus tout : on le ferme
+    await page.locator('#plX').click();
+    await expect(page.locator('#mnRes')).toBeHidden();
     await rubrique(page, 'Parcours');
     await expect(page.locator('#prBox')).toContainText('Ta forme');
     await expect(page.locator('#prBox')).toContainText(best + ' BPM');
@@ -66,7 +69,7 @@ test.describe('Test du jour', () => {
     await expect(page.locator('body')).toHaveClass(/mn-live/);
     const bpms = await page.evaluate(async () => {
       const pad = document.querySelector('#mnPadL'); // pas le bon pad exprès
-      const vus = new Set(); const fin = performance.now() + 14000;
+      const vus = new Set(); const fin = performance.now() + 28000;
       while (performance.now() < fin && document.body.classList.contains('mn-live')) {
         vus.add(document.querySelector('#bpmIn').value);
         const x = window.__mnExp('r');
@@ -85,6 +88,6 @@ test.describe('Test du jour', () => {
     await expect(page.locator('body')).toHaveClass(/mn-live/);
     await expect(page.locator('#mnRes')).toContainText('Pas assez de coups justes', { timeout: 50000 });
     await expect(page.locator('#plAgain')).toBeVisible();
-    await expect(page.locator('#bpmIn')).toHaveValue('60');
+    await expect(page.locator('#bpmIn')).toHaveValue('50');
   });
 });
