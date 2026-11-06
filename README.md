@@ -11,7 +11,7 @@ Page en ligne : https://vbelleton.github.io/poum-tchak/
 En haut, la batterie s'allume à chaque frappe avec son mot ; plusieurs fûts
 frappés ensemble ont leur mot fondu (grosse caisse + caisse claire = « pak »).
 En bas, la lecture (cachée dans Parcours et Mots, où elle ne sert pas) : clic, tempo en BPM (battements par minute, 60 = un clic par seconde) (saisie directe, − et + qui défilent si on
-reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
+reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
 
 - **Parcours** : une étape à la fois, en 25 étapes et 5 chapitres (le temps,
   croches, triolets, doubles croches, mélanges). Chaque étape lance le bon
@@ -47,6 +47,12 @@ reste appuyé, Tap) et Jouer. Entre les deux, six rubriques :
   Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
   sur l'écran, jouer sur sa batterie au micro. Tempo progressif et mesures
   muettes.
+- **Jeux** : tes rythmes (les modèles ou ta grille) en jeux d'arcade, où c'est toi
+  qui fais la batterie : un coup raté manque à la musique. **Couloirs** : des notes
+  descendent dans quatre colonnes (poum, tchak, tss, doum ; touches D F J K).
+  **Rebonds** : une balle saute de tuile en tuile, poum à gauche, tchak à droite
+  (touches F et J) ; cinq tuiles ratées et elle tombe. Trois niveaux, tempo au choix,
+  batterie MIDI, même calage et même notation que le reste, avec étoiles et record.
 - **Mains** : indépendance des mains. Un tableau à deux colonnes (main gauche,
   main droite) : 1, 2, 3 ou 4 coups par temps, ou 1 → ¼ qui change à chaque
   temps, avec la fraction du temps, le nom de la note, le solfège (Kodály ou
