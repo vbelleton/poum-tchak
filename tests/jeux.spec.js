@@ -611,3 +611,33 @@ test.describe('Justesse', () => {
     await expect(page.locator('#mnRes')).toContainText('très régulier');
   });
 });
+
+test.describe('Écoute puis rejoue : le chant', () => {
+  test('sur un chant, il joue aussi pendant qu\'on rejoue, et le réglage le limite', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmFile').setInputFiles(fichierChant());
+    await expect(page.locator('#gmMsg')).toContainText('1 chant importé');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await expect(page.locator('#gmEchoSong').getByRole('button', { name: 'Toujours' })).toHaveAttribute('aria-pressed', 'true');
+    const clips = async (reglage) => {
+      await page.locator('#gmEchoSong').getByRole('button', { name: reglage }).click();
+      await page.locator('#gmGo').click();
+      await expect(page.locator('#gm')).toBeVisible();
+      const n = await page.evaluate(() => { const c = window.__gm.chart(); return { total: c.clips.length, tours: c.rounds.length }; });
+      await page.keyboard.press('Escape');
+      return n;
+    };
+    const t = await clips('Toujours');
+    expect(t.total).toBe(t.tours * 4);
+    const p = await clips('1er passage');
+    expect(p.total).toBe(p.tours * 3);
+    const j = await clips('Jamais');
+    expect(j.total).toBe(j.tours * 2);
+  });
+
+  test('sans chant (rythme), le réglage n\'apparaît pas', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await expect(page.locator('#gmEchoSongRow')).toBeHidden();
+  });
+});

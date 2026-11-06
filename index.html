@@ -841,6 +841,7 @@ body.gm-live{overflow:hidden}
       <div id="gmTempoRow"><span class="lab" id="lab-gmBpm">Tempo</span><div class="gm-tempo" role="group" aria-labelledby="lab-gmBpm">
         <button type="button" id="gmDown" aria-label="Ralentir">−</button><output id="gmBpm"></output><button type="button" id="gmUp" aria-label="Accélérer">+</button>
       </div></div>
+      <div id="gmEchoSongRow"><span class="lab" id="lab-gmEchoSong">Chant pendant que tu rejoues</span><div class="seg" id="gmEchoSong" role="group" aria-labelledby="lab-gmEchoSong"></div><p class="hint" id="gmEchoSongHint" style="margin:6px 0 0"></p></div>
       <div id="gmClickRow"><span class="lab" id="lab-gmClick">Métronome</span><div class="seg" id="gmClick" role="group" aria-labelledby="lab-gmClick"></div><p class="hint" id="gmClickHint" style="margin:6px 0 0"></p></div>
       <div><button type="button" class="tog" id="gmSlowBtn" aria-pressed="false">Ralentir quand ça coince</button><p class="hint" style="margin:6px 0 0">Si tu rates plusieurs coups, la partie ralentit par paliers, jusqu'à 70 %, puis revient quand tu suis. Sur un chant, le son descend un peu avec la vitesse. Les points comptent à part pour les records.</p></div>
       <div><button type="button" class="tog" id="gmMidi" aria-pressed="false">Batterie MIDI</button></div>
@@ -1818,7 +1819,7 @@ function gmEchoCut(round,pass,bar,nBars){
 /* Une manche : compte, motif entendu deux fois, compte, deux passages à reproduire, bilan. Les motifs
    les plus simples viennent d'abord. Sur « Peu », seul le rythme compte : une zone, un doigt.
    src : bars (débuts + fin), perBar, notes à reproduire, others (le reste de l'accompagnement). */
-function gmEchoChart(src,lvl,total,keepClick){
+function gmEchoChart(src,lvl,total,keepClick,withSong){
   const bars=src.bars,nb=bars.length-1,inBar=(list,a,b)=>list.filter(n=>n.t>=a-0.02&&n.t<b-0.02);
   const one=lvl==='facile',maxPer=lvl==='moyen'?10:14;
   const sig=(i,n)=>{const a=bars[i],L=bars[i+n]-a;return inBar(src.notes,a,bars[i+n]).map(x=>Math.round((x.t-a)/L*16)+':'+(one?0:x.lane)).join(',');};
@@ -1852,7 +1853,7 @@ function gmEchoChart(src,lvl,total,keepClick){
     click(T,d0);T+=d0;
     rd.listen=T;
     for(let e=0;e<2;e++){
-      clips.push({t:T,off:A,dur:L});
+      clips.push({t:T,off:A,dur:L,vol:0.65});
       motif.forEach(x=>backing.push({t:T+x.off,id:x.id,vel:x.vel}));
       rest.forEach(x=>backing.push({t:T+x.off,id:x.id,vel:x.vel}));
       for(let j=0;j<n;j++)click(T+barsAt[j],barsAt[j+1]-barsAt[j]);
@@ -1864,6 +1865,7 @@ function gmEchoChart(src,lvl,total,keepClick){
       const cuts=[];
       for(let j=0;j<n;j++){const cut=!keepClick&&gmEchoCut(idx,p,j,n);cuts.push(cut);click(T+barsAt[j],barsAt[j+1]-barsAt[j],cut);}
       rd.passes.push({t:T,cuts});
+      if(withSong==='toujours'||(withSong==='premier'&&p===0))clips.push({t:T,off:A,dur:L,vol:0.5});
       motif.forEach(x=>notes.push({t:T+x.off,lane:x.lane,id:x.id,vel:x.vel,r:idx,p}));
       T+=L;
     }
@@ -4212,12 +4214,14 @@ const GM_CLICK={coupe:'Se coupe',toujours:'Toujours là'};
 const GM_CLICK_HINT={coupe:'Dès la 4e manche, le clic se tait sur la fin du second passage, puis sur tout ce passage à partir de la 7e.',toujours:'Le clic reste sur toutes les mesures : pour apprendre les motifs.'};
 const GM_LV_ECHO={facile:'Peu : une seule zone, seul le rythme compte. Pendant l\'écoute, le motif est dessiné.',moyen:'Moyen : poum à gauche, tchak à droite. Pendant l\'écoute, le motif est dessiné.',difficile:'Beaucoup : poum à gauche, tchak à droite, motifs chargés et rien de dessiné.'};
 const GM_LV_ORBIT={facile:'Peu : une lune par temps.',moyen:'Moyen : une lune par croche (deux par temps).',difficile:'Beaucoup : une lune par double croche ; des croches si le tempo est trop rapide pour un doigt.'};
+const GM_ECHO_SONG={toujours:'Toujours',premier:'1er passage',jamais:'Jamais'};
+const GM_ECHO_SONG_HINT={toujours:'Le chant continue de jouer pendant que tu rejoues : tu le suis, batterie d\'origine comprise.',premier:'Le chant joue sur ton premier passage, puis se tait : le second se fait de mémoire.',jamais:'Seul le clic t\'accompagne : tout est de mémoire.'};
 const GM_CK_STEP=4,GM_RATE_MIN=0.7,GM_RATE_FF=2;
 const GM_HOW={
   couloirs:['Des notes descendent dans quatre colonnes : poum, tchak, tss, doum.','Tape la bonne colonne à l\'instant où la note touche la ligne blanche. Au clavier : D, F, J, K.','Taper trop ou rater vide la jauge du haut. Quand elle est vide, la partie s\'arrête, et tu peux la reprendre au dernier point de contrôle.'],
   rebonds:['Une balle saute de tuile en tuile : poum à gauche, tchak à droite.','Glisser : amène la balle au-dessus de la prochaine tuile, le coup sonne tout seul. Incliner : pareil en penchant le téléphone. Frapper : tape à gauche ou à droite au bon moment.','Chaque tuile ratée vide la jauge. Quand elle est vide, la balle tombe, et tu peux reprendre au dernier point de contrôle.'],
   orbite:['Le point blanc tourne autour du soleil : un tour complet dure une mesure.','Les ronds posés sur le cercle sont des lunes. La prochaine à toucher est entourée de blanc.','Tape n\'importe où sur l\'écran à l\'instant où le point arrive dessus. Pas besoin de viser : un seul bouton, c\'est l\'écran entier.','Peu : 4 lunes par tour, une par temps. Moyen : 8. Beaucoup : 16. Commence par Peu, en écoutant le chant : les lunes tombent sur ses temps.'],
-  ecoute:['Écoute : un petit motif du chant passe deux fois, avec le clic. Sur Peu et Moyen, il est aussi dessiné.','À toi : après quatre clics, rejoue-le deux fois de suite, de mémoire. Sur Peu, tape n\'importe où : seul le rythme compte. Sur Moyen et Beaucoup, poum à gauche, tchak à droite.','Rien ne te guide pendant que tu joues, et c\'est voulu. À la fin de la manche, le bilan compare : rond creux, ce qu\'il fallait jouer ; rond plein, ce que tu as joué.','À partir de la 4e manche, le clic se coupe sur certaines mesures : garde le tempo dans ta tête. Tu peux le laisser avec « Toujours là ».']
+  ecoute:['Écoute : un petit motif du chant passe deux fois, avec le clic. Sur Peu et Moyen, il est aussi dessiné.','À toi : après quatre clics, rejoue-le deux fois de suite, de mémoire. Sur Peu, tape n\'importe où : seul le rythme compte. Sur Moyen et Beaucoup, poum à gauche, tchak à droite.','Rien n\'est dessiné pendant que tu joues, et c\'est voulu. Sur un chant, il continue de jouer pour t\'aider (réglable : seulement au 1er passage, ou jamais). À la fin de la manche, le bilan compare : rond creux, ce qu\'il fallait jouer ; rond plein, ce que tu as joué.','À partir de la 4e manche, le clic se coupe sur certaines mesures : garde le tempo dans ta tête. Tu peux le laisser avec « Toujours là ».']
 };
 const LP_KEY='poumtchak.boucle',LP_LENS=[1,2,4,8];
 const lp={id:'',bar:0,len:4,lvl:'moyen'};
@@ -4238,7 +4242,7 @@ const GM_CTL={glisser:'Glisser',incliner:'Incliner',frappe:'Frapper'};
 const GM_CTL_HINT={glisser:'Glisse le doigt pour amener la balle sur la tuile. Le coup sonne quand elle atterrit.',
   incliner:'Incline le téléphone à gauche ou à droite. Le coup sonne quand la balle atterrit.',
   frappe:'Tape à gauche (poum) ou à droite (tchak) au bon moment : c\'est le mode qui travaille le placement.'};
-const gm={on:false,midi:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,ctl:'glisser',tol:'normal',click:'coupe',slow:false,rate:1,slowRate:1,minRate:1,g0:0,c0:0,recent:[],ffOn:false,ffTo:0,ffUi:'',startCtx:0,srcGain:null,from:0,firstT:0,sched:[],clipI:0,clipSrcs:[],ckNext:0,ckFrom:null,loop:null,taps:[],sx:0,vx:0,tilt0:null,tiltSeen:false,tiltOk:false,
+const gm={on:false,midi:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,ctl:'glisser',tol:'normal',click:'coupe',echoSong:'toujours',slow:false,rate:1,slowRate:1,minRate:1,g0:0,c0:0,recent:[],ffOn:false,ffTo:0,ffUi:'',startCtx:0,srcGain:null,from:0,firstT:0,sched:[],clipI:0,clipSrcs:[],ckNext:0,ckFrom:null,loop:null,taps:[],sx:0,vx:0,tilt0:null,tiltSeen:false,tiltOk:false,
   songs:[],song:null,src:null,curBpm:90,count:[],busy:false,chart:null,t0:0,bi:0,cli:0,timer:0,raf:0,sc:null,gauge:1,flash:[],bursts:[],pops:[],nextMiss:0,ended:false,w:0,h:0,dpr:1,col:{}};
 try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
   if(GM_INFO[o.game])gm.game=o.game;
@@ -4248,9 +4252,10 @@ try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
   if(GM_TOL[o.tol])gm.tol=o.tol;
   if(GM_CLICK[o.click])gm.click=o.click;
   gm.slow=o.slow===true;
+  if(GM_ECHO_SONG[o.echoSong])gm.echoSong=o.echoSong;
   if(+o.bpm>=40&&+o.bpm<=220)gm.bpm=Math.round(+o.bpm);
 }}catch(e){}
-function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl,tol:gm.tol,click:gm.click,slow:gm.slow}));}catch(e){}}
+function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl,tol:gm.tol,click:gm.click,slow:gm.slow,echoSong:gm.echoSong}));}catch(e){}}
 /* Reprise : par jeu, rythme ou chant, et nombre de notes. Le score d'alors est gardé avec le point de
    contrôle, et la mesure compte en numéro plutôt qu'en secondes pour survivre à un changement de tempo. */
 const GM_CK_KEY='poumtchak.jeux.reprises';
@@ -4371,6 +4376,10 @@ function gmRender(){
   const clk=$('#gmClick');clk.textContent='';
   Object.entries(GM_CLICK).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.click===id));clk.appendChild(b);});
   $('#gmClickHint').textContent=GM_CLICK_HINT[gm.click];
+  $('#gmEchoSongRow').hidden=!(gm.game==='ecoute'&&gmCurSong());
+  const es=$('#gmEchoSong');es.textContent='';
+  Object.entries(GM_ECHO_SONG).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.echoSong===id));es.appendChild(b);});
+  $('#gmEchoSongHint').textContent=GM_ECHO_SONG_HINT[gm.echoSong];
   const ck=gm.rh==='mine'&&!gmMyGroove()?null:gmCkGet(gmCkKey());
   $('#gmResume').hidden=!ck;
   if(ck)$('#gmResume').textContent='Reprendre à la '+gmCkLabel(ck)+' · '+ck.sc.pts+' points';
@@ -4389,6 +4398,7 @@ $('#gmGames').addEventListener('click',e=>{const b=e.target.closest('[data-v]');
 $('#gmLv').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.lvl=b.dataset.v;gmSave();gmRender();});
 $('#gmTol').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.tol=b.dataset.v;gmSave();gmRender();});
 ['#gmSlowBtn','#lpSlowBtn'].forEach(q=>$(q).addEventListener('click',()=>{gm.slow=!gm.slow;gmSave();gmRender();}));
+$('#gmEchoSong').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.echoSong=b.dataset.v;gmSave();gmRender();});
 $('#gmClick').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.click=b.dataset.v;gmSave();gmRender();});
 /* iPhone : le capteur demande une permission, qui ne peut partir que d'un toucher. */
 async function gmTiltAsk(){
@@ -4495,7 +4505,7 @@ function gmBuild(song){
   }
   if(gm.game==='ecoute'){
     const keep=gm.click==='toujours';
-    if(song){const c=gmSongChart(song,'rebonds',gm.lvl);return gmEchoChart({bars:c.bars,perBar:4,notes:c.notes},gm.lvl,10,keep);}
+    if(song){const c=gmSongChart(song,'rebonds',gm.lvl);return gmEchoChart({bars:c.bars,perBar:4,notes:c.notes},gm.lvl,10,keep,gm.echoSong);}
     const s=gmSource(),c=gmChart(s.bars,s.meter,gm.bpm,s.swing,'rebonds',gm.lvl,s.bars.length);
     return gmEchoChart({bars:c.bars,perBar:METERS[s.meter].beats,notes:c.notes,others:c.backing},gm.lvl,6,keep);
   }
@@ -4667,7 +4677,7 @@ function gmTick(){
 /* Écoute puis rejoue : un morceau du chant, avec un fondu très court pour éviter le clac. */
 function gmClip(cl){
   const at=Math.max(ctx.currentTime+0.01,gmToCtx(cl.t)),g=ctx.createGain(),src=ctx.createBufferSource(),end=at+cl.dur/gm.rate;
-  g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(0.65,at+0.015);g.gain.setValueAtTime(0.65,end-0.03);g.gain.linearRampToValueAtTime(0,end);
+  const v=cl.vol||0.65;g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(v,at+0.015);g.gain.setValueAtTime(v,end-0.03);g.gain.linearRampToValueAtTime(0,end);
   src.buffer=gm.buffer;src.playbackRate.value=gm.rate;src.connect(g);g.connect(master);src.start(at,cl.off,cl.dur);
   gm.clipSrcs.push(src);src.onended=()=>{gm.clipSrcs=gm.clipSrcs.filter(x=>x!==src);};
 }
