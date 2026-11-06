@@ -495,3 +495,101 @@ test.describe('Écoute puis rejoue, niveaux', () => {
     await page.keyboard.press('Escape');
   });
 });
+
+test.describe('Ralentir quand ça coince', () => {
+  test('désactivé par défaut : la vitesse ne bouge pas', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs', 'Peu', 'Frapper', 'Indulgent');
+    await page.waitForFunction(() => window.__gm.sc().miss >= 6, null, { timeout: 20_000 });
+    expect(await page.evaluate(() => window.__gm.vitesse())).toBe(1);
+    await page.keyboard.press('Escape');
+  });
+
+  test('activé : la partie ralentit quand ça rate, regagne de la jauge, puis revient quand on suit', async ({ page }) => {
+    test.setTimeout(90_000);
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmSlowBtn').click();
+    await expect(page.locator('#gmSlowBtn')).toHaveAttribute('aria-pressed', 'true');
+    await lancer(page, 'couloirs', 'Peu', 'Frapper', 'Indulgent');
+    await page.waitForFunction(() => window.__gm.vitesse() < 1, null, { timeout: 20_000 });
+    await expect(page.locator('#gmCombo')).toContainText('vitesse');
+    // L'horloge de la partie avance bien moins vite que le temps réel.
+    const pas = await page.evaluate(async () => { const a = window.__gm.now(); await new Promise((f) => setTimeout(f, 1000)); return window.__gm.now() - a; });
+    expect(pas).toBeLessThan(0.97);
+    await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv'), r = cv.getBoundingClientRect(), larg = r.width / window.__gm.voies();
+      for (const n of window.__gm.notes()) {
+        if (n.t <= window.__gm.now() + 0.03) continue;
+        while (window.__gm.on() && window.__gm.now() < n.t) await new Promise((f) => setTimeout(f, 2));
+        if (!window.__gm.on() || window.__gm.vitesse() === 1) break;
+        cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: r.left + larg * (n.lane + 0.5), clientY: r.top + 300 }));
+      }
+    });
+    expect(await page.evaluate(() => window.__gm.vitesse())).toBe(1);
+    await page.keyboard.press('Escape');
+    await page.reload();
+    await rubrique(page, 'Jeux');
+    await expect(page.locator('#gmSlowBtn')).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+test.describe('Passer et Accélérer', () => {
+  async function chantAvecTrou(page) {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmFile').setInputFiles(fichierChant('Trou', true));
+    await expect(page.locator('#gmMsg')).toContainText('1 chant importé');
+    await page.locator('#gmTol').getByRole('button', { name: 'Indulgent' }).click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.waitForFunction(() => window.__gm.now() > 4.1, null, { timeout: 10_000 });
+    await expect(page.locator('#gmSkip')).toBeVisible();
+    await expect(page.locator('#gmFast')).toBeVisible();
+  }
+
+  test('pendant que des notes arrivent, pas de bouton ; dans un trou, Passer saute sans rien compter', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmFile').setInputFiles(fichierChant('Plein'));
+    await expect(page.locator('#gmMsg')).toContainText('1 chant importé');
+    await page.locator('#gmGo').click();
+    await page.waitForFunction(() => window.__gm.now() > 2.5, null, { timeout: 10_000 });
+    await expect(page.locator('#gmSkip')).toBeHidden();
+    await page.keyboard.press('Escape');
+    await page.locator('#gmDel').click();
+    await chantAvecTrou(page);
+    const avant = await page.evaluate(() => window.__gm.sc().miss);
+    await page.locator('#gmSkip').click();
+    const apres = await page.evaluate(() => ({ t: window.__gm.now(), miss: window.__gm.sc().miss }));
+    expect(apres.t).toBeGreaterThan(7.5);
+    expect(apres.t).toBeLessThan(9.5);
+    expect(apres.miss).toBe(avant);
+    await expect(page.locator('#gmSkip')).toBeHidden();
+    await page.keyboard.press('Escape');
+  });
+
+  test('Accélérer va au double, sans sauter, et s\'arrête tout seul avant les notes', async ({ page }) => {
+    await chantAvecTrou(page);
+    await page.locator('#gmFast').click();
+    expect(await page.evaluate(() => window.__gm.vitesse())).toBe(2);
+    await expect(page.locator('#gmFast')).toHaveAttribute('aria-pressed', 'true');
+    await page.waitForFunction(() => window.__gm.vitesse() === 1, null, { timeout: 5000 });
+    const t = await page.evaluate(() => window.__gm.now());
+    expect(t).toBeGreaterThan(7.5);
+    expect(t).toBeLessThan(9.8);
+    await page.keyboard.press('Escape');
+  });
+
+  test('Écoute puis rejoue : Passer saute l\'écoute, jamais le moment de jouer', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    const r = await page.evaluate(() => { const x = window.__gm.chart().rounds[0]; return { listen: x.listen, count2: x.count2, play: x.play }; });
+    await page.waitForFunction((t) => window.__gm.now() > t, r.listen + 0.4);
+    await expect(page.locator('#gmSkip')).toBeVisible();
+    await expect(page.locator('#gmFast')).toBeHidden();
+    await page.locator('#gmSkip').click();
+    expect(await page.evaluate(() => window.__gm.now())).toBeGreaterThanOrEqual(r.count2 - 0.1);
+    await expect(page.locator('#gmSkip')).toBeHidden();
+    await page.keyboard.press('Escape');
+  });
+});

@@ -60,7 +60,10 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   deux fois un motif (dessiné sur Peu et Moyen), puis on le rejoue de mémoire, deux
   fois, sans guide, avec un métronome qui se tait sur certaines mesures ; sur Peu, une
   seule zone, seul le rythme compte ; le bilan compare à la fin de chaque manche.
-  **Comment jouer** : chaque jeu s'explique à sa première partie et depuis le choix. **Reprise** : toutes les 4 mesures (à chaque manche dans Écoute) un point
+  **Comment jouer** : chaque jeu s'explique à sa première partie et depuis le choix.
+  **Ralentir quand ça coince** (option) : la vitesse baisse par paliers jusqu'à 70 % et
+  revient quand on suit. **Passer** et **Accélérer** apparaissent quand il n'y a rien
+  à jouer tout de suite (intro, long silence, écoute, bilan). **Reprise** : toutes les 4 mesures (à chaque manche dans Écoute) un point
   de contrôle est gardé par jeu, chant ou rythme et nombre de notes, score compris ;
   on repart de là après une jauge vide, un abandon ou un rechargement. **Mes chants** :
   importer un fichier .poumtchak ou un .zip, gardé sur l'appareil ; c'est le son du

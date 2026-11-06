@@ -1,8 +1,9 @@
 // Un chant de test, fabriqué sur place : aucun vrai morceau dans le dépôt.
 /** Un petit fichier de chant : 120 BPM, poum et tchak en alternance, son de silence. */
-function fichierChant(titre = 'Mon <b>chant</b>') {
+function fichierChant(titre = 'Mon <b>chant</b>', trou = false) {
   const notes = [];
-  for (let i = 0; i < 16; i++) notes.push([2 + i * 0.5, 2 + i * 0.5, i % 2]);
+  for (let i = 0; i < 16; i++) if (!trou || i < 4 || i > 15) notes.push([2 + i * 0.5, 2 + i * 0.5, i % 2]);
+  if (trou) for (let i = 0; i < 4; i++) notes.push([10 + i * 0.5, 10 + i * 0.5, i % 2]);
   const entete = Buffer.from(JSON.stringify({ id: 'essai', title: titre, bpm: 120, dur: 12, drums: ['poum', 'tchak'], notes, downbeats: [2, 4, 6, 8, 10] }));
   const taux = 8000, n = taux * 12;
   const wav = Buffer.alloc(44 + n * 2);
