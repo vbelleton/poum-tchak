@@ -1702,7 +1702,7 @@ function gmChart(bars,meterKey,bpm,swing,game,lvl,nBars){
   return {notes,backing,beats,barDur,dur:n*barDur,nLanes:lanes.length,bars:barT};
 }
 /* Le verdict d'une frappe : même échelle que « Jouer sur l'écran », les coups en trop comptent comme ratés. */
-function gmVerdict(ms){const a=Math.abs(ms);return a<=40?{k:'perfect',txt:'Parfait',pts:100}:a<=85?{k:'good',txt:'Bien',pts:60}:{k:'approx',txt:ms<0?'Tôt':'Tard',pts:25};}
+function gmVerdict(ms,k){const a=Math.abs(ms),f=k||1;return a<=40*f?{k:'perfect',txt:'Parfait',pts:100}:a<=85*f?{k:'good',txt:'Bien',pts:60}:{k:'approx',txt:ms<0?'Tôt':'Tard',pts:25};}
 function gmPct(s){const n=s.perfect+s.good+s.approx+s.miss+s.extra;return n?Math.round(100*(s.perfect+s.good+0.5*s.approx)/n):0;}
 /* Un fichier de chant : "PTCH", version, longueur de l'en-tête, en-tête JSON, son.
    Il vient de l'extérieur : tout est vérifié avant d'être gardé. */
@@ -1868,6 +1868,14 @@ function gmLoopChart(song,lvl,bar,len){
   const src=gmSongChart(song,'couloirs',lvl).notes.filter(n=>n.t>=A-0.03&&n.t<B-0.03);
   const beatSrc=[];for(let b=i;b<j;b++)for(let k=0;k<4;k++)beatSrc.push({t:bars[b]+(bars[b+1]-bars[b])*k/4,accent:k===0});
   return {kind:'loop',notes:[],backing:[],beats:[],src,beatSrc,A,B,L,barDur:L/(j-i),dur:Infinity,nLanes:4,start:A,bars:[],barFrom:i,barTo:j};
+}
+/* Décalage (toujours dans le même sens : un problème de calage) et régularité (qui varie d'un coup à
+   l'autre : un problème de précision). Les deux se disent, pour savoir où chercher. */
+function gmTiming(offs){
+  const a=offs.slice().sort((x,y)=>x-y),med=a[a.length>>1],dev=a.map(x=>Math.abs(x-med)).sort((x,y)=>x-y),mad=dev[dev.length>>1]*1.48;
+  const bias=Math.abs(med)>=15?'tu frappes en moyenne '+Math.abs(Math.round(med))+' ms '+(med<0?'trop tôt':'trop tard'):'ton décalage est faible ('+Math.round(med)+' ms)';
+  const reg=mad<=25?'très régulier':mad<=45?'assez régulier':'irrégulier';
+  return 'Justesse : '+bias+', et tu es '+reg+' (±'+Math.round(mad)+' ms)'+(Math.abs(med)>=30&&mad<=45?'. Touche « Caler » pour corriger ce décalage':'');
 }
 const gmStars=p=>p>=95?3:p>=80?2:p>=60?1:0;
 //#pure-end
@@ -4589,6 +4597,18 @@ const gmToGame=T=>gm.g0+(T-gm.c0)*gm.rate;
 const gmToCtx=t=>gm.c0+(t-gm.g0)/gm.rate;
 const gmNow=()=>gmToGame(ctx.currentTime-Math.max(0,latency()));
 const gmTapAt=()=>gmToGame(ctx.currentTime-latency());
+/* L'instant réel du toucher, pas celui où le navigateur nous prévient : l'événement peut attendre une
+   image (16 ms et plus) avant d'arriver ici. Même conversion que pour le MIDI. */
+function gmEventAt(e){
+  try{
+    const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();
+    if(o&&o.performanceTime&&e&&e.timeStamp>0){
+      const lag=performance.now()-e.timeStamp;
+      if(lag>=0&&lag<150)return gmToGame(o.contextTime+(e.timeStamp-o.performanceTime)/1000-latency());
+    }
+  }catch(err){}
+  return gmTapAt();
+}
 function gmSetRate(r){
   const T=ctx.currentTime;
   gm.g0=gmToGame(T);gm.c0=T;gm.rate=r;
@@ -4670,7 +4690,7 @@ $('#gmFast').addEventListener('click',()=>{
   const f=gmFf(gmNow());if(!f||f.only)return;
   gm.ffOn=true;gm.ffTo=f.t;gmRateNow();
 });
-const gmWin=()=>{const c=gm.chart;return (c.spacing?Math.min(0.16,c.spacing*0.45):Math.min(0.16,c.barDur/8))*GM_TOL[gm.tol].win*(c.winK||1);};
+const gmWin=()=>{const c=gm.chart,base=c.spacing?Math.max(0.085,Math.min(0.16,c.spacing*0.5)):Math.min(0.16,c.barDur/8);return base*GM_TOL[gm.tol].win*(c.winK||1);};
 function gmScore(){
   $('#gmPts').textContent=gm.sc.pts;
   const combo=Math.min(4,1+Math.floor(gm.sc.streak/8));
@@ -4706,7 +4726,7 @@ function gmHit(lane,at,withSound){
   const sc=gm.sc;
   if(withSound)voice(best&&Math.abs(bd)<=win?best.id:GM_LANES[gm.game][lane].ids[0]||'tss',ctx.currentTime,(best?VEL[best.vel]:0.6)*(gm.song?0.75:1));
   if(best&&Math.abs(bd)<=win){
-    const v=gmVerdict(bd*1000/(gm.chart.winK||1));
+    const v=gmVerdict(bd*1000,GM_TOL[gm.tol].win*(gm.chart.winK||1));
     best.done=true;best.res=v.k;best.at=at;
     sc[v.k]++;sc.offs.push(bd*1000);gmGaugeMove(v.k);
     if(v.k!=='approx')sc.streak++;
@@ -4781,7 +4801,7 @@ $('#gmCv').addEventListener('pointerdown',e=>{
   e.preventDefault();
   if(gmSteers()){gmSteerTo(e);return;}
   const r=e.currentTarget.getBoundingClientRect();
-  gmHit(gmLaneAt(e.clientX-r.left),gmTapAt(),true);
+  gmHit(gmLaneAt(e.clientX-r.left),gmEventAt(e),true);
 });
 $('#gmCv').addEventListener('pointermove',e=>{if(gm.on&&gmSteers()&&(e.pointerType!=='mouse'||e.buttons))gmSteerTo(e);});
 document.addEventListener('keydown',e=>{
@@ -4794,7 +4814,7 @@ document.addEventListener('keydown',e=>{
   const lane=GM_KEYS[gm.game][e.key.toLowerCase()];
   if(lane==null)return;
   if(gmSteers()){gm.sx=lane?0.5:-0.5;return;}
-  gmHit(lane,gmTapAt(),true);
+  gmHit(lane,gmEventAt(e),true);
 },true);
 $('#gmQuit').addEventListener('click',gmHalt);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gm.on)gmHalt();});
@@ -5153,7 +5173,7 @@ function gmFinish(fell){
     '<p class="pr-score"><b>'+sc.pts+'</b> points · '+(before&&sc.pts>before?'<span class="new">nouveau record !</span>':'record : '+Math.max(before,sc.pts))+'</p></div></div>';
   h+='<div class="pr-sec"><p class="pr-k">Précision</p><p class="pr-score"><b>'+p+' %</b> à '+Math.round(gm.curBpm)+' BPM · '+GM_LV_TXT[gm.lvl]+' · tolérance '+GM_TOL[gm.tol].label.toLowerCase()+(gm.game==='rebonds'?' · '+GM_CTL[gm.ctl]:'')+'</p><p class="pr-hint">'+
     (fell?(gm.game==='rebonds'?'La balle est tombée : ':'')+'la jauge d\'erreurs est vide. ':'')+sc.perfect+' parfaits, '+sc.good+' bien, '+sc.approx+' approximatifs, '+sc.miss+' ratés, '+sc.extra+' en trop. Meilleure série : '+sc.best+'.'+
-    (Math.abs(med)>=25?' Tu joues plutôt '+(med<0?'en avance':'en retard')+' ('+Math.abs(Math.round(med))+' ms).':'')+
+    (offs.length>=8?' '+gmTiming(offs)+'.':'')+
     (slowed?' Ralenti jusqu\'à '+Math.round(gm.minRate*100)+' % : record à part.':'')+(gm.ckFrom?' Partie reprise à la '+gm.ckFrom+'.':'')+'</p></div>';
   h+='<div class="row pr-btns">'+(ck?'<button type="button" class="btn" id="gmResCk">Reprendre à la '+gmCkLabel(ck)+'</button>':'')+'<button type="button" class="btn'+(ck?' ghost':'')+'" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':ck?'Rejouer du début':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';
   sheetOpen(h);

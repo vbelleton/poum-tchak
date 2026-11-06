@@ -593,3 +593,21 @@ test.describe('Passer et Accélérer', () => {
     await page.keyboard.press('Escape');
   });
 });
+
+test.describe('Justesse', () => {
+  test('le bilan dit si on est décalé ou irrégulier', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs');
+    await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv'), r = cv.getBoundingClientRect(), larg = r.width / window.__gm.voies();
+      for (const n of window.__gm.notes()) {
+        while (window.__gm.on() && window.__gm.now() < n.t + 0.06) await new Promise((f) => setTimeout(f, 2));
+        if (!window.__gm.on()) break;
+        cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: r.left + larg * (n.lane + 0.5), clientY: r.top + 300 }));
+      }
+    });
+    await expect(page.locator('#mnRes')).toContainText('Justesse : tu frappes en moyenne', { timeout: 8000 });
+    await expect(page.locator('#mnRes')).toContainText('trop tard');
+    await expect(page.locator('#mnRes')).toContainText('très régulier');
+  });
+});
