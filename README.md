@@ -79,6 +79,9 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   descendent, grossissent et s'allument au moment de frapper. Son au choix :
   modèle + clic, clic seul, ou sans son (on n'entend que ses baguettes).
   « Enchaîner les 16 duos » passe de 1 contre 1 à 4 contre 4.
+  **Vue Orbites** : un cercle par main (gauche à l'extérieur, droite à l'intérieur),
+  un point qui fait le tour en une mesure, des lunes à frapper : 3 contre 2 se voit.
+  Le bilan donne des étoiles et, par main, le décalage et la régularité.
   Trois façons de travailler : **ensemble** ; **une main, puis l'autre** (comme
   sur le papier : la main qui fait le moins de coups seule, l'autre entre quand
   elle tient une mesure à 85 %, puis 2 mesures sans clic, et la séance

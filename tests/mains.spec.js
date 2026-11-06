@@ -438,3 +438,44 @@ test.describe('Mains : savoir ce qu\'on joue', () => {
     expect(vus.length).toBeGreaterThanOrEqual(3);
   });
 });
+
+test.describe('Mains : vue Orbites et bilan', () => {
+  test('la vue Orbites remplace les couloirs, se garde, et Comment jouer l\'explique', async ({ page }) => {
+    await ouvrir(page);
+    await expect(page.locator('#mnOrbit')).toBeHidden();
+    await page.locator('#mnView').getByRole('button', { name: 'Orbites' }).click();
+    await expect(page.locator('#mnOrbit')).toBeVisible();
+    await expect(page.locator('#mnLaneL')).toBeHidden();
+    await expect(page.locator('#mnViewTxt')).toContainText('cercle par main');
+    await page.reload();
+    await ouvrir(page);
+    await expect(page.locator('#mnOrbit')).toBeVisible();
+    await page.locator('#mnHow').click();
+    await expect(page.locator('#mnRes')).toContainText('le point blanc fait le tour');
+    await page.locator('#mnHowOk').click();
+  });
+
+  test('en jouant en Orbites : des lunes sont dessinées et le bilan donne étoiles et justesse par main', async ({ page }) => {
+    test.setTimeout(60_000);
+    await ouvrir(page);
+    await page.locator('#mnView').getByRole('button', { name: 'Orbites' }).click();
+    await choix(page, 'g', 3).click();
+    await choix(page, 'd', 2).click().catch(() => {});
+    await regler(page, 60);
+    await page.getByRole('button', { name: 'Jouer', exact: true }).first().click();
+    await expect(page.locator('#mnOrbit')).toBeVisible();
+    await page.waitForFunction(() => window.__mnExp('l') != null, null, { timeout: 8000 });
+    const peint = await page.evaluate(() => {
+      const cv = document.querySelector('#mnOrbit');
+      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 0 && (d[i] !== 16 || d[i + 1] !== 20)) n++;
+      return n;
+    });
+    expect(peint).toBeGreaterThan(500);
+    await jouer(page, ['l', 'r'], 14000);
+    await page.getByRole('button', { name: /Arrêter|Stop/ }).first().click().catch(() => {});
+    await expect(page.locator('#mnRes')).toContainText('Justesse', { timeout: 10_000 });
+    await expect(page.locator('#mnRes .gm-stars')).toBeVisible();
+  });
+});

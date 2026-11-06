@@ -699,6 +699,9 @@ body.cb-open{overflow:hidden}
 body.mn-live .mn-count{height:2.2em}
 @media (max-height:760px){.mn-lane{height:104px!important}.mn-pad{height:92px!important}.mn-stat{height:4.4em}.mn-line{margin:3px 0}.mn-row .mn-beat{height:34px}}
 .mn-side{min-width:0}
+.mn-orbit{display:none;width:100%;height:240px;max-height:36vh;margin:0 0 8px;border-radius:12px;background:#10141C}
+body[data-mnview="orbites"] .mn-orbit{display:block}
+body[data-mnview="orbites"] .mn-lane{display:none}
 .mn-lane{display:block;width:100%;height:130px;margin-bottom:4px}
 .mn-pad{appearance:none;width:100%;height:110px;border-radius:16px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface));color:var(--ink);font:800 20px var(--f-display);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .mn-pad small{font:500 12px var(--f-body);color:var(--muted)}
@@ -973,11 +976,20 @@ body.gm-live{overflow:hidden}
     </div>
     <div class="mn-say"><p class="mn-count" id="mnCount" aria-live="polite"></p><p class="mn-beatc" id="mnBeat" aria-hidden="true"></p></div>
     <div class="mn-goal" id="mnGoal" aria-live="polite"></div>
+    <canvas class="mn-orbit" id="mnOrbit" aria-hidden="true"></canvas>
     <div class="mn-pads" id="mnPads">
       <div class="mn-side"><p class="mn-do mn-dl" id="mnDoL"></p><p class="mn-stat" id="mnStatL"></p><canvas class="mn-lane" id="mnLaneL" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pl" id="mnPadL" aria-describedby="mnStatL">Gauche<small>touche F</small></button></div>
       <div class="mn-side"><p class="mn-do mn-dr" id="mnDoR"></p><p class="mn-stat" id="mnStatR"></p><canvas class="mn-lane" id="mnLaneR" aria-hidden="true"></canvas><button type="button" class="mn-pad mn-pr" id="mnPadR" aria-describedby="mnStatR">Droite<small>touche J</small></button></div>
     </div>
     <div class="ctrl" style="margin-top:12px">
+      <div class="seg" id="mnView" role="group" aria-label="Vue">
+        <button type="button" data-v="couloirs">Couloirs</button>
+        <button type="button" data-v="orbites">Orbites</button>
+      </div>
+      <button type="button" class="btn ghost" id="mnHow">Comment jouer</button>
+    </div>
+    <p class="hint" id="mnViewTxt"></p>
+    <div class="ctrl">
       <div class="seg" id="mnWay" role="group" aria-label="Façon de travailler">
         <button type="button" data-v="ensemble">Ensemble</button>
         <button type="button" data-v="empiler">Une main, puis l'autre</button>
@@ -3308,16 +3320,17 @@ const MN_OPTS=[
   {v:4,frac:'¼ temps',note:'doubles',kod:'ti-ri-ti-ri',tak:'ta-ka-di-mi',cnt:'1 é et a'},
   {v:0,frac:'1 → ¼',note:'change à chaque temps',kod:'ta · ti-ti · tri-o-let · ti-ri-ti-ri',tak:'ta · ta-di · ta-ki-da · ta-ka-di-mi',cnt:'1 · 2 et · 3 et a · 4 é et a'}
 ];
-const mn={on:false,sel:{l:2,r:1},sound:'tout',mode:'ensemble',pg:null,bs:{},barT:[],shown:null,mute:false,walk:false,midi:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1,exp:{l:[],r:[]},st:null};
+const mn={on:false,view:'couloirs',sel:{l:2,r:1},sound:'tout',mode:'ensemble',pg:null,bs:{},barT:[],shown:null,mute:false,walk:false,midi:false,bar:0,beat:0,nextT:0,timer:0,raf:0,q:[],cur:-1,exp:{l:[],r:[]},st:null};
 const mnArr=v=>v===-1?[0,0,0,0]:v===0?[1,2,3,4]:[v,v,v,v];
 const mnHand=h=>h==='l'?'gauche':'droite';
-function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({sel:mn.sel,sound:mn.sound,mode:mn.mode}));}catch(e){}}
+function mnSave(){try{localStorage.setItem(MN_KEY,JSON.stringify({sel:mn.sel,sound:mn.sound,mode:mn.mode,view:mn.view}));}catch(e){}}
 function mnLoad(){
   try{
     const o=JSON.parse(localStorage.getItem(MN_KEY)||'null');
     const ok=v=>[0,1,2,3,4].includes(v);
     if(o&&o.sel&&ok(o.sel.l)&&ok(o.sel.r))mn.sel={l:o.sel.l,r:o.sel.r};
     if(o&&['ensemble','empiler','ancre'].includes(o.mode))mn.mode=o.mode;
+    if(o&&['couloirs','orbites'].includes(o.view))mn.view=o.view;
     if(o&&['tout','clic','rien'].includes(o.sound))mn.sound=o.sound;
     else if(o&&o.model===false)mn.sound='clic';
   }catch(e){}
@@ -3370,6 +3383,10 @@ function mnRender(){
   [...$('#mnModel').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.sound)));
   [...$('#mnWay').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.mode)));
   $('#mnWayTxt').textContent=MN_WAY[mn.mode];
+  document.body.dataset.mnview=mn.view;
+  [...$('#mnView').children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===mn.view)));
+  $('#mnViewTxt').textContent=MN_VIEW[mn.view];
+  if(mn.view==='orbites')mnLanes();
   if(!(mn.on&&mn.walk))$('#mnMsg').textContent=mnText();
   if(mn.on)mnMark(mn.cur);
 }
@@ -3514,12 +3531,62 @@ function mnLanes(){
     });
     c.globalAlpha=1;
   });
+  mnOrbitDraw(now);
+}
+/* Orbites : un cercle par main, et un point qui fait le tour en une mesure. La phase vient de la grille
+   des temps déjà programmée : un tour = 4 temps. Les lunes sont les coups du rythme en cours ; elles
+   prennent la couleur du verdict quand on les a jouées. */
+function mnOrbitDraw(now){
+  const cv=$('#mnOrbit');
+  if(mn.view!=='orbites')return;
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,hh=cv.clientHeight;
+  if(!w||!hh)return;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr);}
+  const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,hh);
+  const bt=60/state.bpm,plan=mn.on?(mn.shown||mn.plan||mn.sel):mn.sel,TAU=Math.PI*2;
+  const cx=w/2,cy=hh/2,R=Math.min(w*0.44,hh*0.46),Rs={l:R,r:R*0.62};
+  const phase=t=>{const raw=mn.beat+(t-mn.nextT)/bt;return (((raw%4)+4)%4)/4;};
+  const cur=mn.on?phase(now):0;
+  const pos=(h,p)=>{const a=p*TAU-Math.PI/2;return {x:cx+Math.cos(a)*Rs[h],y:cy+Math.sin(a)*Rs[h],a};};
+  c.lineWidth=2;
+  ['l','r'].forEach(h=>{c.strokeStyle=mnCol[h];c.globalAlpha=0.35;c.beginPath();c.arc(cx,cy,Rs[h],0,TAU);c.stroke();c.globalAlpha=1;});
+  /* les quatre temps */
+  c.fillStyle='rgba(255,255,255,.35)';
+  for(let b=0;b<4;b++){const p=pos('l',b/4);c.save();c.translate(p.x,p.y);c.rotate(p.a);c.fillRect(R*0.06,-1,10,2);c.restore();}
+  c.font='600 12px "IBM Plex Mono",monospace';c.textAlign='center';c.textBaseline='middle';c.fillStyle='rgba(255,255,255,.55)';
+  for(let b=0;b<4;b++){const a=(b/4)*TAU-Math.PI/2;c.fillText(String(b+1),cx+Math.cos(a)*Rs.r*0.62,cy+Math.sin(a)*Rs.r*0.62);}
+  ['l','r'].forEach(h=>{
+    const v=plan[h];if(v===-1)return;
+    const arr=mnArr(v),base=Math.max(6,Math.min(11,R*0.07));
+    for(let b=0;b<4;b++)for(let k=0;k<arr[b];k++){
+      const p=(b+k/arr[b])/4,pt=pos(h,p);
+      let col=mnCol[h],a=0.55,rad=base;
+      if(mn.on){
+        const dp=((cur-p)%1+1)%1,tm=now-dp*4*bt;
+        const e=mn.exp[h].find(x=>Math.abs(x.t-tm)<0.06);
+        if(e&&e.res){col=e.res==='ok'?mnCol.ok:e.res==='warn'?mnCol.warn:mnCol.err;a=dp*4*bt<0.5?1-dp*4*bt:0.55;}
+        const ahead=((p-cur)%1+1)%1;
+        if(ahead<0.25)a=Math.max(a,0.55+0.45*(1-ahead*4));
+        if(ahead<0.03||dp*4*bt<0.06)rad=base*1.35;
+      }
+      c.globalAlpha=Math.min(1,a);c.fillStyle=col;c.beginPath();c.arc(pt.x,pt.y,rad,0,TAU);c.fill();
+    }
+    c.globalAlpha=1;
+  });
+  if(mn.on){
+    const a=cur*TAU-Math.PI/2;
+    c.strokeStyle='rgba(255,255,255,.22)';c.lineWidth=1.5;c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);c.stroke();
+    ['l','r'].forEach(h=>{const pt=pos(h,cur);c.fillStyle='#fff';c.beginPath();c.arc(pt.x,pt.y,6,0,TAU);c.fill();c.strokeStyle=mnCol[h];c.lineWidth=3;c.stroke();});
+  }
+  c.fillStyle='rgba(255,255,255,.6)';c.font='700 11px "Hanken Grotesk",system-ui,sans-serif';c.textAlign='left';c.textBaseline='top';
+  c.fillText('G · extérieur',10,8);c.textAlign='right';c.fillText('D · intérieur',w-10,8);
 }
 /* Façons de travailler. « Une main, puis l'autre » : comme sur le papier, une main
    seule jusqu'à ce qu'elle tienne, puis l'autre entre, puis le clic s'efface, puis les
    mains échangent leurs rythmes. « Main ancre » : une main garde son rythme, l'autre
    change toutes les 2 mesures ; au bout du tour, les rôles s'inversent. */
 const MN_OK=85,MN_NEED=1,MN_CONSEC=3;
+const MN_VIEW={couloirs:'Couloirs : les coups descendent au-dessus de chaque pad.',orbites:'Orbites : un cercle par main, un point qui fait le tour en une mesure. Frappe quand il passe sur une lune. Le cercle extérieur est la main gauche, l\'intérieur la droite : 3 lunes contre 2, tu vois les deux rythmes se croiser.'};
 const MN_WAY={
   ensemble:'Les deux mains jouent dès le début.',
   empiler:'Une main d\'abord (celle qui fait le moins de coups). Quand elle tient 2 mesures à 85 %, l\'autre entre. Quand les deux tiennent, 2 mesures sans clic, puis les mains échangent leurs rythmes.',
@@ -3816,6 +3883,17 @@ function mnStop(fromGoal){
   if(rec){if(inPc)prToast(rec.up);else mnResShow(rec);}
   keepAwake(false);updateControls();
 }
+$('#mnView').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.view=b.dataset.v;mnSave();mnRender();});
+$('#mnHow').addEventListener('click',()=>{
+  sheetOpen('<div class="pr-sec"><h3>Comment jouer à Mains</h3><ol class="gm-steps">'+
+    '<li>Choisis combien de coups chaque main fait par temps : un chiffre pour la gauche, un pour la droite.</li>'+
+    '<li>Appuie sur Jouer : une mesure de décompte, puis tape à gauche et à droite au bon moment. Au clavier : F pour la gauche, J pour la droite.</li>'+
+    '<li>Orbites : le point blanc fait le tour du cercle en une mesure ; frappe quand il passe sur une lune. L\'extérieur est la main gauche, l\'intérieur la droite.</li>'+
+    '<li>Chaque main est notée à part. Si ça coince, le tempo ralentit tout seul : pas d\'échec, tu reprends plus lentement.</li>'+
+    '<li>À la fin, le bilan donne tes étoiles et dit si tu es en avance, en retard ou irrégulier, main par main.</li></ol></div>'+
+    '<div class="row pr-btns"><button type="button" class="btn" id="mnHowOk">Compris</button></div>');
+  $('#mnHowOk').addEventListener('click',sheetClose);
+});
 $('#mnWay').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.mode=b.dataset.v;if(mn.mode!=='ensemble'){mn.walk=false;$('#mnWalk').checked=false;}mnSave();mnRender();if(mn.on){mnStop();mnPlay();}});
 $('#mnModel').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mn.sound=b.dataset.v;mnSave();mnRender();});
 $('#mnWalk').addEventListener('change',e=>{
@@ -4071,8 +4149,9 @@ function mnResShow(rec){
     sk=skills.find(s=>ids.includes(s.id))||null;
   }
   const acc=['l','r'].filter(h=>x.acc[h]!=null).map(h=>'<span><b>'+x.acc[h]+' %</b> '+mnName(h)+'</span>').join('');
+  const stars=gmStars(minA),timing=['l','r'].filter(h=>mn.st&&mn.st[h].offs.length>=8).map(h=>'<b>'+mnName(h)+'</b> : '+gmTiming(mn.st[h].offs.map(v=>v*1000))).join('<br>');
   let h='<button type="button" class="ib pr-x" id="mnResX" aria-label="Fermer le bilan"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
-  h+='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">'+(x.k==='duos'?'16':mnVal(x.l<0?x.r:x.l)+'·'+mnVal(x.r<0?x.l:x.r))+'</div><div><h3>'+prTitle(x)+'</h3>'+
+  h+='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">'+(x.k==='duos'?'16':mnVal(x.l<0?x.r:x.l)+'·'+mnVal(x.r<0?x.l:x.r))+'</div><div><h3>'+prTitle(x)+'</h3><p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>'+
     '<p class="pr-score"><b>'+x.score+'</b> points · '+(isRec?'<span class="new">nouveau record !</span>':'record : '+best)+'</p></div></div>';
   h+='<div class="pr-sec">'+(same.length>1?'<p class="pr-k">Tes '+Math.min(12,same.length)+' derniers scores sur cet exercice</p>'+prSpark(same.slice(-12),{min:0}):'<p class="pr-hint">Première séance sur cet exercice : rejoue-le pour voir ta courbe de progrès.</p>')+'</div>';
   if(sk){
@@ -4082,7 +4161,7 @@ function mnResShow(rec){
   h+='<div class="pr-sec pr-tempo"><div><span class="pr-k">Tempo</span><b>'+x.bpm+'</b><small>BPM</small></div>'+prGauge(x.bpm,next)+
     '<div class="nx"><span class="pr-k">Prochain</span><b>'+next+'</b><small>BPM</small></div></div>';
   h+='<div class="pr-sec"><p class="pr-k">Précision</p><p class="pr-acc">'+acc+'</p><p class="pr-hint">'+
-    (minA>=85?'Les deux mains tiennent : on peut monter.':minA<70?'Ça coince : on redescend un peu.':'Encore un essai à ce tempo pour passer à 85 %.')+(x.pf?' Parfait sur '+x.pf+' % des coups justes.':'')+'</p></div>';
+    (minA>=85?'Les deux mains tiennent : on peut monter.':minA<70?'Ça coince : on redescend un peu.':'Encore un essai à ce tempo pour passer à 85 %.')+(x.pf?' Parfait sur '+x.pf+' % des coups justes.':'')+'</p>'+(timing?'<p class="pr-hint">'+timing+'.</p>':'')+'</div>';
   h+='<div class="row pr-btns"><button type="button" class="btn" id="mnResGo">'+(next!==x.bpm?'Continuer à '+next+' BPM':'Rejouer')+'</button>'+
     (next!==x.bpm?'<button type="button" class="btn ghost" id="mnResAgain">Rejouer à '+x.bpm+'</button>':'')+'</div>';
   sheetOpen(h);
