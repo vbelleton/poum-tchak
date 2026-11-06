@@ -72,3 +72,33 @@ test.describe('Démarrage et rubriques', () => {
     }
   });
 });
+
+test.describe('Menu et batterie du haut', () => {
+  const places = (page) => page.evaluate(() => {
+    const r = (q) => document.querySelector(q).getBoundingClientRect();
+    return { menu: r('.tabs').top, batterie: r('.stage').top, hauteur: r('.stage').height, contenu: r('.stage').bottom };
+  });
+
+  test('rien ne bouge d\'une rubrique à l\'autre, et chacune s\'ouvre par son début', async ({ page }) => {
+    const depart = await places(page);
+    for (const nom of ['Parcours', 'Pratique', 'Jeux', 'Mains', 'Écoute', 'Mots', 'Rythme']) {
+      await page.getByRole('tab', { name: nom, exact: true }).click();
+      expect(await places(page)).toEqual(depart);
+    }
+    await page.getByRole('tab', { name: 'Mots', exact: true }).click();
+    await page.evaluate(() => window.scrollTo(0, 800));
+    await page.getByRole('tab', { name: 'Pratique', exact: true }).click();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test('le menu reste visible en descendant, et sa hauteur ne dépend pas du mot affiché', async ({ page }) => {
+    const depart = await places(page);
+    await page.locator('#word').evaluate((e) => { e.textContent = 'un mot vraiment beaucoup trop long pour tenir sur une seule ligne du téléphone'; });
+    await page.locator('#wsub').evaluate((e) => { e.textContent = 'poum + tchak + tss + doum + toum + tchaa + psch'; });
+    expect(await places(page)).toEqual(depart);
+    await page.getByRole('tab', { name: 'Mots', exact: true }).click();
+    await page.evaluate(() => window.scrollTo(0, 800));
+    expect((await places(page)).menu).toBe(0);
+    await expect(page.locator('.tabs')).toBeInViewport();
+  });
+});

@@ -368,13 +368,14 @@ test.describe('Mains : on ne te laisse pas échouer', () => {
 test.describe('Mains : vue de jeu', () => {
   test('pas de batterie en haut, indications au-dessus des pads, rien ne bouge', async ({ page }) => {
     await rubrique(page, 'Mains');
-    await expect(page.locator('.stage')).toBeHidden();
-    await expect(page.locator('#kit')).toBeHidden();
+    await expect(page.locator('.stage')).toBeVisible();
     await page.locator('#bpmIn').fill('120');
     await page.locator('#bpmIn').press('Enter');
     await page.locator('#mnColR .mn-opt[data-v="2"]').click();
     await page.locator('#play').click();
     await expect(page.locator('.tabs')).toBeHidden(); // pendant le jeu, seulement l'essentiel
+    await expect(page.locator('.stage')).toBeHidden();
+    await expect(page.locator('#kit')).toBeHidden();
     const y = () => page.evaluate(() => {
       const r = (s) => Math.round(document.querySelector(s).getBoundingClientRect().top);
       return [r('#mnPadL'), r('#mnPadR'), r('#mnLaneL'), r('#mnStatL'), r('#mnCount'), Math.round(scrollY)];

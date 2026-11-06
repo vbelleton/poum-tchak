@@ -62,13 +62,19 @@ button{font:inherit;color:inherit}
 .in{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 /* Scène */
-.stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
-.stage .in{padding-block:10px 12px}
-.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:40px}
-.wordbox{min-width:0}
-.word{font:800 clamp(28px,8.5vw,40px)/1 var(--f-display);letter-spacing:-.01em;color:var(--muted);transition:color .12s,transform .12s;transform-origin:left center;min-width:0;overflow-wrap:anywhere}
+/* Le menu reste au même endroit partout. La batterie aussi : elle ne disparaît plus d'une rubrique à
+   l'autre, garde sa hauteur quoi qu'il s'affiche, et ne reste collée que là où on joue en la regardant. */
+:root{--nav-h:60px}
+.navbar{position:sticky;top:0;z-index:6;background:var(--bg);padding-top:env(safe-area-inset-top,0px);border-bottom:1px solid var(--line)}
+.navbar .in{padding-block:0;padding-inline:6px}
+.stage{position:relative;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+body[data-tab="rythme"] .stage,body[data-tab="pratique"] .stage,body[data-tab="ecoute"] .stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--nav-h))}
+.stage .in{padding-block:8px 10px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;height:36px;overflow:hidden}
+.wordbox{min-width:0;display:flex;align-items:baseline;gap:8px;flex:1}
+.word{font:800 clamp(24px,7vw,32px)/1.1 var(--f-display);letter-spacing:-.01em;color:var(--muted);transition:color .12s,transform .12s;transform-origin:left center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .word.hot{color:var(--ink);transform:scale(1.04)}
-.wsub{font:500 11px/1.2 var(--f-mono);color:var(--muted);min-height:14px;margin-top:3px}
+.wsub{font:500 11px/1.2 var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .tempo-read{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
 .kit{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
 .ic{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
@@ -79,9 +85,14 @@ button{font:inherit;color:inherit}
 
 /* Rubriques */
 .wrap{padding-block:14px 8px}
-.tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
-.tabs [role=tab]{appearance:none;border:0;background:transparent;border-radius:9px;min-height:42px;padding:4px 2px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;touch-action:manipulation;min-width:0}
+.tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;height:var(--nav-h);align-items:center}
+.tabs [role=tab]{appearance:none;border:0;background:transparent;border-radius:10px;height:52px;padding:4px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-weight:700;font-size:11px;line-height:1.1;color:var(--muted);cursor:pointer;touch-action:manipulation;min-width:0}
+.tabs [role=tab] svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tabs [role=tab] span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:400px){.tabs [role=tab]{font-size:10.5px;letter-spacing:-.01em}}
 .tabs [role=tab][aria-selected=true]{background:var(--ink);color:var(--ink-inv)}
+@media (min-width:700px){.tabs [role=tab]{flex-direction:row;gap:7px;font-size:14px}}
+@media (max-height:520px){:root{--nav-h:44px}.tabs [role=tab]{height:38px}.tabs [role=tab] svg{display:none}.tabs [role=tab]{font-size:12px}}
 .panel{margin:0}
 .panel>.first{margin-top:4px}
 .foot{margin-top:28px;border-top:1px solid var(--line);padding-top:12px}
@@ -465,10 +476,9 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
   .tog,.tapb{padding:0 8px}
   .bpm button{width:32px}
   .bpm input{width:44px;font-size:16px}
-  .tabs [role=tab]{font-size:12px}
 }
-@media (max-width:560px){.tabs{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media (max-height:520px){.stage{position:static}}
+@media (max-height:520px){body[data-tab] .stage{position:relative;top:auto}}
+@media (max-width:560px){.ic .n{display:none}.ico{max-width:26px}.ic{padding:4px 1px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* Installer l'appli */
@@ -588,7 +598,7 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
 .mn-dl{--c:var(--c-doum)}.mn-dr{--c:var(--c-tchak)}
 @media (max-height:760px){body.mn-live .mn-time{display:none}}
 .mn-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-body[data-tab="mains"] .stage,body[data-tab="jeux"] .stage{display:none}
+body.mn-live .stage,body.mn-live .navbar{display:none}
 body[data-tab="parcours"] .dock,body[data-tab="mots"] .dock,body[data-tab="jeux"] .dock{display:none}
 body[data-tab="parcours"],body[data-tab="mots"],body[data-tab="jeux"]{padding-bottom:24px}
 body[data-tab="parcours"] .tempo-read,body[data-tab="mots"] .tempo-read{display:none}
@@ -764,6 +774,16 @@ body.gm-live{overflow:hidden}
   </defs>
 </svg>
 
+<nav class="navbar" aria-label="Menu"><div class="in"><div class="tabs" role="tablist" aria-label="Rubriques">
+  <button type="button" role="tab" id="t-parcours" aria-controls="p-parcours" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2.500 4 2.500 4H6"/></svg><span>Parcours</span></button>
+  <button type="button" role="tab" id="t-rythme" aria-controls="p-rythme" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18M9 5v14M15 5v14"/></svg><span>Rythme</span></button>
+  <button type="button" role="tab" id="t-pratique" aria-controls="p-pratique" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="9" rx="8" ry="3.500"/><path d="M4 9v7c0 2 3.600 3.500 8 3.500s8-1.500 8-3.500V9"/><path d="M14 3l5-1"/></svg><span>Pratique</span></button>
+  <button type="button" role="tab" id="t-jeux" aria-controls="p-jeux" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 10.500v4M6 12.500h4"/><circle cx="15.500" cy="11.500" r=".6"/><circle cx="17.500" cy="14" r=".6"/></svg><span>Jeux</span></button>
+  <button type="button" role="tab" id="t-mains" aria-controls="p-mains" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V6a1.500 1.500 0 0 1 3 0v5m0-6.500a1.500 1.500 0 0 1 3 0V11m0-5a1.500 1.500 0 0 1 3 0v8c0 4-2.500 7-6 7-3 0-4.500-1.500-6-4l-2-3.500a1.500 1.500 0 0 1 2.500-1.500L8 14"/></svg><span>Mains</span></button>
+  <button type="button" role="tab" id="t-ecoute" aria-controls="p-ecoute" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="7" rx="1.500"/><rect x="17" y="13" width="4" height="7" rx="1.500"/></svg><span>Écoute</span></button>
+  <button type="button" role="tab" id="t-mots" aria-controls="p-mots" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Mots</span></button>
+</div></div></nav>
+
 <header class="stage">
   <div class="in">
     <h1 class="sr">Poum Tchak, pupitre de batterie</h1>
@@ -776,16 +796,6 @@ body.gm-live{overflow:hidden}
 </header>
 
 <main class="in wrap" id="main" tabindex="-1">
-  <div class="tabs" role="tablist" aria-label="Rubriques">
-    <button type="button" role="tab" id="t-parcours" aria-controls="p-parcours" aria-selected="false" tabindex="-1">Parcours</button>
-    <button type="button" role="tab" id="t-rythme" aria-controls="p-rythme" aria-selected="true">Rythme</button>
-    <button type="button" role="tab" id="t-pratique" aria-controls="p-pratique" aria-selected="false" tabindex="-1">Pratique</button>
-    <button type="button" role="tab" id="t-jeux" aria-controls="p-jeux" aria-selected="false" tabindex="-1">Jeux</button>
-    <button type="button" role="tab" id="t-mains" aria-controls="p-mains" aria-selected="false" tabindex="-1">Mains</button>
-    <button type="button" role="tab" id="t-ecoute" aria-controls="p-ecoute" aria-selected="false" tabindex="-1">Écoute</button>
-    <button type="button" role="tab" id="t-mots" aria-controls="p-mots" aria-selected="false" tabindex="-1">Mots</button>
-  </div>
-
   <div class="pc-bar" id="pcBar" hidden role="region" aria-label="Étape du parcours">
     <p class="pc-bt" id="pcBarTxt" aria-live="polite"></p>
     <div class="pc-bb" id="pcBarBtns"></div>
@@ -3846,7 +3856,9 @@ function showTab(name,focus){
   /* Mesure, balancement, sons et modèles : les mêmes réglages en Rythme et en Pratique. */
   const slot=$('#slot-'+name);
   if(slot&&!slot.contains($('#rhythmCtl')))slot.appendChild($('#rhythmCtl'));
-  if(focus)$('#t-'+name).focus();
+  if(focus)$('#t-'+name).focus({preventScroll:true});
+  /* chaque rubrique s'ouvre par son début, sans animation */
+  window.scrollTo(0,0);
   save();
 }
 $('.tabs').addEventListener('click',e=>{const b=e.target.closest('[role=tab]');if(b)showTab(b.id.slice(2));});
