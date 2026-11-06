@@ -2,10 +2,11 @@
 const { test, expect, rubrique } = require('./outils/base');
 
 /** Lance une partie courte et rapide : 16 mesures à 200 BPM, soit moins de 20 s. */
-async function lancer(page, jeu, niveau = 'Facile', commande = 'Frapper') {
+async function lancer(page, jeu, notes = 'Peu', commande = 'Frapper', tolerance = 'Normal') {
   await rubrique(page, 'Jeux');
   await page.locator(`#gmGames [data-v="${jeu}"]`).click();
-  await page.locator('#gmLv').getByRole('button', { name: niveau }).click();
+  await page.locator('#gmLv').getByRole('button', { name: notes }).click();
+  await page.locator('#gmTol').getByRole('button', { name: tolerance }).click();
   if (jeu === 'rebonds') await page.locator('#gmCtl').getByRole('button', { name: commande }).click();
   for (let i = 0; i < 25; i++) await page.locator('#gmUp').click();
   await expect(page.locator('#gmBpm')).toHaveText('215 BPM');
@@ -53,7 +54,7 @@ test.describe('Chants importés', () => {
     await expect(puce).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#gmTempoRow')).toBeHidden();
 
-    await page.locator('#gmLv').getByRole('button', { name: 'Difficile' }).click();
+    await page.locator('#gmLv').getByRole('button', { name: 'Beaucoup' }).click();
     await page.locator('#gmGo').click();
     await expect(page.locator('#gm')).toBeVisible();
     await jouerParfait(page);
@@ -169,7 +170,7 @@ test.describe('Jeux', () => {
 
   test('Rebonds en mode Glisser : la balle suit le doigt et les tuiles sonnent toutes seules', async ({ page }) => {
     test.setTimeout(60_000);
-    await lancer(page, 'rebonds', 'Facile', 'Glisser');
+    await lancer(page, 'rebonds', 'Peu', 'Glisser');
     const pts = await page.evaluate(async () => {
       const cv = document.querySelector('#gmCv');
       const r = cv.getBoundingClientRect();
@@ -188,7 +189,7 @@ test.describe('Jeux', () => {
 
   test('Rebonds en mode Incliner : le capteur déplace la balle', async ({ page }) => {
     test.setTimeout(60_000);
-    await lancer(page, 'rebonds', 'Facile', 'Incliner');
+    await lancer(page, 'rebonds', 'Peu', 'Incliner');
     const rates = await page.evaluate(async () => {
       const incline = (g) => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { gamma: g, beta: 0, alpha: 0 }));
       incline(0);
@@ -202,11 +203,42 @@ test.describe('Jeux', () => {
     expect(rates).toBe(0);
   });
 
-  test('Rebonds : sans jouer, la balle tombe après cinq tuiles', async ({ page }) => {
+  test('Rebonds : sans jouer, la jauge se vide et la balle tombe', async ({ page }) => {
     test.setTimeout(60_000);
     await lancer(page, 'rebonds');
+    await expect(page.locator('#gmGauge')).toHaveAttribute('aria-valuenow', '100');
     await expect(page.locator('#mnRes')).toContainText('La balle est tombée', { timeout: 20_000 });
     await expect(page.locator('#gm')).toBeHidden();
+  });
+
+  test('Couloirs : sans jouer, la jauge se vide et la partie s\'arrête', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs');
+    await expect(page.locator('#mnRes')).toContainText('la jauge d\'erreurs est vide', { timeout: 25_000 });
+    await expect(page.locator('#gm')).toBeHidden();
+  });
+
+  test('la tolérance change la jauge, pas le nombre de notes', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="couloirs"]').click();
+    await page.locator('#gmLv').getByRole('button', { name: 'Moyen' }).click();
+    for (let i = 0; i < 25; i++) await page.locator('#gmUp').click();
+    const essai = async (tol) => {
+      await page.locator('#gmTol').getByRole('button', { name: tol }).click();
+      await page.locator('#gmGo').click();
+      await expect(page.locator('#gm')).toBeVisible();
+      const n = await page.evaluate(() => window.__gm.notes().length);
+      await page.waitForFunction(() => window.__gm.sc().miss >= 2, null, { timeout: 15_000 });
+      const g = await page.evaluate(() => window.__gm.gauge());
+      await page.locator('#gmQuit').click();
+      return { n, g };
+    };
+    const indulgent = await essai('Indulgent');
+    const strict = await essai('Strict');
+    expect(indulgent.n).toBe(strict.n);
+    expect(indulgent.g).toBeGreaterThan(0.7);
+    expect(strict.g).toBeLessThan(0.7);
   });
 
   test('Quitter revient au choix, sans bilan, et une autre rubrique arrête la partie', async ({ page }) => {
