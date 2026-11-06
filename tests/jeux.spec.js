@@ -398,7 +398,8 @@ test.describe('Écoute puis rejoue', () => {
     expect(coupe.muets).toBeGreaterThan(0);
     expect(coupe.tours[0]).toEqual([false, false]);
     expect(coupe.tours[1]).toEqual([false, false]);
-    expect(coupe.tours[2]).toEqual([false, true]);
+    expect(coupe.tours[2]).toEqual([false, false]);
+    expect(coupe.tours[3]).toEqual([false, true]);
     await page.locator('#gmClick').getByRole('button', { name: 'Toujours là' }).click();
     expect((await muets()).muets).toBe(0);
   });
@@ -451,5 +452,46 @@ test.describe('Écoute puis rejoue', () => {
     await page.waitForFunction(() => window.__gm.sons() > 0, null, { timeout: 8000 });
     await page.keyboard.press('Escape');
     expect(await page.evaluate(() => window.__gm.sons())).toBe(0);
+  });
+});
+
+test.describe('Comment jouer', () => {
+  test('chaque jeu a son explication, accessible depuis le choix', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    for (const [jeu, mot] of [['couloirs', 'ligne blanche'], ['rebonds', 'tuile'], ['orbite', 'lune'], ['ecoute', 'rond creux']]) {
+      await page.locator(`#gmGames [data-v="${jeu}"]`).click();
+      await page.locator('#gmHow').click();
+      await expect(page.locator('#mnRes')).toContainText(mot);
+      await page.locator('#gmHowOk').click();
+      await expect(page.locator('#mnRes')).toBeHidden();
+    }
+  });
+
+  test('la première partie de chaque jeu commence par l\'explication, une seule fois', async ({ page }) => {
+    await page.evaluate(() => { window.__howForce = true; });
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="orbite"]').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeHidden();
+    await page.locator('#gmHowOk').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+});
+
+test.describe('Écoute puis rejoue, niveaux', () => {
+  test('Peu : une seule zone, n\'importe quel pad compte ; Moyen : deux zones', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await page.locator('#gmGo').click();
+    expect(await page.evaluate(() => window.__gm.voies())).toBe(1);
+    await page.keyboard.press('Escape');
+    await page.locator('#gmLv').getByRole('button', { name: 'Moyen' }).click();
+    await page.locator('#gmGo').click();
+    expect(await page.evaluate(() => window.__gm.voies())).toBe(2);
+    await page.keyboard.press('Escape');
   });
 });

@@ -718,6 +718,9 @@ body.mn-live .mn-count{height:2.2em}
 .gm-go{width:100%;min-height:54px;font-size:17px}
 .gm-resume{width:100%;min-height:54px;font-size:17px;margin-bottom:8px}
 .gm-resume[hidden]{display:none}
+.gm-how{width:100%;margin-bottom:12px}
+.gm-steps{margin:0;padding-left:22px}
+.gm-steps li{margin:0 0 9px;line-height:1.4}
 .lp-bar{display:inline-flex;align-items:center;gap:6px}
 .lp-bar input{width:76px;min-height:44px;text-align:center;font:600 16px var(--f-mono)}
 .lp-bar button{appearance:none;width:44px;height:44px;border:1px solid var(--edge);border-radius:9px;background:var(--surface);font-size:20px;font-weight:700;cursor:pointer;touch-action:manipulation}
@@ -806,6 +809,7 @@ body.gm-live{overflow:hidden}
     <h2 class="sr">Jeux</h2>
     <p class="hint first">Tes rythmes et tes chants en jeux : tape les notes qui arrivent. Une jauge d'erreurs se vide quand tu rates, et la partie s'arrête quand elle est vide. Le nombre de notes et la tolérance se règlent séparément.</p>
     <div class="gm-games" id="gmGames" role="group" aria-label="Choisir un jeu"></div>
+    <button type="button" class="btn ghost gm-how" id="gmHow"></button>
     <div class="gm-opts">
       <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p></div>
       <div><span class="lab" id="lab-gmCh">Mes chants</span><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
@@ -1778,22 +1782,23 @@ function gmOrbitChart(bars,perBar,lvl,from,to){
   }
   return {notes,spacing:med/(perBar*sub),sub,nLanes:1,perBar};
 }
-/* Écoute puis rejoue : le clic reste sur le premier passage et sur les deux premières manches, puis
+/* Écoute puis rejoue : le clic reste sur le premier passage et sur les trois premières manches, puis
    la dernière mesure du second passage se tait, puis tout ce second passage. */
 function gmEchoCut(round,pass,bar,nBars){
-  if(pass===0||round<2)return false;
-  return round<5?bar===nBars-1:true;
+  if(pass===0||round<3)return false;
+  return round<6?bar===nBars-1:true;
 }
-/* Une manche : compte, motif entendu, compte, deux passages à reproduire sans rien voir, bilan.
+/* Une manche : compte, motif entendu deux fois, compte, deux passages à reproduire, bilan. Les motifs
+   les plus simples viennent d'abord. Sur « Peu », seul le rythme compte : une zone, un doigt.
    src : bars (débuts + fin), perBar, notes à reproduire, others (le reste de l'accompagnement). */
 function gmEchoChart(src,lvl,total,keepClick){
   const bars=src.bars,nb=bars.length-1,inBar=(list,a,b)=>list.filter(n=>n.t>=a-0.02&&n.t<b-0.02);
-  const sig=(i,n)=>{const a=bars[i],L=bars[i+n]-a;return inBar(src.notes,a,bars[i+n]).map(x=>Math.round((x.t-a)/L*16)+':'+x.lane).join(',');};
-  const fits=(i,n)=>{if(i+n>nb)return false;const c=inBar(src.notes,bars[i],bars[i+n]).length;return c>=2&&c<=14*n;};
-  const rounds=[],notes=[],backing=[],beats=[],clips=[],seen=new Set(),GAP=2.4;
-  let T=0;
+  const one=lvl==='facile',maxPer=lvl==='moyen'?10:14;
+  const sig=(i,n)=>{const a=bars[i],L=bars[i+n]-a;return inBar(src.notes,a,bars[i+n]).map(x=>Math.round((x.t-a)/L*16)+':'+(one?0:x.lane)).join(',');};
+  const fits=(i,n)=>{if(i+n>nb)return false;const c=inBar(src.notes,bars[i],bars[i+n]).length;return c>=2&&c<=maxPer*n;};
+  const picks=[],seen=new Set();
   for(let r=0;r<total;r++){
-    let n=lvl==='facile'||r<3?1:2,pick=-1,loose=-1;
+    let n=one||r<3?1:2,pick=-1,loose=-1;
     if(n>nb)n=1;
     const start=Math.floor(r*nb/total);
     for(let k=0;k<nb&&pick<0;k++){
@@ -1805,19 +1810,27 @@ function gmEchoChart(src,lvl,total,keepClick){
     if(pick<0)pick=loose;
     if(pick<0)continue;
     seen.add(sig(pick,n));
-    const A=bars[pick],B=bars[pick+n],L=B-A,d0=bars[pick+1]-A,idx=rounds.length;
+    picks.push({pick,n,c:inBar(src.notes,bars[pick],bars[pick+n]).length});
+  }
+  picks.sort((x,y)=>x.n-y.n||x.c-y.c);
+  const rounds=[],notes=[],backing=[],beats=[],clips=[],GAP=2.4;
+  let T=0;
+  picks.forEach(({pick,n},idx)=>{
+    const A=bars[pick],B=bars[pick+n],L=B-A,d0=bars[pick+1]-A;
     const barsAt=[];for(let j=0;j<=n;j++)barsAt.push(bars[pick+j]-A);
-    const motif=inBar(src.notes,A,B).map(x=>({off:x.t-A,lane:x.lane,id:x.id,vel:x.vel}));
+    const motif=inBar(src.notes,A,B).map(x=>({off:x.t-A,lane:one?0:x.lane,id:x.id,vel:x.vel}));
     const rest=inBar(src.others||[],A,B).map(x=>({off:x.t-A,id:x.id,vel:x.vel}));
     const click=(at,dur,mute)=>{for(let k=0;k<src.perBar;k++)beats.push({t:at+dur*k/src.perBar,accent:k===0,mute:!!mute});};
-    const rd={t:T,n,L,barsAt,count:motif.length,passes:[],at:pick};
+    const rd={t:T,n,L,barsAt,count:motif.length,passes:[],at:pick,motif};
     click(T,d0);T+=d0;
     rd.listen=T;
-    clips.push({t:T,off:A,dur:L});
-    motif.forEach(x=>backing.push({t:T+x.off,id:x.id,vel:x.vel}));
-    rest.forEach(x=>backing.push({t:T+x.off,id:x.id,vel:x.vel}));
-    for(let j=0;j<n;j++)click(T+barsAt[j],barsAt[j+1]-barsAt[j]);
-    T+=L;
+    for(let e=0;e<2;e++){
+      clips.push({t:T,off:A,dur:L});
+      motif.forEach(x=>backing.push({t:T+x.off,id:x.id,vel:x.vel}));
+      rest.forEach(x=>backing.push({t:T+x.off,id:x.id,vel:x.vel}));
+      for(let j=0;j<n;j++)click(T+barsAt[j],barsAt[j+1]-barsAt[j]);
+      T+=L;
+    }
     rd.count2=T;click(T,d0);T+=d0;
     rd.play=T;
     for(let p=0;p<2;p++){
@@ -1829,10 +1842,10 @@ function gmEchoChart(src,lvl,total,keepClick){
     }
     rd.end=T;T+=GAP;
     rounds.push(rd);
-  }
+  });
   backing.sort((a,b)=>a.t-b.t);
   return {kind:'echo',notes,backing,beats,clips,rounds,bars:rounds.map(r=>r.t).concat(T),ckStep:1,ckUnit:'manche',
-    barDur:rounds.length?rounds[0].L/rounds[0].n:2,dur:rounds.length?T-0.6:0,nLanes:2,winK:1.25,start:0,perBar:src.perBar};
+    barDur:rounds.length?rounds[0].L/rounds[0].n:2,dur:rounds.length?T-0.6:0,nLanes:one?1:2,winK:one?1.6:1.3,start:0,perBar:src.perBar};
 }
 /* Un passage qui tourne : les notes d'un tour, recopiées au fil de la partie (voir gmLoopFeed). */
 function gmLoopChart(song,lvl,bar,len){
@@ -4087,14 +4100,21 @@ const GM_KEY='poumtchak.jeux';
 const GM_INFO={
   couloirs:{name:'Couloirs',txt:'Des notes descendent dans quatre colonnes : tape chacune quand elle touche la ligne.'},
   rebonds:{name:'Rebonds',txt:'Une balle saute de tuile en tuile : glisse le doigt, incline le téléphone ou frappe. Jauge d\'erreurs vide : elle tombe.'},
-  orbite:{name:'Orbite',txt:'Un seul bouton : le point fait le tour en une mesure. Tape quand il touche une lune, à chaque temps ou subdivision.'},
-  ecoute:{name:'Écoute puis rejoue',txt:'Écoute un motif, puis rejoue-le de mémoire, sans rien à l\'écran. Le métronome se tait sur certaines mesures.'}
+  orbite:{name:'Orbite',txt:'Un point tourne, un tour par mesure. Tape n\'importe où sur l\'écran quand il arrive sur la lune entourée.'},
+  ecoute:{name:'Écoute puis rejoue',txt:'Écoute un petit motif deux fois, puis rejoue-le de mémoire. Le bilan montre ce que tu as joué.'}
 };
 const GM_KEYS={couloirs:{d:0,f:1,j:2,k:3},rebonds:{f:0,j:1,arrowleft:0,arrowright:1},orbite:{' ':0,enter:0,f:0,j:0},ecoute:{f:0,j:1,arrowleft:0,arrowright:1}};
 const GM_CLICK={coupe:'Se coupe',toujours:'Toujours là'};
-const GM_CLICK_HINT={coupe:'Dès la 3e manche, le clic se tait sur la fin du second passage, puis sur tout ce passage à partir de la 6e.',toujours:'Le clic reste sur toutes les mesures : pour apprendre les motifs.'};
+const GM_CLICK_HINT={coupe:'Dès la 4e manche, le clic se tait sur la fin du second passage, puis sur tout ce passage à partir de la 7e.',toujours:'Le clic reste sur toutes les mesures : pour apprendre les motifs.'};
+const GM_LV_ECHO={facile:'Peu : une seule zone, seul le rythme compte. Pendant l\'écoute, le motif est dessiné.',moyen:'Moyen : poum à gauche, tchak à droite. Pendant l\'écoute, le motif est dessiné.',difficile:'Beaucoup : poum à gauche, tchak à droite, motifs chargés et rien de dessiné.'};
 const GM_LV_ORBIT={facile:'Peu : une lune par temps.',moyen:'Moyen : une lune par croche (deux par temps).',difficile:'Beaucoup : une lune par double croche ; des croches si le tempo est trop rapide pour un doigt.'};
 const GM_CK_STEP=4;
+const GM_HOW={
+  couloirs:['Des notes descendent dans quatre colonnes : poum, tchak, tss, doum.','Tape la bonne colonne à l\'instant où la note touche la ligne blanche. Au clavier : D, F, J, K.','Taper trop ou rater vide la jauge du haut. Quand elle est vide, la partie s\'arrête, et tu peux la reprendre au dernier point de contrôle.'],
+  rebonds:['Une balle saute de tuile en tuile : poum à gauche, tchak à droite.','Glisser : amène la balle au-dessus de la prochaine tuile, le coup sonne tout seul. Incliner : pareil en penchant le téléphone. Frapper : tape à gauche ou à droite au bon moment.','Chaque tuile ratée vide la jauge. Quand elle est vide, la balle tombe, et tu peux reprendre au dernier point de contrôle.'],
+  orbite:['Le point blanc tourne autour du soleil : un tour complet dure une mesure.','Les ronds posés sur le cercle sont des lunes. La prochaine à toucher est entourée de blanc.','Tape n\'importe où sur l\'écran à l\'instant où le point arrive dessus. Pas besoin de viser : un seul bouton, c\'est l\'écran entier.','Peu : 4 lunes par tour, une par temps. Moyen : 8. Beaucoup : 16. Commence par Peu, en écoutant le chant : les lunes tombent sur ses temps.'],
+  ecoute:['Écoute : un petit motif du chant passe deux fois, avec le clic. Sur Peu et Moyen, il est aussi dessiné.','À toi : après quatre clics, rejoue-le deux fois de suite, de mémoire. Sur Peu, tape n\'importe où : seul le rythme compte. Sur Moyen et Beaucoup, poum à gauche, tchak à droite.','Rien ne te guide pendant que tu joues, et c\'est voulu. À la fin de la manche, le bilan compare : rond creux, ce qu\'il fallait jouer ; rond plein, ce que tu as joué.','À partir de la 4e manche, le clic se coupe sur certaines mesures : garde le tempo dans ta tête. Tu peux le laisser avec « Toujours là ».']
+};
 const LP_KEY='poumtchak.boucle',LP_LENS=[1,2,4,8];
 const lp={id:'',bar:0,len:4,lvl:'moyen'};
 try{const o=JSON.parse(localStorage.getItem(LP_KEY)||'null');if(o){
@@ -4239,7 +4259,9 @@ function gmRender(){
   const ctl=$('#gmCtl');ctl.textContent='';
   Object.entries(GM_CTL).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.ctl===id));ctl.appendChild(b);});
   $('#gmCtlHint').textContent=GM_CTL_HINT[gm.ctl];
-  $('#gmLvHint').hidden=gm.game!=='orbite';$('#gmLvHint').textContent=GM_LV_ORBIT[gm.lvl];
+  const lvH=gm.game==='orbite'?GM_LV_ORBIT:gm.game==='ecoute'?GM_LV_ECHO:null;
+  $('#gmLvHint').hidden=!lvH;$('#gmLvHint').textContent=lvH?lvH[gm.lvl]:'';
+  $('#gmHow').textContent='Comment jouer à '+GM_INFO[gm.game].name;
   $('#gmClickRow').hidden=gm.game!=='ecoute';
   const clk=$('#gmClick');clk.textContent='';
   Object.entries(GM_CLICK).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.click===id));clk.appendChild(b);});
@@ -4325,7 +4347,20 @@ async function gmGoSong(song,ck){
   }catch(e){say('Impossible de lire le son de ce chant sur cet appareil.');}
   gm.busy=false;btn.disabled=false;$('#gmResume').disabled=false;
 }
+/* Comment jouer : proposé à la première partie de chaque jeu, et toujours accessible depuis le choix. */
+const GM_SEEN_KEY='poumtchak.jeux.vus';
+let gmSeen={};try{gmSeen=JSON.parse(localStorage.getItem(GM_SEEN_KEY)||'{}')||{};}catch(e){}
+function gmHowOpen(then){
+  const g=GM_INFO[gm.game];
+  gmSeen[gm.game]=1;try{localStorage.setItem(GM_SEEN_KEY,JSON.stringify(gmSeen));}catch(e){}
+  sheetOpen('<div class="pr-sec"><h3>Comment jouer à '+g.name+'</h3>'+gmArt(gm.game)+'<ol class="gm-steps">'+GM_HOW[gm.game].map(x=>'<li>'+x+'</li>').join('')+'</ol></div>'+
+    '<div class="row pr-btns"><button type="button" class="btn" id="gmHowOk">'+(then?'Compris, on joue':'Compris')+'</button></div>');
+  $('#gmHowOk').addEventListener('click',()=>{sheetClose();if(then)then();});
+}
+$('#gmHow').addEventListener('click',()=>gmHowOpen());
 async function gmLaunch(ck){
+  /* tests automatiques : pas d'explication imposée, sauf demande */
+  if(!gmSeen[gm.game]&&(!navigator.webdriver||window.__howForce)){gmHowOpen(()=>gmLaunch(ck));return;}
   if(gmSteers()&&gm.ctl==='incliner'&&!gm.tiltOk){
     ensureAudio();gm.tiltOk=await gmTiltAsk();
     if(!gm.tiltOk){gm.ctl='glisser';gmSave();gmRender();$('#gmMsg').textContent='Capteur refusé : on passe à « Glisser ».';}
@@ -4543,13 +4578,14 @@ function gmGaugeSet(v){
 }
 function gmGaugeMove(kind){
   if(gm.loop)return; /* une boucle ne s'arrête pas toute seule */
-  const t=GM_TOL[gm.tol],loss=1/(t.n*(gm.chart.kind==='echo'?2:1));
+  const t=GM_TOL[gm.tol],loss=1/(t.n*(gm.chart.kind==='echo'?3:1));
   gmGaugeSet(gm.gauge+{perfect:t.rec*loss,good:t.rec*loss,approx:t.rec*loss*0.4,miss:-loss,extra:-loss*0.5}[kind]);
   if(gm.gauge<=0&&!gm.ended){gm.ended=true;gm.fallAt=gmNow();setTimeout(()=>gmFinish(true),700);}
 }
 /* Une frappe : `lane` = colonne ou côté, `at` = l'instant sur l'horloge de la partie. */
 function gmHit(lane,at,withSound){
-  if(!gm.on||gm.ended||lane>=gm.chart.nLanes||gmSteers())return;
+  if(!gm.on||gm.ended||gmSteers())return;
+  if(gm.chart.nLanes===1)lane=0; /* une seule zone : tout pad, toute touche compte */
   gm.flash[lane]=gmNow();
   const win=gmWin();let best=null,bd=1e9;
   for(const n of gm.chart.notes){
@@ -4561,7 +4597,7 @@ function gmHit(lane,at,withSound){
   const sc=gm.sc;
   if(withSound)voice(best&&Math.abs(bd)<=win?best.id:GM_LANES[gm.game][lane].ids[0]||'tss',ctx.currentTime,(best?VEL[best.vel]:0.6)*(gm.song?0.75:1));
   if(best&&Math.abs(bd)<=win){
-    const v=gmVerdict(bd*1000);
+    const v=gmVerdict(bd*1000/(gm.chart.winK||1));
     best.done=true;best.res=v.k;best.at=at;
     sc[v.k]++;sc.offs.push(bd*1000);gmGaugeMove(v.k);
     if(v.k!=='approx')sc.streak++;
@@ -4862,6 +4898,7 @@ function gmDrawOrbit(cx,now){
   const base=Math.max(6,Math.min(13,R*0.08));
   for(let k=0;k<c.perBar;k++){const p=pos(k/c.perBar),L=k?5:10;cx.save();cx.translate(p.x,p.y);cx.rotate(p.a);cx.fillRect(base*1.6,-1,L,2);cx.restore();}
   /* les lunes du prochain tour */
+  const nxt=c.notes.slice(gm.nextMiss,gm.nextMiss+4).find(n=>!n.done);
   for(const n of c.notes){
     if(n.t<now-0.5)continue;
     const l=gmLap(n.t),ahead=l-lapNow;
@@ -4872,6 +4909,7 @@ function gmDrawOrbit(cx,now){
     cx.fillStyle=n.res==='miss'?'#6F7A8C':gm.col[n.id]||'#fff';
     cx.beginPath();cx.arc(p.x,p.y,base*big*(n.res==='miss'?0.7:1),0,TAU);cx.fill();
     cx.globalAlpha=1;
+    if(n===nxt){cx.strokeStyle='#fff';cx.lineWidth=2.5;cx.beginPath();cx.arc(p.x,p.y,base*big+5,0,TAU);cx.stroke();}
   }
   /* la traîne s'allonge avec la série, et le point */
   const dot=pos(lapNow),tail=Math.min(0.32,0.05+gm.sc.streak*0.008);
@@ -4890,9 +4928,10 @@ function gmDrawOrbit(cx,now){
   cx.textBaseline='middle';
   gmDrawPops(cx,now,()=>mx,my-R-34,W/2,true);
   cx.fillStyle='#B7C0CF';cx.font='700 16px "Hanken Grotesk",system-ui,sans-serif';cx.textAlign='center';
-  cx.fillText(matchMedia('(hover:hover)').matches?'Tape, ou barre d\'espace, quand le point touche une lune':'Tape partout quand le point touche une lune',mx,Math.min(H-34,my+R+60));
-  const d0=gm.count.length&&now<gm.from;
-  if(d0){cx.fillStyle='#090B14';cx.beginPath();cx.arc(mx,my,sun*1.2,0,TAU);cx.fill();cx.fillStyle='#fff';cx.font='800 '+Math.round(sun*1.1)+'px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(String(Math.ceil((gm.from-now)/gm.countBeat)),mx,my+1);}
+  cx.fillText(matchMedia('(hover:hover)').matches?'Tape, ou barre d\'espace, quand le point arrive sur la lune entourée':'Tape quand le point touche la lune entourée',mx,Math.min(H-34,my+R+60));
+  /* le décompte des quatre derniers temps avant la première lune, sur un chant aussi */
+  const beatT=c.spacing*c.sub,left=Math.ceil((gm.firstT-now)/beatT);
+  if(now<gm.firstT&&left<=c.perBar){cx.fillStyle='#090B14';cx.beginPath();cx.arc(mx,my,sun*1.2,0,TAU);cx.fill();cx.fillStyle='#fff';cx.font='800 '+Math.round(sun*1.1)+'px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(String(left),mx,my+1);}
 }
 /* Écoute puis rejoue : pendant qu'on rejoue, rien d'autre que les deux zones. Le verdict vient après. */
 function gmEchoRound(now){
@@ -4908,11 +4947,12 @@ function gmEchoPct(i){
 function gmDrawEcho(cx,now){
   const W=gm.w,H=gm.h,c=gm.chart,i=gmEchoRound(now),r=c.rounds[i],beatOf=(a,b)=>(b-a)/c.perBar;
   cx.fillStyle='#0B0E14';cx.fillRect(0,0,W,H);
-  [0,1].forEach(k=>{
-    const age=now-gm.flash[k],x=k*W/2;
-    if(age>=0&&age<0.14){cx.fillStyle='rgba(255,255,255,'+(0.16*(1-age/0.14)).toFixed(3)+')';cx.fillRect(x,0,W/2,H);}
-  });
-  cx.fillStyle='#262D39';cx.fillRect(W/2-0.5,H*0.72,1,H*0.2);
+  const zones=c.nLanes;
+  for(let k=0;k<zones;k++){
+    const age=now-gm.flash[k],zw=W/zones,x=k*zw;
+    if(age>=0&&age<0.14){cx.fillStyle='rgba(255,255,255,'+(0.16*(1-age/0.14)).toFixed(3)+')';cx.fillRect(x,0,zw,H);}
+  }
+  if(zones>1){cx.fillStyle='#262D39';cx.fillRect(W/2-0.5,H*0.72,1,H*0.2);}
   cx.textAlign='center';cx.textBaseline='middle';
   cx.fillStyle='#97A1B2';cx.font='600 15px "IBM Plex Mono",monospace';
   cx.fillText('Manche '+(i+1)+' sur '+c.rounds.length,W/2,H*0.13);
@@ -4920,7 +4960,11 @@ function gmDrawEcho(cx,now){
   const small=(t,y,col)=>{cx.fillStyle=col||'#B7C0CF';cx.font='600 16px "Hanken Grotesk",system-ui,sans-serif';cx.fillText(t,W/2,y);};
   const digit=(end,start)=>{cx.fillStyle='#fff';cx.font='800 64px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(String(Math.max(1,Math.ceil((end-now)/beatOf(start,end)))),W/2,H*0.42);};
   if(now<r.listen){small('Écoute bien…',H*0.28);digit(r.listen,r.t);}
-  else if(now<r.count2){big('Écoute',H*0.4);small(r.n>1?'Un motif de deux mesures':'Un motif d\'une mesure',H*0.4+40);}
+  else if(now<r.count2){
+    const guide=gm.lvl!=='difficile',y=guide?H*0.26:H*0.4;
+    big('Écoute',y);small((now<r.listen+r.L?'Première':'Seconde')+' écoute'+(r.n>1?' · deux mesures':''),y+40);
+    if(guide)gmDrawEchoGuide(cx,r,(now-r.listen)%r.L);
+  }
   else if(now<r.play){small('À toi, de mémoire…',H*0.28);digit(r.play,r.count2);}
   else if(now<r.end){
     const p=now<r.passes[1].t?0:1,P=r.passes[p];
@@ -4928,11 +4972,24 @@ function gmDrawEcho(cx,now){
     big('À toi',H*0.4);
     small(P.cuts[bar]?'Clic coupé : garde le tempo':p?'Encore une fois':'Rejoue le motif',H*0.4+40,P.cuts[bar]?'#F2BB4A':null);
   }else gmDrawEchoRes(cx,i,r);
+  if(zones===1){small(matchMedia('(hover:hover)').matches?'Tape partout, ou F et J':'Tape partout : seul le rythme compte',H*0.82);return;}
   [['poum',0],['tchak',1]].forEach(([id,k])=>{
     const x=k*W/2+W/4,y=H*0.82;
     cx.fillStyle=gm.col[id];cx.font='800 21px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(singleWord(dict,id),x,y);
     if(matchMedia('(hover:hover)').matches){cx.fillStyle='#97A1B2';cx.font='500 12px "IBM Plex Mono",monospace';cx.fillText('FJ'[k],x,y+24);}
   });
+}
+/* Pendant l'écoute seulement : le motif dessiné, et un curseur qui le parcourt. */
+function gmDrawEchoGuide(cx,r,off){
+  const W=gm.w,H=gm.h,x0=28,w=W-56,y=H*0.48,one=gm.chart.nLanes===1,gapY=one?0:44;
+  for(let l=0;l<gm.chart.nLanes;l++){cx.fillStyle='#262D39';cx.fillRect(x0,y+l*gapY,w,2);}
+  r.barsAt.forEach(a=>{cx.fillStyle='#39414F';cx.fillRect(x0+a/r.L*w-0.5,y-14,1,28+gapY);});
+  r.motif.forEach(n=>{
+    const x=x0+n.off/r.L*w,ly=y+1+n.lane*gapY,past=off>=n.off&&off<n.off+0.2;
+    cx.fillStyle=gm.col[n.id]||'#fff';
+    cx.beginPath();cx.arc(x,ly,past?13:9,0,Math.PI*2);cx.fill();
+  });
+  cx.fillStyle='#fff';cx.fillRect(x0+off/r.L*w-1,y-20,2,40+gapY);
 }
 /* Le bilan de la manche : ce qu'il fallait jouer (rond creux), ce que tu as joué (rond plein). */
 function gmDrawEchoRes(cx,i,r){
@@ -4944,9 +5001,9 @@ function gmDrawEchoRes(cx,i,r){
     const y=H*0.3+p*H*0.2;
     cx.fillStyle='#97A1B2';cx.font='600 13px "Hanken Grotesk",system-ui,sans-serif';cx.textAlign='left';
     cx.fillText(p?(P.cuts.some(Boolean)?'Second passage, clic coupé':'Second passage'):'Premier passage',14,y-2);
-    [['poum',0],['tchak',1]].forEach(([id,lane])=>{
+    (gm.chart.nLanes===1?[['',0]]:[['poum',0],['tchak',1]]).forEach(([id,lane])=>{
       cx.fillStyle='#262D39';cx.fillRect(x0,y+18+lane*26,w,1);
-      cx.fillStyle=gm.col[id];cx.font='700 12px "Hanken Grotesk",system-ui,sans-serif';cx.fillText(singleWord(dict,id),14,y+18+lane*26);
+      if(id){cx.fillStyle=gm.col[id];cx.font='700 12px "Hanken Grotesk",system-ui,sans-serif';cx.fillText(singleWord(dict,id),14,y+18+lane*26);}
     });
     const X=t=>x0+Math.max(0,Math.min(1,(t-P.t)/r.L))*w;
     ns.filter(n=>n.p===p).forEach(n=>{
