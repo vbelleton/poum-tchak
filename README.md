@@ -50,8 +50,10 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
 - **Jeux** : tes rythmes (les modèles ou ta grille) en jeux d'arcade, où c'est toi
   qui fais la batterie : un coup raté manque à la musique. **Couloirs** : des notes
   descendent dans quatre colonnes (poum, tchak, tss, doum ; touches D F J K).
-  **Rebonds** : une balle saute de tuile en tuile, poum à gauche, tchak à droite
-  (touches F et J) ; cinq tuiles ratées et elle tombe. Trois niveaux, tempo au choix,
+  **Rebonds** : une balle saute de tuile en tuile, poum à gauche, tchak à droite ;
+  on la dirige du doigt, en inclinant le téléphone ou en frappant au bon moment
+  (touches F et J) ; cinq tuiles ratées et elle tombe. **Mes chants** : importer un
+  fichier .poumtchak ou un .zip, gardé sur l'appareil. Trois niveaux, tempo au choix,
   batterie MIDI, même calage et même notation que le reste, avec étoiles et record.
 - **Mains** : indépendance des mains. Un tableau à deux colonnes (main gauche,
   main droite) : 1, 2, 3 ou 4 coups par temps, ou 1 → ¼ qui change à chaque

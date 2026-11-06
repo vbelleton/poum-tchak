@@ -794,6 +794,7 @@ body.gm-live{overflow:hidden}
     <p class="hint first">Tes rythmes en jeux : c'est toi qui fais la batterie. Si tu rates un coup, il manque à la musique.</p>
     <div class="gm-games" id="gmGames" role="group" aria-label="Choisir un jeu"></div>
     <div class="gm-opts">
+      <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p></div>
       <div><span class="lab" id="lab-gmCh">Mes chants</span><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
         <div class="row" style="margin-top:8px">
           <button type="button" class="btn ghost" id="gmImp">Importer des chants</button>
@@ -1665,6 +1666,26 @@ function gmParseSong(buf){
   if(!notes.length)throw new Error('Ce chant ne contient aucune note.');
   return {id:h.id,title:h.title.slice(0,80),bpm:h.bpm,dur:fin(h.dur,1)?h.dur:notes[notes.length-1][0]+3,notes,
     downbeats:Array.isArray(h.downbeats)?h.downbeats.filter(x=>fin(x,0)):[],audio:buf.slice(9+len)};
+}
+/* Un seul fichier pour tous les chants : une archive .zip sans compression (le son l'est déjà). */
+function gmUnzip(buf){
+  const dv=new DataView(buf),n=buf.byteLength;
+  let e=-1;for(let i=n-22;i>=Math.max(0,n-65557);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break;}}
+  if(e<0)throw new Error('Archive .zip abîmée.');
+  const count=dv.getUint16(e+10,true),out=[];let p=dv.getUint32(e+16,true);
+  for(let i=0;i<count&&p+46<=n;i++){
+    if(dv.getUint32(p,true)!==0x02014b50)throw new Error('Archive .zip abîmée.');
+    const method=dv.getUint16(p+10,true),size=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(new Uint8Array(buf,p+46,nl));
+    if(/\.poumtchak$/i.test(name)&&!/(^|\/)\._/.test(name)){
+      if(method!==0)throw new Error('Archive recompressée : utilise celle créée par l\'export.');
+      const start=off+30+dv.getUint16(off+26,true)+dv.getUint16(off+28,true);
+      out.push({name,buf:buf.slice(start,start+size)});
+    }
+    p+=46+nl+xl+cl;
+  }
+  if(!out.length)throw new Error('Aucun chant dans cette archive.');
+  return out;
 }
 /* La partition d'une partie sur un vrai chant : le son du chant est l'accompagnement. Les niveaux
    se lisent sur la position dans la mesure, pour rester justes quand le tempo réel varie. */
@@ -3934,19 +3955,24 @@ function prRender(){
 const GM_KEY='poumtchak.jeux';
 const GM_INFO={
   couloirs:{name:'Couloirs',txt:'Des notes descendent dans quatre colonnes : tape chacune quand elle touche la ligne.'},
-  rebonds:{name:'Rebonds',txt:'Une balle saute de tuile en tuile. Gauche : poum. Droite : tchak. Trop de tuiles ratées et elle tombe.'}
+  rebonds:{name:'Rebonds',txt:'Une balle saute de tuile en tuile : glisse le doigt, incline le téléphone ou frappe. Trop de tuiles ratées et elle tombe.'}
 };
 const GM_KEYS={couloirs:{d:0,f:1,j:2,k:3},rebonds:{f:0,j:1,arrowleft:0,arrowright:1}};
 const GM_LIVES=5;
-const gm={on:false,midi:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,
+const GM_CTL={glisser:'Glisser',incliner:'Incliner',frappe:'Frapper'};
+const GM_CTL_HINT={glisser:'Glisse le doigt pour amener la balle sur la tuile. Le coup sonne quand elle atterrit.',
+  incliner:'Incline le téléphone à gauche ou à droite. Le coup sonne quand la balle atterrit.',
+  frappe:'Tape à gauche (poum) ou à droite (tchak) au bon moment : c\'est le mode qui travaille le placement.'};
+const gm={on:false,midi:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,ctl:'glisser',sx:0,vx:0,tilt0:null,tiltSeen:false,tiltOk:false,
   songs:[],song:null,src:null,curBpm:90,count:[],busy:false,chart:null,t0:0,bi:0,cli:0,timer:0,raf:0,sc:null,lives:GM_LIVES,flash:[],bursts:[],pops:[],nextMiss:0,ended:false,w:0,h:0,dpr:1,col:{}};
 try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
   if(GM_INFO[o.game])gm.game=o.game;
   if(typeof o.rh==='string')gm.rh=o.rh;
   if(GM_LEVELS[o.lvl])gm.lvl=o.lvl;
+  if(GM_CTL[o.ctl])gm.ctl=o.ctl;
   if(+o.bpm>=40&&+o.bpm<=220)gm.bpm=Math.round(+o.bpm);
 }}catch(e){}
-function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm}));}catch(e){}}
+function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl}));}catch(e){}}
 /* Les chants restent sur l'appareil : le son dans un magasin à part, pour lire la liste sans tout charger. */
 const gmSongId=()=>gm.rh.startsWith('chant:')?gm.rh.slice(6):null;
 const gmCurSong=()=>gm.songs.find(x=>x.id===gmSongId())||null;
@@ -3979,17 +4005,24 @@ async function gmImport(files){
   let n=0,bad='';
   for(const file of files){
     try{
-      const song=gmParseSong(await file.arrayBuffer());
-      const {audio,...meta}=song;
-      await gmDbDo('readwrite',tx=>{tx.objectStore('meta').put(meta);tx.objectStore('audio').put(audio,song.id);});
-      n++;gm.rh='chant:'+song.id;
+      say('Import de '+file.name+'…');
+      const buf=await file.arrayBuffer();
+      const head=new Uint8Array(buf,0,Math.min(2,buf.byteLength));
+      const items=head[0]===0x50&&head[1]===0x4b?gmUnzip(buf):[{name:file.name,buf}];
+      for(const it of items){
+        const song=gmParseSong(it.buf);
+        const {audio,...meta}=song;
+        await gmDbDo('readwrite',tx=>{tx.objectStore('meta').put(meta);tx.objectStore('audio').put(audio,song.id);});
+        n++;gm.rh='chant:'+song.id;
+      }
     }catch(e){bad=file.name+' : '+(e&&e.name==='QuotaExceededError'?'plus de place sur cet appareil.':e.message);}
   }
   if(n&&navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   await gmLoadSongs();gmSave();
   say((n?n+(n>1?' chants importés, gardés sur cet appareil.':' chant importé, gardé sur cet appareil.'):'')+(bad?' Erreur : '+bad:''));
 }
-const gmKey=()=>gm.game+'|'+gm.rh+'|'+gm.lvl;
+const gmSteers=()=>gm.game==='rebonds'&&gm.ctl!=='frappe';
+const gmKey=()=>gm.game+'|'+gm.rh+'|'+gm.lvl+(gmSteers()?'|'+gm.ctl:'');
 const gmMyGroove=()=>state.bars.some(g=>DRUMS.some(d=>g[d.id].some(v=>v)));
 function gmSource(){
   if(gm.rh==='mine'&&gmMyGroove())return {bars:state.bars,meter:state.meter,swing:state.swing};
@@ -4022,6 +4055,10 @@ function gmRender(){
   const lv=$('#gmLv');lv.textContent='';
   Object.entries(GM_LEVELS).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.lvl===id));lv.appendChild(b);});
   $('#gmBpm').textContent=gm.bpm+' BPM';
+  $('#gmCtlRow').hidden=gm.game!=='rebonds';
+  const ctl=$('#gmCtl');ctl.textContent='';
+  Object.entries(GM_CTL).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.ctl===id));ctl.appendChild(b);});
+  $('#gmCtlHint').textContent=GM_CTL_HINT[gm.ctl];
   const song=gmCurSong();
   $('#gmTempoRow').hidden=!!song;$('#gmDel').hidden=!song;
   const best=gmBest(gmKey());
@@ -4031,6 +4068,27 @@ function gmRender(){
 $('#gmGames').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.game=b.dataset.v;gmSave();gmRender();});
 ['#gmRh','#gmCh'].forEach(q=>$(q).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.rh=b.dataset.v;gmSave();gmRender();}));
 $('#gmLv').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.lvl=b.dataset.v;gmSave();gmRender();});
+/* iPhone : le capteur demande une permission, qui ne peut partir que d'un toucher. */
+async function gmTiltAsk(){
+  const D=window.DeviceOrientationEvent;
+  if(!D)return false;
+  if(D.requestPermission){try{return await D.requestPermission()==='granted';}catch(e){return false;}}
+  return true;
+}
+$('#gmCtl').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-v]');if(!b)return;
+  if(b.dataset.v==='incliner'){
+    gm.tiltOk=await gmTiltAsk();
+    if(!gm.tiltOk){$('#gmMsg').textContent='Le capteur d\'inclinaison n\'est pas disponible ou a été refusé : garde « Glisser ».';return;}
+  }
+  gm.ctl=b.dataset.v;gmSave();gmRender();
+});
+window.addEventListener('deviceorientation',e=>{
+  if(!gm.on||!gmSteers()||gm.ctl!=='incliner'||e.gamma==null)return;
+  if(gm.tilt0==null)gm.tilt0=e.gamma;
+  gm.tiltSeen=true;
+  gm.sx=Math.max(-1,Math.min(1,(e.gamma-gm.tilt0)/16));
+});
 const gmSetBpm=v=>{gm.bpm=Math.max(40,Math.min(220,v));gmSave();gmRender();};
 $('#gmDown').addEventListener('click',()=>gmSetBpm(gm.bpm-5));
 $('#gmUp').addEventListener('click',()=>gmSetBpm(gm.bpm+5));
@@ -4068,7 +4126,11 @@ async function gmGoSong(song){
   }catch(e){say('Impossible de lire le son de ce chant sur cet appareil.');}
   gm.busy=false;btn.disabled=false;
 }
-$('#gmGo').addEventListener('click',()=>{
+$('#gmGo').addEventListener('click',async()=>{
+  if(gmSteers()&&gm.ctl==='incliner'&&!gm.tiltOk){
+    ensureAudio();gm.tiltOk=await gmTiltAsk();
+    if(!gm.tiltOk){gm.ctl='glisser';gmSave();gmRender();$('#gmMsg').textContent='Capteur refusé : on passe à « Glisser ».';}
+  }
   const song=gmCurSong();
   if(song){gmGoSong(song);return;}
   if(gm.rh==='mine'&&!gmMyGroove()){gmRender();return;}
@@ -4085,6 +4147,7 @@ function gmStart(song,buffer){
   IDS.forEach(id=>{gm.col[id]=col(id);});
   gm.chart.notes.forEach(n=>{n.done=false;n.res='';});
   gm.sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,pts:0,offs:[]};
+  gm.sx=0;gm.vx=0;gm.tilt0=null;gm.tiltSeen=false;
   gm.lives=GM_LIVES;gm.flash=new Array(gm.chart.nLanes).fill(-9);gm.bursts=[];gm.pops=[];gm.nextMiss=0;gm.ended=false;
   gm.bi=0;gm.cli=0;
   gm.count=[];
@@ -4135,7 +4198,7 @@ function gmLoseLife(){
 }
 /* Une frappe : `lane` = colonne ou côté, `at` = l'instant sur l'horloge de la partie. */
 function gmHit(lane,at,withSound){
-  if(!gm.on||gm.ended||lane>=gm.chart.nLanes)return;
+  if(!gm.on||gm.ended||lane>=gm.chart.nLanes||gmSteers())return;
   gm.flash[lane]=gmNow();
   const win=gmWin();let best=null,bd=1e9;
   for(const n of gm.chart.notes){
@@ -4173,6 +4236,34 @@ function gmMisses(now){
     gmLoseLife();gmScore();
   }
 }
+/* Glisser et Incliner : le coup est joué pour toi si la balle est au-dessus de la tuile quand elle atterrit. */
+function gmLandings(now){
+  const ns=gm.chart.notes,sc=gm.sc;
+  while(gm.nextMiss<ns.length&&ns[gm.nextMiss].t<=now){
+    const n=ns[gm.nextMiss++],d=Math.abs(gm.sx-(n.lane===0?-0.5:0.5));
+    n.done=true;
+    if(d<=0.5){
+      const best=d<=0.25;
+      sc[best?'perfect':'good']++;sc.streak++;if(sc.streak>sc.best)sc.best=sc.streak;
+      n.res=best?'perfect':'good';
+      sc.pts+=(best?100:60)*Math.min(4,1+Math.floor(sc.streak/8));
+      voice(n.id,ctx.currentTime,VEL[n.vel]*(gm.song?0.75:1));
+      gm.pops.push({t:now,lane:n.lane,txt:best?'Parfait':'Bien',kind:'ok'});
+      gm.bursts.push({t:now,lane:n.lane,id:n.id,note:n});
+    }else{
+      n.res='miss';sc.miss++;sc.streak=0;
+      gm.pops.push({t:now,lane:n.lane,txt:'Raté',kind:'bad'});
+      gmLoseLife();
+    }
+    if(gm.pops.length>12)gm.pops.shift();
+    if(gm.bursts.length>16)gm.bursts.shift();
+    gmScore();
+  }
+}
+function gmSteerTo(e){
+  const r=$('#gmCv').getBoundingClientRect();
+  gm.sx=Math.max(-1,Math.min(1,((e.clientX-r.left)/r.width*2-1)*1.5));
+}
 function gmSize(){
   const cv=$('#gmCv');
   gm.dpr=Math.min(2,window.devicePixelRatio||1);
@@ -4184,9 +4275,11 @@ function gmLaneAt(x){const n=gm.chart.nLanes;return Math.max(0,Math.min(n-1,Math
 $('#gmCv').addEventListener('pointerdown',e=>{
   if(!gm.on)return;
   e.preventDefault();
+  if(gmSteers()){gmSteerTo(e);return;}
   const r=e.currentTarget.getBoundingClientRect();
   gmHit(gmLaneAt(e.clientX-r.left),gmTapAt(),true);
 });
+$('#gmCv').addEventListener('pointermove',e=>{if(gm.on&&gmSteers()&&(e.pointerType!=='mouse'||e.buttons))gmSteerTo(e);});
 document.addEventListener('keydown',e=>{
   if(!gm.on||e.key==='Tab')return;
   /* pendant la partie, le clavier n'appartient qu'au jeu (pas de lecture à la barre d'espace) */
@@ -4195,6 +4288,7 @@ document.addEventListener('keydown',e=>{
   if(e.repeat)return;
   const lane=GM_KEYS[gm.game][e.key.toLowerCase()];
   if(lane==null)return;
+  if(gmSteers()){gm.sx=lane?0.5:-0.5;return;}
   gmHit(lane,gmTapAt(),true);
 },true);
 $('#gmQuit').addEventListener('click',gmHalt);
@@ -4212,7 +4306,7 @@ function gmMidi(e){
 function gmFrame(){
   if(!gm.on)return;
   const now=gmNow();
-  if(!gm.ended)gmMisses(now);
+  if(!gm.ended){if(gmSteers())gmLandings(now);else gmMisses(now);}
   $('#gmProg').style.width=Math.max(0,Math.min(100,now/gm.chart.dur*100))+'%';
   const cx=$('#gmCv').getContext('2d');
   cx.setTransform(gm.dpr,0,0,gm.dpr,0,0);
@@ -4331,7 +4425,8 @@ function gmDrawHops(cx,now){
   const ta=A?A.t:B?B.t-beat:0,tb=B?B.t:ta+beat;
   const span=Math.max(0.05,tb-ta),u=Math.max(0,Math.min(1,(now-ta)/span));
   const xa=A?Xof(A):B?Xof(B):0,xb=B?Xof(B):xa,su=u*u*(3-2*u);
-  const bx=W/2+(xa+(xb-xa)*su)*unit;
+  gm.vx+=(gm.sx-gm.vx)*0.35;
+  const bx=W/2+(gmSteers()?gm.vx:xa+(xb-xa)*su)*unit;
   const hopMax=H*0.2,hop=hopMax*Math.min(1,0.35+span/0.8)*4*u*(1-u);
   let fall=0;if(gm.ended&&gm.fallAt!=null){const q=now-gm.fallAt;fall=q*q*1400;}
   const r=Math.max(14,Math.min(26,W*0.05));
@@ -4353,14 +4448,18 @@ function gmDrawHops(cx,now){
   }
   /* les deux côtés de l'écran */
   const zone=H*0.86;
-  [['poum',0],['tchak',1]].forEach(([id,k])=>{
+  if(gmSteers()){
+    cx.fillStyle='#B7C0CF';cx.font='700 16px "Hanken Grotesk",system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+    const mute=gm.ctl==='incliner'&&!gm.tiltSeen&&now>gm.chart.start+1.5;
+    cx.fillText(gm.ctl==='glisser'||mute?(mute?'Capteur muet : glisse le doigt':'Glisse le doigt'):'Incline le téléphone',W/2,zone);
+  }else [['poum',0],['tchak',1]].forEach(([id,k])=>{
     const age=now-gm.flash[k],x=k*W/2;
     if(age>=0&&age<0.14){cx.fillStyle='rgba(255,255,255,'+(0.16*(1-age/0.14)).toFixed(3)+')';cx.fillRect(x,0,W/2,H);}
     cx.fillStyle=gm.col[id];cx.font='800 21px "Bricolage Grotesque",system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';
     cx.fillText(singleWord(dict,id),x+W/4,zone);
     if(matchMedia('(hover:hover)').matches){cx.fillStyle='#97A1B2';cx.font='500 12px "IBM Plex Mono",monospace';cx.fillText('FJ'[k],x+W/4,zone+24);}
   });
-  cx.fillStyle='rgba(255,255,255,.14)';cx.fillRect(W/2-0.5,zone-24,1,48);
+  if(!gmSteers()){cx.fillStyle='rgba(255,255,255,.14)';cx.fillRect(W/2-0.5,zone-24,1,48);}
   gmDrawPops(cx,now,k=>W/2+(k===0?-0.5:0.5)*W*0.42,ground-70,W/4);
   gmDrawCount(cx,now);
 }
@@ -4381,7 +4480,7 @@ function gmFinish(fell){
   let h='<button type="button" class="ib pr-x" id="gmResX" aria-label="Fermer le bilan"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
   h+='<div class="pr-sec pr-top"><div><h3>'+name+' · '+label+'</h3>'+star+
     '<p class="pr-score"><b>'+sc.pts+'</b> points · '+(before&&sc.pts>before?'<span class="new">nouveau record !</span>':'record : '+Math.max(before,sc.pts))+'</p></div></div>';
-  h+='<div class="pr-sec"><p class="pr-k">Précision</p><p class="pr-score"><b>'+p+' %</b> à '+Math.round(gm.curBpm)+' BPM · '+GM_LEVELS[gm.lvl]+'</p><p class="pr-hint">'+
+  h+='<div class="pr-sec"><p class="pr-k">Précision</p><p class="pr-score"><b>'+p+' %</b> à '+Math.round(gm.curBpm)+' BPM · '+GM_LEVELS[gm.lvl]+(gm.game==='rebonds'?' · '+GM_CTL[gm.ctl]:'')+'</p><p class="pr-hint">'+
     (fell?'La balle est tombée : trop de tuiles ratées. ':'')+sc.perfect+' parfaits, '+sc.good+' bien, '+sc.approx+' approximatifs, '+sc.miss+' ratés, '+sc.extra+' en trop. Meilleure série : '+sc.best+'.'+
     (Math.abs(med)>=25?' Tu joues plutôt '+(med<0?'en avance':'en retard')+' ('+Math.abs(Math.round(med))+' ms).':'')+'</p></div>';
   h+='<div class="row pr-btns"><button type="button" class="btn" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';

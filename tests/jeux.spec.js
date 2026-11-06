@@ -2,10 +2,11 @@
 const { test, expect, rubrique } = require('./outils/base');
 
 /** Lance une partie courte et rapide : 16 mesures à 200 BPM, soit moins de 20 s. */
-async function lancer(page, jeu, niveau = 'Facile') {
+async function lancer(page, jeu, niveau = 'Facile', commande = 'Frapper') {
   await rubrique(page, 'Jeux');
   await page.locator(`#gmGames [data-v="${jeu}"]`).click();
   await page.locator('#gmLv').getByRole('button', { name: niveau }).click();
+  if (jeu === 'rebonds') await page.locator('#gmCtl').getByRole('button', { name: commande }).click();
   for (let i = 0; i < 25; i++) await page.locator('#gmUp').click();
   await expect(page.locator('#gmBpm')).toHaveText('215 BPM');
   await page.locator('#gmGo').click();
@@ -69,6 +70,28 @@ test.describe('Chants importés', () => {
     await expect(page.locator('#gmCh [data-v="chant:essai"]')).toHaveCount(0);
     await expect(page.locator('#gmRh [data-v="rock"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#gmTempoRow')).toBeVisible();
+  });
+
+  test('une archive .zip importe tous ses chants d\'un coup', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    const un = fichierChant('Un').buffer;
+    const deux = Buffer.from(un.toString('latin1').replace('"id":"essai"', '"id":"essa2"').replace('"title":"Un"', '"title":"Du"'), 'latin1');
+    const entrees = [['a.poumtchak', un], ['b.poumtchak', deux]];
+    const locaux = [], centre = [];
+    let pos = 0;
+    for (const [nom, data] of entrees) {
+      const n = Buffer.from(nom);
+      const l = Buffer.alloc(30); l.writeUInt32LE(0x04034b50, 0); l.writeUInt16LE(n.length, 26);
+      l.writeUInt32LE(data.length, 18); l.writeUInt32LE(data.length, 22);
+      const c = Buffer.alloc(46); c.writeUInt32LE(0x02014b50, 0); c.writeUInt32LE(data.length, 20); c.writeUInt32LE(data.length, 24); c.writeUInt16LE(n.length, 28); c.writeUInt32LE(pos, 42);
+      locaux.push(l, n, data); centre.push(c, n);
+      pos += 30 + n.length + data.length;
+    }
+    const cd = Buffer.concat(centre);
+    const fin = Buffer.alloc(22); fin.writeUInt32LE(0x06054b50, 0); fin.writeUInt16LE(2, 8); fin.writeUInt16LE(2, 10); fin.writeUInt32LE(cd.length, 12); fin.writeUInt32LE(pos, 16);
+    await page.locator('#gmFile').setInputFiles({ name: 'chants.zip', mimeType: 'application/zip', buffer: Buffer.concat([...locaux, cd, fin]) });
+    await expect(page.locator('#gmMsg')).toContainText('2 chants importés');
+    await expect(page.locator('#gmCh .chip')).toHaveCount(2);
   });
 
   test('un fichier qui n\'est pas un chant est refusé', async ({ page }) => {
@@ -142,6 +165,41 @@ test.describe('Jeux', () => {
     await jouerParfait(page);
     await expect(page.locator('#mnRes')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#mnRes')).not.toContainText('La balle est tombée');
+  });
+
+  test('Rebonds en mode Glisser : la balle suit le doigt et les tuiles sonnent toutes seules', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'rebonds', 'Facile', 'Glisser');
+    const pts = await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv');
+      const r = cv.getBoundingClientRect();
+      const notes = window.__gm.notes();
+      for (const n of notes) {
+        cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'touch', clientX: r.left + r.width * (n.lane ? 0.67 : 0.33), clientY: 400 }));
+        while (window.__gm.on() && window.__gm.now() < n.t + 0.03) await new Promise((f) => setTimeout(f, 3));
+        if (!window.__gm.on()) break;
+      }
+      return window.__gm.sc().miss;
+    });
+    expect(pts).toBe(0);
+    await expect(page.locator('#mnRes')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#mnRes')).toContainText('Glisser');
+  });
+
+  test('Rebonds en mode Incliner : le capteur déplace la balle', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'rebonds', 'Facile', 'Incliner');
+    const rates = await page.evaluate(async () => {
+      const incline = (g) => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { gamma: g, beta: 0, alpha: 0 }));
+      incline(0);
+      for (const n of window.__gm.notes()) {
+        incline(n.lane ? 9 : -9);
+        while (window.__gm.on() && window.__gm.now() < n.t + 0.03) await new Promise((f) => setTimeout(f, 3));
+        if (!window.__gm.on()) break;
+      }
+      return window.__gm.sc().miss;
+    });
+    expect(rates).toBe(0);
   });
 
   test('Rebonds : sans jouer, la balle tombe après cinq tuiles', async ({ page }) => {
