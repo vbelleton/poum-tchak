@@ -46,14 +46,22 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   en libre comme en défi ; le tempo entendu s'affiche et peut être repris.
   Parle-le avant de le jouer, en quatre étapes : écouter, dire, jouer
   sur l'écran, jouer sur sa batterie au micro. Tempo progressif et mesures
-  muettes.
+  muettes. **Boucler un passage** : un chant importé, une mesure de départ, 1, 2, 4
+  ou 8 mesures qui tournent sans jauge, avec la précision de chaque tour.
 - **Jeux** : tes rythmes (les modèles ou ta grille) et tes chants en jeux d'arcade.
   **Couloirs** : des notes descendent dans quatre colonnes (poum, tchak, tss, doum ;
   touches D F J K). **Rebonds** : une balle saute de tuile en tuile, poum à gauche,
   tchak à droite ; on la dirige du doigt, en inclinant le téléphone ou en frappant au
   bon moment (touches F et J). Deux réglages séparés : le **nombre de notes** (peu,
   moyen, beaucoup) et la **tolérance aux erreurs** (indulgent, normal, strict), qui
-  règle une **jauge d'erreurs** : à zéro, la partie s'arrête. **Mes chants** :
+  règle une **jauge d'erreurs** : à zéro, la partie s'arrête. **Orbite** : un seul
+  bouton, un point fait le tour en une mesure au tempo du chant ; on tape quand il
+  touche une lune, à chaque temps ou subdivision. **Écoute puis rejoue** : on entend
+  un motif, puis on le rejoue de mémoire, deux fois, sans rien à l'écran, avec un
+  métronome qui se tait sur certaines mesures ; le bilan compare à la fin de chaque
+  manche. **Reprise** : toutes les 4 mesures (à chaque manche dans Écoute) un point
+  de contrôle est gardé par jeu, chant ou rythme et nombre de notes, score compris ;
+  on repart de là après une jauge vide, un abandon ou un rechargement. **Mes chants** :
   importer un fichier .poumtchak ou un .zip, gardé sur l'appareil ; c'est le son du
   morceau qui joue, batterie d'origine comprise. Tempo au choix pour les rythmes,
   batterie MIDI, même calage et même notation que le reste, avec étoiles et record.

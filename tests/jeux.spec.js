@@ -1,5 +1,6 @@
-// Jeux : Couloirs et Rebonds, joués par un robot qui lit la partition.
+// Jeux : Couloirs, Rebonds, Orbite et Écoute puis rejoue, joués par un robot qui lit la partition.
 const { test, expect, rubrique } = require('./outils/base');
+const { fichierChant } = require('./outils/chant');
 
 /** Lance une partie courte et rapide : 16 mesures à 200 BPM, soit moins de 20 s. */
 async function lancer(page, jeu, notes = 'Peu', commande = 'Frapper', tolerance = 'Normal') {
@@ -14,33 +15,22 @@ async function lancer(page, jeu, notes = 'Peu', commande = 'Frapper', tolerance 
   await expect(page.locator('#gm')).toBeVisible();
 }
 
-/** Tape chaque note à son instant, au centre de sa colonne. */
-async function jouerParfait(page) {
-  return page.evaluate(async () => {
+/** Tape chaque note à son instant, au centre de sa colonne ; `jusqua` : s'arrêter à cet instant de la partie. */
+async function jouerParfait(page, jusqua = Infinity) {
+  return page.evaluate(async (fin) => {
     const cv = document.querySelector('#gmCv');
     const r = cv.getBoundingClientRect();
     const notes = window.__gm.notes();
     const larg = r.width / window.__gm.voies();
     for (const note of notes) {
+      if (note.t > fin) break;
+      if (note.t < window.__gm.debut()) continue;
       while (window.__gm.on() && window.__gm.now() < note.t) await new Promise((f) => setTimeout(f, 2));
       if (!window.__gm.on()) break;
       cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: r.left + larg * (note.lane + 0.5), clientY: r.top + 300 }));
     }
     return notes.length;
-  });
-}
-
-/** Un petit fichier de chant : 120 BPM, poum et tchak en alternance, son de silence. */
-function fichierChant(titre = 'Mon <b>chant</b>') {
-  const notes = [];
-  for (let i = 0; i < 16; i++) notes.push([2 + i * 0.5, 2 + i * 0.5, i % 2]);
-  const entete = Buffer.from(JSON.stringify({ id: 'essai', title: titre, bpm: 120, dur: 12, drums: ['poum', 'tchak'], notes, downbeats: [2, 4, 6, 8, 10] }));
-  const taux = 8000, n = taux * 12;
-  const wav = Buffer.alloc(44 + n * 2);
-  wav.write('RIFF', 0); wav.writeUInt32LE(36 + n * 2, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
-  wav.writeUInt32LE(taux, 24); wav.writeUInt32LE(taux * 2, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(n * 2, 40);
-  const tete = Buffer.alloc(9); tete.write('PTCH', 0); tete[4] = 1; tete.writeUInt32LE(entete.length, 5);
-  return { name: 'essai.poumtchak', mimeType: 'application/octet-stream', buffer: Buffer.concat([tete, entete, wav]) };
+  }, jusqua);
 }
 
 test.describe('Chants importés', () => {
@@ -104,9 +94,9 @@ test.describe('Chants importés', () => {
 });
 
 test.describe('Jeux', () => {
-  test('la rubrique propose deux jeux, et le choix est gardé', async ({ page }) => {
+  test('la rubrique propose quatre jeux, et le choix est gardé', async ({ page }) => {
     await rubrique(page, 'Jeux');
-    await expect(page.locator('.gm-game')).toHaveCount(2);
+    await expect(page.locator('.gm-game')).toHaveCount(4);
     await page.locator('#gmGames [data-v="rebonds"]').click();
     await page.locator('#gmRh [data-v="funk"]').click();
     await page.reload();
@@ -260,5 +250,206 @@ test.describe('Jeux', () => {
     expect((await page.evaluate(() => window.__gm.sc())).extra).toBeGreaterThanOrEqual(0);
     await expect(page.locator('#gm')).toBeVisible();
     await page.keyboard.press('Escape');
+  });
+});
+
+test.describe('Reprise de partie', () => {
+  const mesure = 4 * 60 / 215;
+
+  test('Quitter garde le point de contrôle, même après rechargement, et la reprise repart de là', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs');
+    await jouerParfait(page, mesure * 5);
+    const points = await page.evaluate(() => window.__gm.sc().pts);
+    expect(points).toBeGreaterThan(0);
+    await page.locator('#gmQuit').click();
+    await expect(page.locator('#gmResume')).toContainText('mesure 5');
+    await expect(page.locator('#gmGo')).toHaveText('Recommencer du début');
+
+    await page.reload();
+    await rubrique(page, 'Jeux');
+    await expect(page.locator('#gmResume')).toContainText('mesure 5');
+    await page.locator('#gmResume').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    const etat = await page.evaluate(() => ({ debut: window.__gm.debut(), pts: window.__gm.sc().pts, reste: window.__gm.reste(), tout: window.__gm.notes().length }));
+    expect(etat.debut).toBeCloseTo(mesure * 4, 2);
+    expect(etat.pts).toBeGreaterThan(0);
+    expect(etat.pts).toBeLessThanOrEqual(points);
+    expect(etat.reste).toBeLessThan(etat.tout);
+
+    await jouerParfait(page);
+    await expect(page.locator('#mnRes')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('#mnRes')).toContainText('Partie reprise à la mesure 5');
+    await page.locator('#gmResBack').click();
+    await expect(page.locator('#gmResume')).toBeHidden();
+    await expect(page.locator('#gmGo')).toHaveText('Jouer');
+  });
+
+  test('jauge vide : le bilan propose de reprendre, avec une jauge pleine', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs');
+    await jouerParfait(page, mesure * 5);
+    await expect(page.locator('#gmResCk')).toContainText('mesure 5', { timeout: 20_000 });
+    await page.locator('#gmResCk').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await expect(page.locator('#gmGauge')).toHaveAttribute('aria-valuenow', '100');
+    await page.keyboard.press('Escape');
+  });
+
+  test('la reprise dépend du jeu et du nombre de notes', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs');
+    await jouerParfait(page, mesure * 5);
+    await page.locator('#gmQuit').click();
+    await expect(page.locator('#gmResume')).toBeVisible();
+    await page.locator('#gmLv').getByRole('button', { name: 'Moyen' }).click();
+    await expect(page.locator('#gmResume')).toBeHidden();
+    await page.locator('#gmLv').getByRole('button', { name: 'Peu' }).click();
+    await expect(page.locator('#gmResume')).toBeVisible();
+    await page.locator('#gmGames [data-v="rebonds"]').click();
+    await expect(page.locator('#gmResume')).toBeHidden();
+  });
+
+  test('un point de contrôle abîmé est ignoré', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('poumtchak.jeux.reprises', JSON.stringify({ 'couloirs|rock|facile': { at: 'x', sc: null } })));
+    await page.reload();
+    await rubrique(page, 'Jeux');
+    await expect(page.locator('#gmResume')).toBeHidden();
+  });
+});
+
+test.describe('Orbite', () => {
+  test('le nombre de notes règle les lunes : temps, croches, jamais trop serré', async ({ page }) => {
+    await lancer(page, 'orbite');
+    const compte = async (notes) => {
+      await page.locator('#gmLv').getByRole('button', { name: notes }).click();
+      await page.locator('#gmGo').click();
+      const n = await page.evaluate(() => window.__gm.notes().length);
+      await page.keyboard.press('Escape');
+      return n;
+    };
+    await page.keyboard.press('Escape');
+    expect(await compte('Peu')).toBe(64);
+    expect(await compte('Moyen')).toBe(128);
+    expect(await compte('Beaucoup')).toBe(128); // 215 BPM : des doubles seraient injouables
+    await page.locator('#gmDown').click();
+    for (let i = 0; i < 33; i++) await page.locator('#gmDown').click();
+    await expect(page.locator('#gmBpm')).toHaveText('45 BPM');
+    await page.locator('#gmGo').click();
+    expect(await page.evaluate(() => window.__gm.notes().length)).toBe(256);
+    await page.keyboard.press('Escape');
+  });
+
+  test('un robot juste finit au-dessus de 80 %, à un seul bouton', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'orbite');
+    await jouerParfait(page);
+    await expect(page.locator('#mnRes')).toBeVisible({ timeout: 8000 });
+    expect(parseInt((await page.locator('#mnRes').textContent()).match(/(\d+) %/)[1], 10)).toBeGreaterThanOrEqual(80);
+    await expect(page.locator('#mnRes h3')).toContainText('Orbite');
+  });
+
+  test('marteler ne paie pas, et la barre d\'espace joue', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'orbite');
+    await page.keyboard.press('Space');
+    await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv');
+      const r = cv.getBoundingClientRect();
+      while (window.__gm.on()) {
+        cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: r.left + 50, clientY: r.top + 300 }));
+        await new Promise((f) => setTimeout(f, 25));
+      }
+    });
+    await expect(page.locator('#mnRes')).toBeVisible({ timeout: 8000 });
+    expect(parseInt((await page.locator('#mnRes').textContent()).match(/(\d+) %/)[1], 10)).toBeLessThan(30);
+  });
+
+  test('sur un chant, le point suit les mesures du chant', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmFile').setInputFiles(fichierChant());
+    await expect(page.locator('#gmMsg')).toContainText('1 chant importé');
+    await page.locator('#gmGames [data-v="orbite"]').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    const ts = await page.evaluate(() => window.__gm.notes().map((n) => n.t));
+    expect(ts[0]).toBeCloseTo(2, 3);
+    expect(ts[1]).toBeCloseTo(2.5, 3);
+    await page.keyboard.press('Escape');
+  });
+});
+
+test.describe('Écoute puis rejoue', () => {
+  test('le métronome se coupe sur certaines mesures, sauf si on le garde', async ({ page }) => {
+    const muets = async () => {
+      await page.locator('#gmGo').click();
+      await expect(page.locator('#gm')).toBeVisible();
+      const r = await page.evaluate(() => {
+        const c = window.__gm.chart();
+        return { muets: c.beats.filter((b) => b.mute).length, tours: c.rounds.map((x) => x.passes.map((p) => p.cuts.some(Boolean))) };
+      });
+      await page.keyboard.press('Escape');
+      return r;
+    };
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await expect(page.locator('#gmClickRow')).toBeVisible();
+    const coupe = await muets();
+    expect(coupe.muets).toBeGreaterThan(0);
+    expect(coupe.tours[0]).toEqual([false, false]);
+    expect(coupe.tours[1]).toEqual([false, false]);
+    expect(coupe.tours[2]).toEqual([false, true]);
+    await page.locator('#gmClick').getByRole('button', { name: 'Toujours là' }).click();
+    expect((await muets()).muets).toBe(0);
+  });
+
+  test('taper pendant l\'écoute ne coûte rien, et les notes ne viennent qu\'après', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    for (let i = 0; i < 25; i++) await page.locator('#gmUp').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    const r = await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv');
+      const b = cv.getBoundingClientRect();
+      const c = window.__gm.chart();
+      while (window.__gm.now() < c.rounds[0].listen + 0.2) await new Promise((f) => setTimeout(f, 10));
+      for (let i = 0; i < 5; i++) { cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: b.left + 10, clientY: b.top + 300 })); await new Promise((f) => setTimeout(f, 30)); }
+      return { extra: window.__gm.sc().extra, avant: c.notes.filter((n) => n.t < c.rounds[0].play).length };
+    });
+    expect(r.extra).toBe(0);
+    expect(r.avant).toBe(0);
+    await page.keyboard.press('Escape');
+  });
+
+  test('un robot qui rejoue juste finit au-dessus de 80 %, et chaque manche est un point de contrôle', async ({ page }) => {
+    test.setTimeout(100_000);
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    for (let i = 0; i < 25; i++) await page.locator('#gmUp').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    const fin = await page.evaluate(() => window.__gm.chart().rounds[1].end + 0.5);
+    await jouerParfait(page, fin);
+    await page.waitForFunction((t) => window.__gm.now() > t, fin);
+    await page.locator('#gmQuit').click();
+    await expect(page.locator('#gmResume')).toContainText('manche');
+    await page.locator('#gmResume').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await jouerParfait(page);
+    await expect(page.locator('#mnRes')).toBeVisible({ timeout: 8000 });
+    expect(parseInt((await page.locator('#mnRes').textContent()).match(/(\d+) %/)[1], 10)).toBeGreaterThanOrEqual(80);
+  });
+
+  test('sur un chant, on entend bien un morceau du chant', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmFile').setInputFiles(fichierChant());
+    await expect(page.locator('#gmMsg')).toContainText('1 chant importé');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.waitForFunction(() => window.__gm.sons() > 0, null, { timeout: 8000 });
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => window.__gm.sons())).toBe(0);
   });
 });
