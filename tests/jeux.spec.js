@@ -727,18 +727,7 @@ test.describe('Pendant le jeu', () => {
     await page.keyboard.press('Escape');
   });
 
-  test('un son bloqué est relancé au lieu de figer la partie', async ({ page }) => {
-    await rubrique(page, 'Jeux');
-    await page.locator('#gmGo').click();
-    await expect(page.locator('#gm')).toBeVisible();
-    await page.evaluate(() => window.__gm.bloquerSon(true));
-    await expect(page.locator('#gm')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator('#gmMsg')).toContainText('Le son s\'était bloqué');
-    await page.locator('#gmGo').click();
-    await expect(page.locator('#gm')).toBeVisible();
-    await page.waitForFunction(() => window.__gm.now() > 0.3, null, { timeout: 5000 });
-    await page.keyboard.press('Escape');
-  });
+
 });
 
 test.describe('Rebonds avec le charley', () => {
@@ -871,15 +860,7 @@ test.describe('Écoute puis rejoue : longueur et son figé', () => {
     }
   });
 
-  test('un son figé en pleine partie arrête proprement, avec un message, au lieu de geler l\'écran', async ({ page }) => {
-    await rubrique(page, 'Jeux');
-    await page.locator('#gmGo').click();
-    await expect(page.locator('#gm')).toBeVisible();
-    await page.waitForFunction(() => window.__gm.now() > 1, null, { timeout: 8000 });
-    await page.evaluate(() => { window.__gm.bloquerSon(true); });
-    await expect(page.locator('#gm')).toBeHidden({ timeout: 8000 });
-    await expect(page.locator('#gmMsg')).toContainText('Le son');
-  });
+
 
   test('un son simplement suspendu repart tout seul, la partie continue', async ({ page }) => {
     await rubrique(page, 'Jeux');

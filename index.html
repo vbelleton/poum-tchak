@@ -4627,7 +4627,7 @@ async function gmFreeAudio(song){
 async function gmDecode(song){
   /* un décodage qui ne répond plus (son bloqué) ne doit pas laisser le bouton Jouer grisé */
   let timer=0,done=false;
-  const late=new Promise((ok,ko)=>{timer=setTimeout(()=>{if(!done){audioReset();ko(new Error('délai'));}},20000);});
+  const late=new Promise((ok,ko)=>{timer=setTimeout(()=>{if(!done)ko(new Error('délai'));},20000);});
   try{return await Promise.race([gmDecode0(song),late]);}
   finally{done=true;clearTimeout(timer);}
 }
@@ -4849,7 +4849,6 @@ function gmStart(song,buffer,opt={}){
   gm.timer=setInterval(gmTick,25);gmTick();
   gm.raf=requestAnimationFrame(gmFrame);
   const myChart=gm.chart;
-  audioWatch(()=>gm.on&&gm.chart===myChart,()=>{gmHalt('son-depart');audioReset();$(opt.loop?'#lpMsg':'#gmMsg').textContent='Le son s\'était bloqué sur cet appareil : il est relancé, touche Jouer de nouveau.';});
 }
 /* Boucle : les tours se recopient au fil de la partie ; les plus anciens sont oubliés. */
 function gmLoopFeed(now){
@@ -5229,12 +5228,8 @@ function gmStallCheck(){
   if(T!==gm.stT){gm.stT=T;gm.stP=P;return false;}
   if(!gm.stP)gm.stP=P;
   const idle=P-gm.stP;
-  if(idle>600&&ctx.state!=='running')ctx.resume().catch(()=>{});
-  if(idle>2500){
-    gmHalt('son');audioReset();
-    $(gm.loop?'#lpMsg':'#gmMsg').textContent='Le son s\'est arrêté sur cet appareil (appel, notification, autre appli ?). Il est relancé : touche Reprendre ou Jouer.';
-    return true;
-  }
+  /* on relance le son s'il s'est mis en pause, sans jamais arrêter la partie ni recréer le son */
+  if(idle>600&&ctx.state!=='running'&&(!gm.stTry||P-gm.stTry>1000)){gm.stTry=P;ctx.resume().catch(()=>{});}
   return false;
 }
 function gmFrame(){
@@ -5786,7 +5781,7 @@ function cbRun(){
   $('#cbLine').hidden=true;$('#cbRes').textContent='';
   $('#cbSkip').hidden=false;$('#cbAgain').hidden=true;$('#cbGo').hidden=true;
   /* le son bloqué ne laisse pas le calage figé : on le recrée et on relance les clics */
-  const myT0=cb.t0;audioWatch(()=>cb.on&&cb.t0===myT0,()=>{audioReset();cbRun();});
+  
   $('#cbDo').textContent='Écoute le clic…';
   cancelAnimationFrame(cb.raf);cb.raf=requestAnimationFrame(cbFrame);
 }
