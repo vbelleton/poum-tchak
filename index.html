@@ -4626,7 +4626,10 @@ async function gmFreeAudio(song){
 }
 async function gmDecode(song){
   /* un décodage qui ne répond plus (son bloqué) ne doit pas laisser le bouton Jouer grisé */
-  return Promise.race([gmDecode0(song),new Promise((ok,ko)=>setTimeout(()=>{audioReset();ko(new Error('délai'));},20000))]);
+  let timer=0,done=false;
+  const late=new Promise((ok,ko)=>{timer=setTimeout(()=>{if(!done){audioReset();ko(new Error('délai'));}},20000);});
+  try{return await Promise.race([gmDecode0(song),late]);}
+  finally{done=true;clearTimeout(timer);}
 }
 /* Un chant de 5 minutes décodé en stéréo occupe plus de 100 Mo : un iPhone peut alors recharger la page
    en pleine partie. On le garde en mono, et un seul à la fois. */
