@@ -2066,12 +2066,18 @@ document.addEventListener('pointerdown',()=>{if(ctx&&ctx.state!=='running'&&ctx.
 function audioReset(){
   try{if(ctx)ctx.close();}catch(e){}
   ctx=null;master=null;
-  return ensureAudio();
+  const c=ensureAudio();
+  /* les sons déjà décodés appartenaient à l'ancien son : sur iPhone ils ne sonnent plus, on les refait */
+  if(typeof gmFreeBufs!=='undefined')Object.keys(gmFreeBufs).forEach(k=>delete gmFreeBufs[k]);
+  if(kitBufs){kitBufs=null;kitState='';if(state.sound==='kit')setSound('kit',true);}
+  return c;
 }
+/* Bluetooth, iPhone : le son peut mettre plus d'une seconde à démarrer, on attend 2,5 s avant de conclure */
 function audioWatch(started,onStuck){
   if(!ctx)return;
   const t0=ctx.currentTime;
-  setTimeout(()=>{if(started()&&ctx&&ctx.currentTime-t0<0.15)onStuck();},900);
+  setTimeout(()=>{if(started()&&ctx&&ctx.currentTime-t0<0.15){if(ctx.state!=='running')ctx.resume().catch(()=>{});}},900);
+  setTimeout(()=>{if(started()&&ctx&&ctx.currentTime-t0<0.3)onStuck();},2500);
 }
 function ensureAudio(){
   unlockAudio();
