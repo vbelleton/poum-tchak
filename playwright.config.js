@@ -23,6 +23,12 @@ module.exports = defineConfig({
       use: { ...devices['Pixel 7'], browserName: 'chromium', viewport: { width: 390, height: 844 } },
     },
     {
+      // Le moteur de Safari, comme sur iPhone (installer une fois : npx playwright install webkit).
+      name: 'iphone',
+      use: { ...devices['iPhone 13'], browserName: 'webkit' },
+      testMatch: /jeux|parties|boucle|calage|mains/,
+    },
+    {
       name: 'ordinateur',
       use: { browserName: 'chromium', viewport: { width: 1280, height: 900 } },
       testIgnore: /micro|hors-ligne/,

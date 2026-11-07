@@ -181,7 +181,7 @@ test.describe('Jeux', () => {
     test.setTimeout(60_000);
     await lancer(page, 'rebonds', 'Peu', 'Incliner');
     const rates = await page.evaluate(async () => {
-      const incline = (g) => window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { gamma: g, beta: 0, alpha: 0 }));
+      const incline = (g) => { let e; try { e = new DeviceOrientationEvent('deviceorientation', { gamma: g, beta: 0, alpha: 0 }); } catch (x) { e = new Event('deviceorientation'); Object.defineProperty(e, 'gamma', { value: g }); } window.dispatchEvent(e); };
       incline(0);
       for (const n of window.__gm.notes()) {
         incline(n.lane ? 9 : -9);

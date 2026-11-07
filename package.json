@@ -4,7 +4,8 @@
   "description": "Tests de l'interface de Poum Tchak",
   "scripts": {
     "test": "playwright test",
-    "test:rapide": "playwright test --grep-invert @lent"
+    "test:rapide": "playwright test --grep-invert @lent",
+    "test:iphone": "playwright test --project=iphone"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.2",

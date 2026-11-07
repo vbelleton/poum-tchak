@@ -194,3 +194,7 @@ Tout tient dans `index.html` : pas de dépendance, pas de compilation. Les
 autres fichiers servent à l'installation sur mobile et au mode hors ligne
 (`sw.js`, `manifest.webmanifest`, `icon-*.png`, dont une icône « maskable ») et aux tests (`tests/`,
 `playwright.config.js`, `package.json`).
+
+Tests sur le moteur de Safari (iPhone) : `npx playwright install webkit` une fois, puis `npm run test:iphone`.
+Les parties complètes et les enchaînements (`tests/parties.spec.js`, marqués @lent) attrapent les
+régressions qui n'apparaissent qu'au bout de 20 s de jeu ou à la deuxième partie.
