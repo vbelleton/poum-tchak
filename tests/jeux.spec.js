@@ -691,19 +691,16 @@ test.describe('Chants libres', () => {
   });
 });
 
-test.describe('Rebonds : chute au ralenti', () => {
-  test('une tuile ratée fait tomber une balle fantôme, sauf si on coupe l\'effet', async ({ page }) => {
-    test.setTimeout(60_000);
-    await lancer(page, 'rebonds');
-    await page.waitForFunction(() => window.__gm.sc().miss >= 1, null, { timeout: 15_000 });
-    expect(await page.evaluate(() => window.__gm.chutes())).toBeGreaterThan(0);
-    await page.keyboard.press('Escape');
-    await page.locator('#gmFallBtn').click();
-    await expect(page.locator('#gmFallBtn')).toHaveAttribute('aria-pressed', 'false');
-    await page.locator('#gmGo').click();
-    await page.waitForFunction(() => window.__gm.sc().miss >= 1, null, { timeout: 15_000 });
-    expect(await page.evaluate(() => window.__gm.chutes())).toBe(0);
-    await page.keyboard.press('Escape');
+test.describe('Mode sans échec', () => {
+  test('la partie va au bout sans jauge, et dans Rebonds la balle tombe au ralenti quand on rate', async ({ page }) => {
+    test.setTimeout(120_000);
+    await lancer(page, 'rebonds', 'Peu', 'Frapper', 'Sans échec');
+    await expect(page.locator('#gmGauge')).toBeHidden();
+    await page.waitForFunction(() => window.__gm.chute(), null, { timeout: 15_000 });
+    expect(await page.evaluate(() => window.__gm.vitesse())).toBeLessThan(0.5);
+    await page.waitForFunction(() => !window.__gm.chute() && window.__gm.vitesse() === 1, null, { timeout: 5_000 });
+    await expect(page.locator('#mnRes')).toBeVisible({ timeout: 80_000 });
+    await expect(page.locator('#mnRes')).not.toContainText('jauge d\'erreurs est vide');
   });
 });
 
@@ -712,6 +709,34 @@ test('Rebonds en mode Glisser : rester immobile au milieu ne marque pas', async 
   await lancer(page, 'rebonds', 'Peu', 'Glisser');
   await page.waitForFunction(() => window.__gm.sc().miss >= 3, null, { timeout: 15_000 });
   expect(await page.evaluate(() => window.__gm.sc().perfect + window.__gm.sc().good)).toBe(0);
-  expect(await page.evaluate(() => window.__gm.chutes())).toBeGreaterThan(0);
   await page.keyboard.press('Escape');
+});
+
+test.describe('Pendant le jeu', () => {
+  test('« Bien » dit si on est en avance ou en retard, et de combien', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'couloirs');
+    const sous = await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv'), r = cv.getBoundingClientRect(), larg = r.width / window.__gm.voies();
+      const n = window.__gm.notes()[2];
+      while (window.__gm.now() < n.t + 0.065) await new Promise((f) => setTimeout(f, 2));
+      cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: r.left + larg * (n.lane + 0.5), clientY: r.top + 300 }));
+      return window.__gm.pops().map((p) => p.txt + ' | ' + (p.sub || ''));
+    });
+    expect(sous.join(' ')).toMatch(/en retard de \d+ ms/);
+    await page.keyboard.press('Escape');
+  });
+
+  test('un son bloqué est relancé au lieu de figer la partie', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.evaluate(() => window.__gm.bloquerSon());
+    await expect(page.locator('#gm')).toBeHidden({ timeout: 5000 });
+    await expect(page.locator('#gmMsg')).toContainText('Le son s\'était bloqué');
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.waitForFunction(() => window.__gm.now() > 0.3, null, { timeout: 5000 });
+    await page.keyboard.press('Escape');
+  });
 });
