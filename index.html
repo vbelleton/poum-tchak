@@ -865,6 +865,7 @@ body.gm-live{overflow:hidden}
     <button type="button" class="btn ghost gm-how" id="gmHow"></button>
     <div class="gm-opts">
       <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p></div>
+      <div><span class="lab" id="lab-gmFree">Chants libres, prêts à jouer</span><div class="pick" id="gmFree" role="group" aria-labelledby="lab-gmFree"></div><p class="hint" style="margin:6px 0 0">Des mélodies du domaine public jouées par l'appli, sans batterie : le batteur, c'est toi !</p></div>
       <div><span class="lab" id="lab-gmCh">Mes chants</span><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
         <div class="row" style="margin-top:8px">
           <button type="button" class="btn ghost" id="gmImp">Importer des chants</button>
@@ -964,7 +965,7 @@ body.gm-live{overflow:hidden}
     </div>
 
     <h3 id="h-lp">Boucler un passage d'un chant</h3>
-    <p class="hint">Choisis un chant importé et une mesure de départ : le passage tourne jusqu'à ce que tu quittes, sans jauge d'erreurs. Après chaque tour, tu vois ta précision.</p>
+    <p class="hint">Choisis un chant et une mesure de départ : le passage tourne jusqu'à ce que tu quittes, sans jauge d'erreurs. Après chaque tour, tu vois ta précision.</p>
     <div class="gm-opts" id="lpBox">
       <div><label class="lab" for="lpSong">Chant</label><select class="sm" id="lpSong"></select></div>
       <div id="lpStartRow"><label class="lab" for="lpBar">Mesure de départ</label><div class="lp-bar">
@@ -1944,6 +1945,52 @@ function gmTiming(offs){
   return 'Justesse : '+bias+', et tu es '+reg+' (±'+Math.round(mad)+' ms)'+(Math.abs(med)>=30&&mad<=45?'. Touche « Caler » pour corriger ce décalage':'');
 }
 const GM_CHEER=['Ça viendra ! On remet ça ?','Pas mal du tout !','Bien joué !','Tchak ! Quel groove !'];
+/* Chants libres : des mélodies du domaine public, écrites ici note par note, et leur arrangement.
+   Aucun fichier son : l'appli les joue elle-même, sans batterie, puisque le batteur, c'est le joueur.
+   Écriture : note:durée en temps ; une mesure d'accords par chaîne, un ou deux accords. Tout est en 4/4. */
+const FREE_DEFS=[
+  {id:'frere-jacques',title:'Frère Jacques',bpm:92,passes:3,
+   mel:'C4 D4 E4 C4 C4 D4 E4 C4 E4 F4 G4:2 E4 F4 G4:2 G4:.5 A4:.5 G4:.5 F4:.5 E4 C4 G4:.5 A4:.5 G4:.5 F4:.5 E4 C4 C4 G3 C4:2 C4 G3 C4:2',
+   ch:['C','C','C','C','C','C','C G','C G']},
+  {id:'mary',title:'Mary Had a Little Lamb',bpm:96,passes:4,
+   mel:'E4 D4 C4 D4 E4 E4 E4:2 D4 D4 D4:2 E4 G4 G4:2 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4:4',
+   ch:['C','C','G','C','C','C','G','C']},
+  {id:'clair-de-la-lune',title:'Au clair de la lune',bpm:88,passes:2,
+   mel:'C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4 C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4 D4 D4 D4 D4 A3:2 A3:2 D4 C4 B3 A3 G3:4 C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4',
+   ch:['C','C G','C G','C','C','C G','C G','C','G','D','G D','G','C','C G','C G','C']},
+  {id:'ah-vous-dirai-je',title:'Ah ! vous dirai-je, maman',bpm:92,passes:2,
+   mel:'C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2 G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2 C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2',
+   ch:['C','F C','F C','G C','C G','C G','C G','C G','C','F C','F C','G C']},
+  {id:'ode-a-la-joie',title:'Ode à la joie (Beethoven)',bpm:100,passes:2,
+   mel:'E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:.5 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2 D4 D4 E4 C4 D4 E4:.5 F4:.5 E4 C4 D4 E4:.5 F4:.5 E4 D4 C4 D4 G3:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2',
+   ch:['C','G','C','G','C','G','C','G C','G','G C','G C','D G','C','G','C','G C']},
+  {id:'jingle-bells',title:'Jingle Bells',bpm:112,passes:3,
+   mel:'E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:.5 E4:4 F4 F4 F4:1.5 F4:.5 F4 E4 E4 E4:.5 E4:.5 E4 D4 D4 E4 D4:2 G4:2 E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:.5 E4:4 F4 F4 F4:1.5 F4:.5 F4 E4 E4 E4:.5 E4:.5 G4 G4 F4 D4 C4:4',
+   ch:['C','C','C','C','F','C','G','G','C','C','C','C','F','C','G','C']}
+];
+const FREE_PITCH={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const freeHz=n=>440*Math.pow(2,(12*(+n[1]+1)+FREE_PITCH[n[0]]-69)/12);
+const FREE_CHORD={C:[48,60,64,67],D:[50,62,66,69],F:[53,60,65,69],G:[43,59,62,67]};
+/* Trois passages de plus en plus riches : poum et tchak, puis le charley, puis les toms et la cymbale. */
+function freeSong(def){
+  const barDur=240/def.bpm,beat=60/def.bpm,sx=beat/4,nb=def.ch.length,notes=[],downbeats=[];
+  const total=2+nb*def.passes;
+  for(let b=0;b<=total;b++)downbeats.push(+(b*barDur).toFixed(4));
+  const add=(t,id)=>{const x=+t.toFixed(4);notes.push([x,x,id]);};
+  for(let p=0;p<def.passes;p++)for(let i=0;i<nb;i++){
+    const t0=(2+p*nb+i)*barDur,rich=def.passes>1?p/(def.passes-1):1,lastBar=i===nb-1;
+    add(t0,'poum');add(t0+8*sx,'poum');
+    if(rich>0.6&&!lastBar)add(t0+10*sx,'poum');
+    add(t0+4*sx,'tchak');
+    if(lastBar&&rich>0.6){add(t0+8*sx,'doum');add(t0+10*sx,'doum');add(t0+12*sx,'toum');add(t0+14*sx,'toum');}
+    else add(t0+12*sx,'tchak');
+    if(rich>=0.5)for(let k=0;k<8;k++)add(t0+k*2*sx,'tss');
+    if(rich>0.6&&i===0)add(t0,'psch');
+  }
+  notes.sort((a,b)=>a[0]-b[0]);
+  return {id:'libre-'+def.id,title:def.title,bpm:def.bpm,dur:total*barDur+1.5,notes,downbeats,free:def};
+}
+const FREE_SONGS=FREE_DEFS.map(freeSong);
 const gmStars=p=>p>=95?3:p>=80?2:p>=60?1:0;
 //#pure-end
 
@@ -4347,7 +4394,8 @@ function gmCkDrop(key){if(gmCks[key]){delete gmCks[key];gmCkWrite();}}
 const gmCkLabel=c=>(c.unit==='manche'?'manche ':'mesure ')+(c.at+1);
 /* Les chants restent sur l'appareil : le son dans un magasin à part, pour lire la liste sans tout charger. */
 const gmSongId=()=>gm.rh.startsWith('chant:')?gm.rh.slice(6):null;
-const gmCurSong=()=>gm.songs.find(x=>x.id===gmSongId())||null;
+const gmAllSongs=()=>FREE_SONGS.concat(gm.songs);
+const gmCurSong=()=>gmAllSongs().find(x=>x.id===gmSongId())||null;
 function gmDb(){
   return new Promise((ok,ko)=>{
     if(!window.indexedDB){ko(new Error('Stockage indisponible'));return;}
@@ -4429,6 +4477,8 @@ function gmRender(){
   const ch=$('#gmCh');ch.textContent='';ch.hidden=!gm.songs.length;
   $('#lab-gmCh').textContent=gm.songs.length?'Mes chants':'Mes chants (aucun pour l\'instant)';
   gm.songs.forEach(x=>chip(ch,'chant:'+x.id,x.title));
+  const fr=$('#gmFree');fr.textContent='';
+  FREE_SONGS.forEach(x=>chip(fr,'chant:'+x.id,x.title));
   const lv=$('#gmLv');lv.textContent='';
   Object.entries(GM_LEVELS).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.lvl===id));lv.appendChild(b);});
   $('#gmBpm').textContent=gm.bpm+' BPM';
@@ -4461,13 +4511,13 @@ function gmRender(){
   ['#gmSlowBtn','#lpSlowBtn'].forEach(q=>$(q).setAttribute('aria-pressed',String(gm.slow)));
   lpRender();
   const song=gmCurSong();
-  $('#gmTempoRow').hidden=!!song;$('#gmDel').hidden=!song;
+  $('#gmTempoRow').hidden=!!song;$('#gmDel').hidden=!song||!!song.free;
   const best=gmBest(gmKey());
   $('#gmMsg').textContent=gm.rh==='mine'&&!gmMyGroove()?'Écris d\'abord un rythme dans la grille de la rubrique Rythme.':(song?'Tempo du chant : '+Math.round(song.bpm)+' BPM. ':'')+(best?'Record sur ce choix : '+best+' points.':'');
   $('#gmMsg').className='msg';
 }
 $('#gmGames').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.game=b.dataset.v;gmSave();gmRender();});
-['#gmRh','#gmCh'].forEach(q=>$(q).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.rh=b.dataset.v;gmSave();gmRender();}));
+['#gmRh','#gmCh','#gmFree'].forEach(q=>$(q).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.rh=b.dataset.v;gmSave();gmRender();}));
 $('#gmLv').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.lvl=b.dataset.v;gmSave();gmRender();});
 $('#gmTol').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.tol=b.dataset.v;gmSave();gmRender();});
 ['#gmSlowBtn','#lpSlowBtn'].forEach(q=>$(q).addEventListener('click',()=>{gm.slow=!gm.slow;gmSave();gmRender();}));
@@ -4512,7 +4562,7 @@ $('#lpMidi').addEventListener('click',()=>gmMidiToggle(t=>{$('#lpMsg').textConte
 $('#gmImp').addEventListener('click',()=>$('#gmFile').click());
 $('#gmFile').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)await gmImport(fs);});
 $('#gmDel').addEventListener('click',async()=>{
-  const song=gmCurSong();if(!song)return;
+  const song=gmCurSong();if(!song||song.free)return;
   try{await gmDbDo('readwrite',tx=>{tx.objectStore('meta').delete(song.id);tx.objectStore('audio').delete(song.id);});}
   catch(e){$('#gmMsg').textContent='Impossible de retirer ce chant.';return;}
   Object.keys(gmCks).forEach(k=>{if(k.split('|')[1]==='chant:'+song.id)delete gmCks[k];});gmCkWrite();
@@ -4520,7 +4570,50 @@ $('#gmDel').addEventListener('click',async()=>{
   $('#gmMsg').textContent='« '+song.title+' » retiré de cet appareil.';
 });
 /* Le son du chant est décodé juste avant de jouer : un chant de 4 minutes prend 80 Mo en mémoire. */
+/* Le son d'un chant libre, fabriqué une fois puis gardé : accords, basse et mélodie, calculés
+   directement dans un tableau (bien plus rapide qu'une multitude d'oscillateurs sur un téléphone). */
+const gmFreeBufs={};
+function gmFreeAudio(song){
+  if(gmFreeBufs[song.id])return gmFreeBufs[song.id];
+  const def=song.free,sr=22050,n=Math.ceil(song.dur*sr),d=new Float32Array(n),beat=60/def.bpm,barDur=4*beat;
+  const tone=(hz,t,len,vol)=>{
+    const i0=Math.round(t*sr),m=Math.min(n-i0,Math.round(len*sr)),inc=hz/sr,fall=Math.pow(0.2,1/Math.max(1,m)),att=Math.round(0.012*sr),rel=Math.round(0.02*sr);
+    let ph=0,g=vol;
+    for(let i=0;i<m;i++){
+      const w=4*Math.abs(ph-0.5)-1,e=(i<att?i/att:1)*(m-i<rel?(m-i)/rel:1);
+      d[i0+i]+=w*g*e;
+      g*=fall;ph+=inc;if(ph>=1)ph-=1;
+    }
+  };
+  const midi=m=>440*Math.pow(2,(m-69)/12);
+  const nb=def.ch.length,mel=def.mel.split(' ').map(x=>{const [note,len]=x.split(':');return {note,len:len?+len:1};});
+  const bar=(i,t0)=>{
+    const cs=def.ch[i].split(' '),each=4/cs.length;
+    cs.forEach((c,k)=>{
+      const [bass,...up]=FREE_CHORD[c]||FREE_CHORD.C;
+      for(let q=0;q<each;q++){
+        const at=t0+(k*each+q)*beat;
+        if(q%2===0)tone(midi(bass-12),at,beat*1.6,0.34);
+        up.forEach(m=>tone(midi(m),at,beat*0.8,0.08));
+      }
+    });
+  };
+  /* deux mesures d'accords pour s'installer, puis la mélodie à chaque passage */
+  bar(0,0);bar(0,barDur);
+  for(let p=0;p<def.passes;p++){
+    const t0=(2+p*nb)*barDur;
+    for(let i=0;i<nb;i++)bar(i,t0+i*barDur);
+    let t=t0;
+    mel.forEach(x=>{const len=x.len*beat;tone(freeHz(x.note),t,len*0.95,0.36);tone(freeHz(x.note)*2,t,len*0.6,0.06);t+=len;});
+  }
+  let peak=0;for(let i=0;i<n;i++){const v=Math.abs(d[i]);if(v>peak)peak=v;}
+  if(peak>0.85){const k=0.85/peak;for(let i=0;i<n;i++)d[i]*=k;}
+  const buf=ctx.createBuffer(1,n,sr);buf.copyToChannel(d,0);
+  gmFreeBufs[song.id]=buf;
+  return buf;
+}
 async function gmDecode(song){
+  if(song.free){if(!ensureAudio())throw new Error('son');return gmFreeAudio(song);}
   if(!ensureAudio())throw new Error('son');
   const data=await gmDbDo('readonly',tx=>tx.objectStore('audio').get(song.id));
   if(!data)throw new Error('absent');
@@ -4687,7 +4780,7 @@ function gmCkCross(now){
 }
 /* ---------- Pratique : boucler un passage d'un chant ---------- */
 function lpSave(){try{localStorage.setItem(LP_KEY,JSON.stringify(lp));}catch(e){}}
-const lpSong=()=>gm.songs.find(x=>x.id===lp.id)||gm.songs[0]||null;
+const lpSong=()=>gmAllSongs().find(x=>x.id===lp.id)||gmAllSongs()[0]||null;
 const lpTime=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 function lpRender(){
   const song=lpSong(),sel=$('#lpSong'),has=!!song;
@@ -4695,9 +4788,10 @@ function lpRender(){
   $('#lpSong').closest('div').hidden=!has;$('#lpLen').closest('div').hidden=!has;$('#lpLv').closest('div').hidden=!has;
   if(!has){if(!$('#lpMsg').textContent)$('#lpMsg').textContent='Aucun chant sur cet appareil : importe ton fichier de chants pour commencer.';return;}
   lp.id=song.id;
-  if(sel.options.length!==gm.songs.length||[...sel.options].some((o,i)=>o.value!==gm.songs[i].id)){
+  const all=gmAllSongs();
+  if(sel.options.length!==all.length||[...sel.options].some((o,i)=>o.value!==all[i].id)){
     sel.textContent='';
-    gm.songs.forEach(x=>{const o=el('option',null,x.title);o.value=x.id;sel.appendChild(o);});
+    all.forEach(x=>{const o=el('option',null,x.title);o.value=x.id;sel.appendChild(o);});
   }
   sel.value=song.id;
   const bars=gmSongBars(song),nb=bars.length-1;
@@ -5359,7 +5453,7 @@ function gmFinish(fell){
 gmRender();gmLoadSongs();
 /* Tests automatiques : lire la partie en cours. */
 if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
-  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,vitesse:()=>gm.rate};
+  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate};
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
    Croches main droite. Départ à 50 BPM, +8 à chaque mesure tant que tu suis.
    Deux mesures de suite sous 85 % : c'est fini. Ta forme = le tempo le plus rapide tenu à 85 %. */

@@ -9,11 +9,14 @@ async function importer(page) {
 }
 
 test.describe('Boucler un passage', () => {
-  test('sans chant : on explique et on propose d\'importer', async ({ page }) => {
+  test('sans rien importer : les chants libres sont là, et une boucle se lance', async ({ page }) => {
     await rubrique(page, 'Pratique');
-    await expect(page.locator('#lpMsg')).toContainText('Aucun chant');
-    await expect(page.locator('#lpGo')).toBeHidden();
-    await expect(page.locator('#lpImp')).toBeVisible();
+    await expect(page.locator('#lpSong option')).toHaveCount(6);
+    await expect(page.locator('#lpGo')).toBeVisible();
+    await page.locator('#lpGo').click();
+    await expect(page.locator('#gm')).toBeVisible({ timeout: 10_000 });
+    expect(await page.evaluate(() => window.__gm.crete())).toBeGreaterThan(0.05);
+    await page.keyboard.press('Escape');
   });
 
   test('choisir le passage : la mesure reste dans le chant, et le choix est gardé', async ({ page }) => {
