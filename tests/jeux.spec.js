@@ -740,3 +740,44 @@ test.describe('Pendant le jeu', () => {
     await page.keyboard.press('Escape');
   });
 });
+
+test.describe('Rebonds avec le charley', () => {
+  test('une main dirige la balle, l\'autre frappe le charley : un robot qui fait les deux réussit', async ({ page }) => {
+    test.setTimeout(60_000);
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="rebonds"]').click();
+    await page.locator('#gmCtl').getByRole('button', { name: 'Glisser' }).click();
+    await page.locator('#gmHHBtn').click();
+    await expect(page.locator('#gmHHBtn')).toHaveAttribute('aria-pressed', 'true');
+    await lancer(page, 'rebonds', 'Peu', 'Glisser');
+    const r = await page.evaluate(async () => {
+      const cv = document.querySelector('#gmCv'), b = cv.getBoundingClientRect(), P = window.__gm.padCharley();
+      const hh = window.__gm.charley(), notes = window.__gm.notes();
+      const ev = [...notes.map((n) => ({ t: n.t, k: 'b', lane: n.lane })), ...hh.map((t) => ({ t, k: 'h' }))].sort((x, y) => x.t - y.t);
+      for (const e of ev) {
+        if (e.k === 'b') cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'touch', clientX: b.left + b.width * (e.lane ? 0.67 : 0.33), clientY: b.top + 400 }));
+        while (window.__gm.on() && window.__gm.now() < (e.k === 'b' ? e.t + 0.03 : e.t)) await new Promise((f) => setTimeout(f, 2));
+        if (!window.__gm.on()) break;
+        if (e.k === 'h') {
+          cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 2, pointerType: 'touch', clientX: b.left + P.x, clientY: b.top + P.y }));
+          cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2, pointerType: 'touch', clientX: b.left + P.x, clientY: b.top + P.y }));
+        }
+      }
+      return { hh: hh.length, sc: window.__gm.hhSc() };
+    });
+    expect(r.hh).toBeGreaterThan(20);
+    expect(r.sc.ok / r.sc.n).toBeGreaterThan(0.8);
+    await expect(page.locator('#mnRes')).toContainText('Charley :', { timeout: 8000 });
+  });
+
+  test('en mode Frapper, l\'option explique qu\'elle se joue en Glisser ou Incliner', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="rebonds"]').click();
+    await page.locator('#gmCtl').getByRole('button', { name: 'Frapper' }).click();
+    await page.locator('#gmHHBtn').click();
+    await expect(page.locator('#gmHHHint')).toContainText('Glisser ou Incliner');
+    await page.locator('#gmGo').click();
+    expect(await page.evaluate(() => window.__gm.charley().length)).toBe(0);
+    await page.keyboard.press('Escape');
+  });
+});
