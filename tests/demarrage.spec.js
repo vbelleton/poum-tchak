@@ -2,7 +2,7 @@ const { test, expect, rubrique, memoire } = require('./outils/base');
 
 test.describe('Démarrage et rubriques', () => {
   test("la page s'ouvre sur le rythme rock, sans erreur", async ({ page }) => {
-    await expect(page).toHaveTitle('Poum Tchak');
+    await expect(page).toHaveTitle(/Poum Tchak/);
     await expect(page.locator('#kit .ic')).toHaveCount(7);
     await expect(page.getByRole('tab', { name: 'Rythme' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#patterns [data-v="rock"]')).toHaveAttribute('aria-pressed', 'true');
@@ -100,5 +100,56 @@ test.describe('Menu et batterie du haut', () => {
     await page.evaluate(() => window.scrollTo(0, 800));
     expect((await places(page)).menu).toBe(0);
     await expect(page.locator('.tabs')).toBeInViewport();
+  });
+});
+
+test.describe('Accueil, référencement et liens', () => {
+  test('la page dit ce qu\'elle est, aux moteurs comme aux partages', async ({ page }) => {
+    await expect(page).toHaveTitle(/apprendre la batterie/);
+    expect(await page.locator('meta[name="description"]').getAttribute('content')).toContain('batterie');
+    expect(await page.locator('link[rel="canonical"]').getAttribute('href')).toBe('https://vbelleton.github.io/poum-tchak/');
+    expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toContain('icon-512.png');
+    const ld = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
+    expect(ld.name).toBe('Poum Tchak');
+    await expect(page.locator('#wsub')).toHaveText('apprendre la batterie');
+  });
+
+  test('première visite : l\'accueil mène au parcours et ne revient pas', async ({ page }) => {
+    await expect(page.locator('#welcome')).toBeVisible();
+    await page.locator('#welcomeGo').click();
+    await expect(page.getByRole('tab', { name: 'Parcours', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await page.reload();
+    await page.getByRole('tab', { name: 'Rythme', exact: true }).click();
+    await expect(page.locator('#welcome')).toBeHidden();
+  });
+
+  test('chaque rubrique a son titre et son adresse, et une adresse ouvre sa rubrique', async ({ page }) => {
+    await page.getByRole('tab', { name: 'Jeux', exact: true }).click();
+    await expect(page).toHaveTitle(/^Jeux · Poum Tchak/);
+    expect(new URL(page.url()).hash).toBe('#jeux');
+    await page.goto('index.html#mains');
+    await page.reload();
+    await expect(page.getByRole('tab', { name: 'Mains', exact: true })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('le solfège renvoie vers ses références, avec des liens externes annoncés', async ({ page }) => {
+    await page.locator('#solfWhat').click();
+    await expect(page.locator('#h-solf')).toBeInViewport();
+    const liens = page.locator('.ref-l a');
+    await expect(liens).toHaveCount(4);
+    for (const l of await liens.all()) {
+      await expect(l).toHaveAttribute('target', '_blank');
+      await expect(l).toHaveAttribute('rel', 'noopener');
+      await expect(l).toContainText('(nouvel onglet)');
+    }
+  });
+
+  test('Jeux : le bouton Jouer et le résumé du choix restent visibles', async ({ page }) => {
+    await page.getByRole('tab', { name: 'Jeux', exact: true }).click();
+    await expect(page.locator('#gmGo')).toBeInViewport();
+    await expect(page.locator('#gmSum')).toContainText('Couloirs');
+    await page.locator('#gmGames [data-v="orbite"]').click();
+    await expect(page.locator('#gmSum')).toContainText('Orbite');
+    await expect(page.locator('#gmGo')).toBeInViewport();
   });
 });

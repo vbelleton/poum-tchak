@@ -2,6 +2,7 @@
   "name": "Poum Tchak",
   "short_name": "Poum Tchak",
   "lang": "fr",
+  "categories": ["music", "education"],
   "description": "Pupitre de batterie : parcours guidé, indépendance des mains, onomatopées et solfège rythmique, écoute du tempo au micro.",
   "start_url": "./",
   "scope": "./",

@@ -28,7 +28,7 @@ for (const theme of ['light', 'dark']) {
   test.describe(`Accessibilité, thème ${theme === 'light' ? 'clair' : 'sombre'}`, () => {
     test.use({ colorScheme: theme });
 
-    for (const onglet of ['Rythme', 'Pratique', 'Écoute', 'Mots']) {
+    for (const onglet of ['Parcours', 'Rythme', 'Pratique', 'Jeux', 'Mains', 'Écoute', 'Mots']) {
       test(`rubrique ${onglet} : aucune erreur axe`, async ({ page }) => {
         await rubrique(page, onglet);
         if (onglet === 'Mots') {
@@ -38,6 +38,25 @@ for (const theme of ['light', 'dark']) {
         expect(await analyser(page)).toEqual([]);
       });
     }
+
+    test('fenêtre Comment jouer : aucune erreur axe, reste de la page inerte, focus rendu', async ({ page }) => {
+      await rubrique(page, 'Jeux');
+      await page.locator('#gmHow').focus();
+      await page.locator('#gmHow').click();
+      await expect(page.locator('#gmHowOk')).toBeFocused();
+      await expect(page.locator('#mnRes')).toHaveAttribute('aria-label', /Comment jouer/);
+      expect(await page.evaluate(() => document.querySelector('#main').inert)).toBe(true);
+      expect(await analyser(page)).toEqual([]);
+      await page.keyboard.press('Escape');
+      await expect(page.locator('#gmHow')).toBeFocused();
+      expect(await page.evaluate(() => document.querySelector('#main').inert)).toBe(false);
+    });
+
+    test('vue Orbites de Mains : aucune erreur axe', async ({ page }) => {
+      await rubrique(page, 'Mains');
+      await page.locator('#mnView').getByRole('button', { name: 'Orbites' }).click();
+      expect(await analyser(page)).toEqual([]);
+    });
 
     test("vue Jouer sur l'écran : aucune erreur axe", async ({ page }) => {
       await rubrique(page, 'Pratique');
@@ -51,7 +70,7 @@ test.describe('Mise en page', () => {
   for (const largeur of [320, 375, 768, 1280]) {
     test(`aucun débordement horizontal à ${largeur} px`, async ({ page }) => {
       await page.setViewportSize({ width: largeur, height: 800 });
-      for (const onglet of ['Rythme', 'Pratique', 'Écoute', 'Mots']) {
+      for (const onglet of ['Parcours', 'Rythme', 'Pratique', 'Jeux', 'Mains', 'Écoute', 'Mots']) {
         await rubrique(page, onglet);
         const d = await debordement(page);
         expect(d, onglet).toEqual({ large: false, fautifs: [] });
@@ -80,7 +99,7 @@ test.describe('Mise en page', () => {
   });
 
   test('chaque champ et bouton a un nom', async ({ page }) => {
-    for (const onglet of ['Rythme', 'Pratique', 'Écoute', 'Mots']) {
+    for (const onglet of ['Parcours', 'Rythme', 'Pratique', 'Jeux', 'Mains', 'Écoute', 'Mots']) {
       await rubrique(page, onglet);
       const sansNom = await page.evaluate(() => [...document.querySelectorAll('button, input, select, textarea')]
         .filter((e) => e.offsetParent !== null && e.type !== 'file')

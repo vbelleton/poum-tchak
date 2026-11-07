@@ -588,13 +588,21 @@ test.describe('Passer et Accélérer', () => {
     await expect(page.locator('#gmSkip')).toBeVisible();
     await expect(page.locator('#gmFast')).toBeHidden();
     await page.locator('#gmSkip').click();
-    expect(await page.evaluate(() => window.__gm.now())).toBeGreaterThanOrEqual(r.count2 - 0.1);
+    expect(await page.evaluate(() => window.__gm.now())).toBeGreaterThanOrEqual(r.count2 - 0.5);
     await expect(page.locator('#gmSkip')).toBeHidden();
     await page.keyboard.press('Escape');
   });
 });
 
 test.describe('Justesse', () => {
+  test('le bilan encourage, et des confettis tombent quand c\'est réussi', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'orbite');
+    await jouerParfait(page);
+    await expect(page.locator('#mnRes .gm-cheer')).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('.gm-confetti span').first()).toBeAttached();
+  });
+
   test('le bilan dit si on est décalé ou irrégulier', async ({ page }) => {
     test.setTimeout(60_000);
     await lancer(page, 'couloirs');

@@ -6,14 +6,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)">
-<title>Poum Tchak</title>
+<title>Poum Tchak : apprendre la batterie, rythmes et jeux</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Poum Tchak">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="description" content="Pupitre de batterie : onomatopées, solfège rythmique, écoute du tempo au micro.">
+<meta name="description" content="Apprendre la batterie gratuitement sur téléphone : parcours guidé, rythmes à écrire et écouter, indépendance des mains, jeux de rythme, solfège Kodály, Takadimi et Konnakol. Fonctionne sans réseau.">
+<link rel="canonical" href="https://vbelleton.github.io/poum-tchak/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="Poum Tchak">
+<meta property="og:title" content="Poum Tchak : apprendre la batterie, rythmes et jeux">
+<meta property="og:description" content="Apprendre la batterie gratuitement sur téléphone : parcours guidé, rythmes à écrire et écouter, indépendance des mains, jeux de rythme, solfège Kodály, Takadimi et Konnakol. Fonctionne sans réseau.">
+<meta property="og:url" content="https://vbelleton.github.io/poum-tchak/">
+<meta property="og:image" content="https://vbelleton.github.io/poum-tchak/icon-512.png">
+<meta property="og:image:alt" content="Icône de Poum Tchak">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Poum Tchak", "url": "https://vbelleton.github.io/poum-tchak/", "description": "Apprendre la batterie gratuitement sur téléphone : parcours guidé, rythmes à écrire et écouter, indépendance des mains, jeux de rythme, solfège Kodály, Takadimi et Konnakol. Fonctionne sans réseau.", "inLanguage": "fr", "applicationCategory": "EducationalApplication", "operatingSystem": "Tous", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23141922'/%3E%3Ccircle cx='24' cy='24' r='14' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Ccircle cx='24' cy='24' r='4' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,7 +60,7 @@
   color-scheme:dark;
 }
 [hidden]{display:none!important}
-html{background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);scroll-padding-top:170px;scroll-padding-bottom:100px}
+html{background:var(--bg);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);scroll-padding-top:190px;scroll-padding-bottom:100px}
 .sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .skip{position:absolute;left:8px;top:-80px;z-index:20;background:var(--ink);color:var(--ink-inv);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none}
 .skip:focus{top:calc(8px + env(safe-area-inset-top,0px))}
@@ -72,16 +83,23 @@ body[data-tab="rythme"] .stage,body[data-tab="pratique"] .stage,body[data-tab="e
 .stage .in{padding-block:8px 10px}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;height:36px;overflow:hidden}
 .wordbox{min-width:0;display:flex;align-items:baseline;gap:8px;flex:1}
-.word{font:800 clamp(24px,7vw,32px)/1.1 var(--f-display);letter-spacing:-.01em;color:var(--muted);transition:color .12s,transform .12s;transform-origin:left center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.word.hot{color:var(--ink);transform:scale(1.04)}
+.word{font:800 clamp(24px,7vw,32px)/1.1 var(--f-display);letter-spacing:-.01em;color:var(--ink);transition:color .12s,transform .12s;transform-origin:left center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.word.hot{color:var(--c-tchak);transform:scale(1.1) rotate(-1.5deg)}
 .wsub{font:500 11px/1.2 var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ic:nth-child(even).on{transform:scale(1.12) rotate(5deg)}
+.gm-cheer{font:800 20px/1.2 var(--f-display);margin:6px 0 0}
+.gm-confetti{position:fixed;inset:0;z-index:40;overflow:hidden;pointer-events:none}
+.gm-confetti span{position:absolute;top:-40px;font:800 var(--z,20px)/1 var(--f-display);color:var(--c);animation:gm-fall var(--d,1.6s) ease-in var(--w,0s) forwards}
+@keyframes gm-fall{to{transform:translateY(110vh) rotate(var(--r,180deg))}}
+@media (prefers-reduced-motion:reduce){.gm-confetti{display:none}}
+.wsub.tag{white-space:normal;max-width:11ch;line-height:1.15;align-self:center}
 .tempo-read{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
 .kit{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
 .ic{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
 .ico{width:100%;max-width:34px;height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ic .w{font:700 12px/1.1 var(--f-body);color:var(--ink);max-width:100%;overflow-wrap:anywhere}
 .ic .n{font:500 9.5px/1.1 var(--f-body);color:var(--muted);text-align:center;max-width:100%}
-.ic.on{transform:scale(1.07);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
+.ic.on{transform:scale(1.12) rotate(-5deg);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c)}
 
 /* Rubriques */
 .wrap{padding-block:14px 8px}
@@ -595,7 +613,7 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
 .mn-do{margin:0 2px 2px;font:700 14px/1.25 var(--f-body);display:flex;flex-direction:column;gap:1px;height:2.9em;overflow:hidden}
 .mn-do b{font:800 15px var(--f-display);color:var(--c)}
 .mn-do span{font:500 13px var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mn-dl{--c:var(--c-doum)}.mn-dr{--c:var(--c-tchak)}
+.mn-dl{--c:var(--c-doum)}.mn-dr{--c:color-mix(in srgb,var(--c-tchak) 78%,var(--ink))}
 @media (max-height:760px){body.mn-live .mn-time{display:none}}
 .mn-pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 body.mn-live .stage,body.mn-live .navbar{display:none}
@@ -637,7 +655,7 @@ body.res-open{overflow:hidden}
 .pr-sk{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .pr-sk .ico{flex:none;width:40px;height:40px;border-radius:50%;border:2.5px solid var(--edge);display:flex;align-items:center;justify-content:center;font:800 15px var(--f-mono);color:var(--muted)}
 .pr-sk:not(.lv0) .ico{border-color:var(--ok);color:var(--ok)}
-.pr-sk.lv0{opacity:.72}
+.pr-sk.lv0{border-style:dashed}
 .pr-sk .tx{min-width:0;display:flex;flex-direction:column;gap:2px;flex:1}
 .pr-sk b{font:700 15px var(--f-display)}
 .pr-sk .pr-lv{white-space:nowrap;font:600 11.5px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
@@ -728,8 +746,25 @@ body[data-mnview="orbites"] .mn-lane{display:none}
 .gm-tempo button{appearance:none;width:44px;height:44px;border:1px solid var(--edge);border-radius:9px;background:var(--surface);font-size:20px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .gm-tempo output{min-width:88px;text-align:center;font:600 16px var(--f-mono)}
 .gm-ch .chip{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.welcome{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.welcome b{display:block;font:800 18px/1.2 var(--f-display)}
+.welcome span{display:block;margin-top:4px}
+.linkish{appearance:none;border:0;background:none;padding:4px 2px;font:inherit;font-weight:600;color:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.ref-l{margin:8px 0 0;font-size:14px}
+.ref-l a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.gm-cta{position:sticky;bottom:0;z-index:2;background:var(--bg);padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));margin-top:8px;border-top:1px solid var(--line)}
+.gm-sum{margin:0 0 6px;font:600 13px/1.3 var(--f-body);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gm-cta .msg{margin:6px 0 0}
+#gmGameTxt{display:none;margin:0 0 10px}
+@media (max-width:560px){
+  .gm-games{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+  .gm-game{padding:9px}.gm-game[aria-pressed="true"]{padding:8px}
+  .gm-game b{font-size:16px}.gm-game span{display:none}
+  .gm-art{height:54px;margin-bottom:6px}
+  #gmGameTxt{display:block}
+}
 .gm-go{width:100%;min-height:54px;font-size:17px}
-.gm-resume{width:100%;min-height:54px;font-size:17px;margin-bottom:8px}
+.gm-resume{width:100%;min-height:50px;font-size:16px;margin-bottom:6px}
 .gm-resume[hidden]{display:none}
 .gm-how{width:100%;margin-bottom:12px}
 .gm-steps{margin:0;padding-left:22px}
@@ -764,6 +799,7 @@ body.gm-live{overflow:hidden}
 <body>
 <noscript><p style="padding:16px">Poum Tchak a besoin de JavaScript pour fonctionner. Active-le dans ton navigateur.</p></noscript>
 <a class="skip" href="#main">Aller au contenu</a>
+<noscript><p>Poum Tchak est une application pour apprendre la batterie : parcours guidé, rythmes, indépendance des mains et jeux. Elle a besoin de JavaScript pour fonctionner.</p></noscript>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
@@ -789,9 +825,9 @@ body.gm-live{overflow:hidden}
 
 <header class="stage">
   <div class="in">
-    <h1 class="sr">Poum Tchak, pupitre de batterie</h1>
+    <h1 class="sr">Poum Tchak : apprendre la batterie</h1>
     <div class="top">
-      <div class="wordbox"><div class="word" id="word">poum tchak</div><div class="wsub" id="wsub"></div></div>
+      <div class="wordbox"><div class="word" id="word">poum tchak</div><div class="wsub tag" id="wsub">apprendre la batterie</div></div>
       <div class="tempo-read" id="tempoRead"></div>
     </div>
     <div class="kit" id="kit" role="group" aria-label="La batterie : touche un fût pour l'entendre"></div>
@@ -807,7 +843,7 @@ body.gm-live{overflow:hidden}
   <!-- Parcours : une étape à la fois -->
   <section class="panel" role="tabpanel" id="p-parcours" aria-labelledby="t-parcours" hidden>
     <h2 class="sr">Parcours</h2>
-    <p class="hint first">Une étape à la fois, du plus simple au plus dur : une main seule, puis les deux, des noires aux doubles croches, avec des consignes à traduire entre deux. À 85 % de coups justes pour chaque main, l'étape est réussie ; si ça coince, le tempo ralentit tout seul. Le tempo se compte en BPM (battements par minute) : 60 BPM = un clic par seconde.</p>
+    <p class="hint first">Une étape à la fois, du plus facile au plus dur. Réussis à 85 % et tu passes à la suite. Si ça coince, le tempo ralentit tout seul : pas de stress. Le tempo se compte en BPM : 60 BPM, c'est un clic par seconde.</p>
     <div class="inst" id="inst" hidden>
       <div><b>Installe Poum Tchak</b><span id="instTxt">Une icône sur ton écran d'accueil, en plein écran, même sans réseau.</span></div>
       <button type="button" class="btn" id="instBtn">Installer</button>
@@ -823,8 +859,9 @@ body.gm-live{overflow:hidden}
   <!-- Jeux : les rythmes en jeux d'arcade -->
   <section class="panel" role="tabpanel" id="p-jeux" aria-labelledby="t-jeux" hidden>
     <h2 class="sr">Jeux</h2>
-    <p class="hint first">Tes rythmes et tes chants en jeux : tape les notes qui arrivent. Une jauge d'erreurs se vide quand tu rates, et la partie s'arrête quand elle est vide. Le nombre de notes et la tolérance se règlent séparément.</p>
+    <p class="hint first">Tes rythmes et tes chants deviennent des jeux. Choisis, joue, recommence ! Une jauge se vide quand tu rates, et tu peux toujours reprendre où tu en étais.</p>
     <div class="gm-games" id="gmGames" role="group" aria-label="Choisir un jeu"></div>
+    <p class="hint" id="gmGameTxt"></p>
     <button type="button" class="btn ghost gm-how" id="gmHow"></button>
     <div class="gm-opts">
       <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p></div>
@@ -846,14 +883,22 @@ body.gm-live{overflow:hidden}
       <div><button type="button" class="tog" id="gmSlowBtn" aria-pressed="false">Ralentir quand ça coince</button><p class="hint" style="margin:6px 0 0">Si tu rates plusieurs coups, la partie ralentit par paliers, jusqu'à 70 %, puis revient quand tu suis. Sur un chant, le son descend un peu avec la vitesse. Les points comptent à part pour les records.</p></div>
       <div><button type="button" class="tog" id="gmMidi" aria-pressed="false">Batterie MIDI</button></div>
     </div>
-    <button type="button" class="btn gm-resume" id="gmResume" hidden></button>
-    <button type="button" class="btn gm-go" id="gmGo">Jouer</button>
-    <p class="msg" id="gmMsg" role="status"></p>
+    <div class="gm-cta">
+      <p class="gm-sum" id="gmSum"></p>
+      <button type="button" class="btn gm-resume" id="gmResume" hidden></button>
+      <button type="button" class="btn gm-go" id="gmGo">Jouer</button>
+      <p class="msg" id="gmMsg" role="status"></p>
+    </div>
   </section>
 
   <!-- Rythme : écrire et lire la mesure -->
   <section class="panel" role="tabpanel" id="p-rythme" aria-labelledby="t-rythme">
     <h2 class="sr">Rythme</h2>
+    <div class="card welcome" id="welcome" hidden>
+      <div><b>Salut, bienvenue sur Poum Tchak !</b><span>Ici, on apprend la batterie en s'amusant : tu dis « poum tchak », tu tapes, et ça groove. Pas besoin de batterie, ton téléphone suffit.</span></div>
+      <div class="row"><button type="button" class="btn" id="welcomeGo">C'est parti !</button><button type="button" class="btn ghost" id="welcomeNo">Je préfère explorer</button></div>
+    </div>
+    <p class="hint first">Touche les cases pour écrire ton rythme, ou pioche un modèle, puis appuie sur lecture en bas de l'écran.</p>
     <div id="slot-rythme"><div id="rhythmCtl">
     <div class="ctrl">
       <div class="seg" id="meterSeg" role="group" aria-label="Mesure"></div>
@@ -885,7 +930,7 @@ body.gm-live{overflow:hidden}
       <div class="rlab">Onomatopées</div>
       <div class="phrase" id="phrase"></div>
       <div class="rlab-row">
-        <div class="rlab" id="lab-solf">Solfège rythmique</div>
+        <div class="rlab" id="lab-solf">Solfège rythmique <button type="button" class="linkish" id="solfWhat">C'est quoi ?</button></div>
         <div class="seg small" id="solfSeg" role="group" aria-labelledby="lab-solf">
           <button type="button" data-v="kodaly">Kodály</button>
           <button type="button" data-v="takadimi">Takadimi</button>
@@ -909,6 +954,7 @@ body.gm-live{overflow:hidden}
   <!-- Pratique : jouer et travailler -->
   <section class="panel" role="tabpanel" id="p-pratique" aria-labelledby="t-pratique" hidden>
     <h2 class="sr">Pratique</h2>
+    <p class="hint first">À toi de jouer ! Tape le rythme de la rubrique Rythme ou boucle un bout de chant : chaque frappe reçoit sa note.</p>
     <div id="slot-pratique"></div>
     <div class="cta">
       <button type="button" class="btn xl" id="kitBtn">Jouer sur l'écran</button>
@@ -1133,22 +1179,27 @@ body.gm-live{overflow:hidden}
     </div>
     <p class="msg dm" data-k="tools"></p>
 
-    <h3>Solfège rythmique</h3>
+    <h3 id="h-solf">Solfège rythmique</h3>
+    <p class="hint">Trois façons de dire un rythme à voix haute. Les liens ouvrent un nouvel onglet.</p>
     <div class="refs">
       <article class="ref"><header><span class="rw">Kodály</span><span class="rn">noms de durées</span></header>
         <p>ta, ti-ti, tiri-tiri : une syllabe par durée de note. Tim-ri (croche pointée, double) et ti-rim (l'inverse) prolongent le système dans l'appli.</p>
-        <ul class="src"><li>Solfège rythmique<b>ta / ti-ti</b></li><li>Usage français<b>tiri-tiri</b></li></ul></article>
+        <ul class="src"><li>Solfège rythmique<b>ta / ti-ti</b></li><li>Usage français<b>tiri-tiri</b></li></ul>
+        <p class="ref-l"><a href="https://fr.wikipedia.org/wiki/M%C3%A9thode_Kod%C3%A1ly" target="_blank" rel="noopener">La méthode Kodály sur Wikipédia<span class="sr"> (nouvel onglet)</span></a></p></article>
       <article class="ref"><header><span class="rw">Takadimi</span><span class="rn">noms de positions</span></header>
         <p>ta ka di mi : une syllabe par place dans le temps, donc exacte pour n'importe quel rythme. En ternaire : ta ki da. Sert de repli quand un temps n'a pas de nom Kodály.</p>
-        <ul class="src"><li>Hoffman, Pelto, White<b>1996</b></li></ul></article>
+        <ul class="src"><li>Hoffman, Pelto, White<b>1996</b></li></ul>
+        <p class="ref-l"><a href="https://www.takadimi.net/" target="_blank" rel="noopener" hreflang=en>Le site Takadimi (en anglais)<span class="sr"> (nouvel onglet)</span></a> · <a href="https://en.wikipedia.org/wiki/Takadimi" target="_blank" rel="noopener" hreflang=en>Wikipédia (en anglais)<span class="sr"> (nouvel onglet)</span></a></p></article>
       <article class="ref"><header><span class="rw">Konnakol</span><span class="rn">rythme récité</span></header>
         <p>Rythme récité à pulsation constante, en musique carnatique d'Inde du Sud : ta (1), ta ka (2), ta ki ta (3), ta ka di mi (4). Dans l'appli, chaque temps garde toutes ses syllabes et un tiret remplace celles qui sont muettes.</p>
-        <ul class="src"><li>Inde du Sud<b>ta ka di mi</b></li><li>Batterie<b>ta ki ta</b></li></ul></article>
+        <ul class="src"><li>Inde du Sud<b>ta ka di mi</b></li><li>Batterie<b>ta ki ta</b></li></ul>
+        <p class="ref-l"><a href="https://fr.wikipedia.org/wiki/Konnakol" target="_blank" rel="noopener">Le konnakol sur Wikipédia<span class="sr"> (nouvel onglet)</span></a></p></article>
     </div>
   </section>
 
   <footer class="foot">
     <p class="hint" id="offlineMsg">Ouvre cette page une fois avec du réseau : elle restera disponible ensuite, même sans connexion.</p>
+    <p class="hint"><b>Poum Tchak</b> : une application gratuite pour apprendre la batterie, qui fonctionne sans compte et garde tes données sur ton appareil.</p>
     <p class="hint">Sons de batterie : Web Audio Samples de l'équipe Chrome Web Audio, sous licence Apache 2.0.</p>
   </footer>
 </main>
@@ -1222,6 +1273,7 @@ body.gm-live{overflow:hidden}
   <div class="gm-prog" aria-hidden="true"><i id="gmProg"></i></div>
   <div class="gm-top"><button type="button" class="btn" id="gmQuit">Quitter</button><div class="gm-gauge" id="gmGauge" role="meter" aria-label="Jauge d'erreurs : la partie s'arrête quand elle est vide" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="gmGaugeFill"></i></div><div class="gm-score" aria-hidden="true"><span id="gmPts">0</span><small id="gmCombo"></small></div></div>
   <div class="gm-ff"><button type="button" class="btn" id="gmFast" aria-pressed="false" hidden>Accélérer ⏩</button><button type="button" class="btn" id="gmSkip" hidden>Passer ⏭</button></div>
+  <p class="sr" id="gmSay" role="status"></p>
   <canvas id="gmCv" tabindex="0" role="application" aria-label="Zone de jeu : tape au moment où les notes arrivent"></canvas>
 </section>
 <div class="pr-res" id="mnRes" hidden role="dialog" aria-modal="true" aria-label="Résultat"></div>
@@ -1891,6 +1943,7 @@ function gmTiming(offs){
   const reg=mad<=25?'très régulier':mad<=45?'assez régulier':'irrégulier';
   return 'Justesse : '+bias+', et tu es '+reg+' (±'+Math.round(mad)+' ms)'+(Math.abs(med)>=30&&mad<=45?'. Touche « Caler » pour corriger ce décalage':'');
 }
+const GM_CHEER=['Ça viendra ! On remet ça ?','Pas mal du tout !','Bien joué !','Tchak ! Quel groove !'];
 const gmStars=p=>p>=95?3:p>=80?2:p>=60?1:0;
 //#pure-end
 
@@ -2176,7 +2229,7 @@ function showWord(ids,lv){
   const list=key.split('+');
   const w=showLevel(comboWord(dict,list),lv||2);
   wordEl.textContent=w;kvWordEl.textContent=w;
-  wsubEl.textContent=list.length>1?list.map(W).join(' + '):'';
+  wsubEl.textContent=list.length>1?list.map(W).join(' + '):'';wsubEl.classList.remove('tag');
   wordEl.classList.add('hot');kvWordEl.classList.add('hot');
   clearTimeout(wordTimer);wordTimer=setTimeout(()=>{wordEl.classList.remove('hot');kvWordEl.classList.remove('hot');},420);
   clearTimeout(titleTimer);titleTimer=setTimeout(backToTitle,4000);
@@ -2185,7 +2238,7 @@ function showWord(ids,lv){
 let titleTimer=null;
 function backToTitle(){
   if(state.playing||(typeof mn!=='undefined'&&mn.on)){titleTimer=setTimeout(backToTitle,4000);return;}
-  wordEl.textContent='poum tchak';wsubEl.textContent='';
+  wordEl.textContent='poum tchak';wsubEl.textContent='apprendre la batterie';wsubEl.classList.add('tag');
 }
 function flash(ids,lv){lightIcons(ids);showWord(ids,lv);}
 /* Plusieurs fûts touchés en même temps (moins de 60 ms d'écart) forment une seule frappe. */
@@ -3945,6 +3998,9 @@ function showTab(name,focus){
   const slot=$('#slot-'+name);
   if(slot&&!slot.contains($('#rhythmCtl')))slot.appendChild($('#rhythmCtl'));
   if(focus)$('#t-'+name).focus({preventScroll:true});
+  document.title=$('#t-'+name).textContent+' · Poum Tchak : apprendre la batterie';
+  /* un lien de partage (#g=…) attend d'être lu : on n'y touche pas */
+  {const h=location.hash.slice(1);if(!h||TAB_NAMES.includes(h)){try{history.replaceState(null,'','#'+name);}catch(e){}}}
   /* chaque rubrique s'ouvre par son début, sans animation */
   window.scrollTo(0,0);
   save();
@@ -4127,12 +4183,25 @@ function prTitle(x){
   return 'Gauche '+mnVal(x.l)+' · droite '+mnVal(x.r);
 }
 /* Le résultat d'une séance ou d'une étape : toujours au même endroit, en plein écran, rien à chercher. */
+/* Le reste de la page devient inerte le temps de la fenêtre, et le focus revient d'où il venait. */
+let sheetFrom=null;
 function sheetOpen(html){
-  const b=$('#mnRes');b.innerHTML='<div class="pr-in">'+html+'</div>';b.hidden=false;b.scrollTop=0;
+  const b=$('#mnRes');
+  if(b.hidden)sheetFrom=document.activeElement;
+  b.innerHTML='<div class="pr-in">'+html+'</div>';b.hidden=false;b.scrollTop=0;
+  const t=b.querySelector('h3');b.setAttribute('aria-label',t?t.textContent:'Résultat');
+  [...document.body.children].forEach(c=>{if(c!==b&&c.id!=='prToast'&&c.tagName!=='SCRIPT')c.inert=true;});
   document.body.classList.add('res-open');
-  setTimeout(()=>{const f=b.querySelector('.pr-btns .btn');if(f)f.focus({preventScroll:true});},60);
+  setTimeout(()=>{if(b.hidden)return;const f=b.querySelector('.pr-btns .btn')||b.querySelector('button');if(f)f.focus({preventScroll:true});},60);
 }
-function sheetClose(){$('#mnRes').hidden=true;document.body.classList.remove('res-open');}
+function sheetClose(){
+  const b=$('#mnRes');
+  if(b.hidden)return;
+  b.hidden=true;document.body.classList.remove('res-open');
+  [...document.body.children].forEach(c=>{c.inert=false;});
+  const f=sheetFrom;sheetFrom=null;
+  if(f&&f.isConnected&&f.offsetParent)f.focus({preventScroll:true});else $('#main').focus({preventScroll:true});
+}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#mnRes').hidden){e.preventDefault();sheetClose();}});
 /* L'écran de fin d'une séance de Mains. */
 function mnResShow(rec){
@@ -4153,7 +4222,7 @@ function mnResShow(rec){
   const acc=['l','r'].filter(h=>x.acc[h]!=null).map(h=>'<span><b>'+x.acc[h]+' %</b> '+mnName(h)+'</span>').join('');
   const stars=gmStars(minA),timing=['l','r'].filter(h=>mn.st&&mn.st[h].offs.length>=8).map(h=>'<b>'+mnName(h)+'</b> : '+gmTiming(mn.st[h].offs.map(v=>v*1000))).join('<br>');
   let h='<button type="button" class="ib pr-x" id="mnResX" aria-label="Fermer le bilan"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
-  h+='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">'+(x.k==='duos'?'16':mnVal(x.l<0?x.r:x.l)+'·'+mnVal(x.r<0?x.l:x.r))+'</div><div><h3>'+prTitle(x)+'</h3><p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>'+
+  h+='<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">'+(x.k==='duos'?'16':mnVal(x.l<0?x.r:x.l)+'·'+mnVal(x.r<0?x.l:x.r))+'</div><div><h3>'+prTitle(x)+'</h3><p class="gm-cheer">'+GM_CHEER[stars]+'</p><p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>'+
     '<p class="pr-score"><b>'+x.score+'</b> points · '+(isRec?'<span class="new">nouveau record !</span>':'record : '+best)+'</p></div></div>';
   h+='<div class="pr-sec">'+(same.length>1?'<p class="pr-k">Tes '+Math.min(12,same.length)+' derniers scores sur cet exercice</p>'+prSpark(same.slice(-12),{min:0}):'<p class="pr-hint">Première séance sur cet exercice : rejoue-le pour voir ta courbe de progrès.</p>')+'</div>';
   if(sk){
@@ -4167,6 +4236,7 @@ function mnResShow(rec){
   h+='<div class="row pr-btns"><button type="button" class="btn" id="mnResGo">'+(next!==x.bpm?'Continuer à '+next+' BPM':'Rejouer')+'</button>'+
     (next!==x.bpm?'<button type="button" class="btn ghost" id="mnResAgain">Rejouer à '+x.bpm+'</button>':'')+'</div>';
   sheetOpen(h);
+  gmConfetti(isRec?Math.max(stars,2):stars);
   const go=b=>{sheetClose();setBpm(b);withCalib(mnSrc(),mnPlay);};
   $('#mnResGo').addEventListener('click',()=>go(next));
   const ag=$('#mnResAgain');if(ag)ag.addEventListener('click',()=>go(x.bpm));
@@ -4372,6 +4442,9 @@ function gmRender(){
   const lvH=gm.game==='orbite'?GM_LV_ORBIT:gm.game==='ecoute'?GM_LV_ECHO:null;
   $('#gmLvHint').hidden=!lvH;$('#gmLvHint').textContent=lvH?lvH[gm.lvl]:'';
   $('#gmHow').textContent='Comment jouer à '+GM_INFO[gm.game].name;
+  $('#gmGameTxt').textContent=GM_INFO[gm.game].txt;
+  const sumSong=gmCurSong(),sumP=PATTERNS.find(x=>x.id===gm.rh);
+  $('#gmSum').textContent=[GM_INFO[gm.game].name,sumSong?sumSong.title:gm.rh==='mine'?'Mon rythme':sumP?sumP.label:'',GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');
   $('#gmClickRow').hidden=gm.game!=='ecoute';
   const clk=$('#gmClick');clk.textContent='';
   Object.entries(GM_CLICK).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.click===id));clk.appendChild(b);});
@@ -4576,6 +4649,8 @@ function gmStart(song,buffer,opt={}){
   $('#gmGauge').hidden=!!gm.loop;
   $('#gm').hidden=false;document.body.classList.add('gm-live');
   gmSize();gmScore();
+  gm.said='';$('#gmSay').textContent='';
+  $('#gmCv').setAttribute('aria-label','Zone de jeu, '+GM_INFO[gm.game].name+' : '+GM_INFO[gm.game].txt);
   keepAwake(true);
   $('#gmCv').focus({preventScroll:true});
   gm.timer=setInterval(gmTick,25);gmTick();
@@ -4687,16 +4762,10 @@ const gmToCtx=t=>gm.c0+(t-gm.g0)/gm.rate;
 const gmNow=()=>gmToGame(ctx.currentTime-Math.max(0,latency()));
 const gmTapAt=()=>gmToGame(ctx.currentTime-latency());
 /* L'instant réel du toucher, pas celui où le navigateur nous prévient : l'événement peut attendre une
-   image (16 ms et plus) avant d'arriver ici. Même conversion que pour le MIDI. */
+   image (16 ms et plus) avant d'arriver ici. On retire seulement cette attente de l'horloge du son. */
 function gmEventAt(e){
-  try{
-    const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();
-    if(o&&o.performanceTime&&e&&e.timeStamp>0){
-      const lag=performance.now()-e.timeStamp;
-      if(lag>=0&&lag<150)return gmToGame(o.contextTime+(e.timeStamp-o.performanceTime)/1000-latency());
-    }
-  }catch(err){}
-  return gmTapAt();
+  const lag=e&&e.timeStamp>0?performance.now()-e.timeStamp:0;
+  return gmToGame(ctx.currentTime-(lag>=0&&lag<150?lag/1000:0)-latency());
 }
 function gmSetRate(r){
   const T=ctx.currentTime;
@@ -4819,6 +4888,7 @@ function gmHit(lane,at,withSound){
     best.done=true;best.res=v.k;best.at=at;
     sc[v.k]++;sc.offs.push(bd*1000);gmGaugeMove(v.k);
     if(v.k!=='approx')sc.streak++;
+    if([10,25,50,100].includes(sc.streak))gm.pops.push({t:gmNow()+0.1,lane:gm.chart.nLanes>>1,txt:'Série de '+sc.streak+' !',kind:'ok'});
     const gain=v.pts*Math.min(4,1+Math.floor(sc.streak/8));
     sc.pts+=gain;if(sc.streak>sc.best)sc.best=sc.streak;
     gm.pops.push({t:gmNow(),lane,txt:v.txt,kind:v.k==='approx'?'warn':'ok'});
@@ -5180,19 +5250,20 @@ function gmDrawEcho(cx,now){
   const big=(t,y)=>{cx.fillStyle='#fff';cx.font='800 '+Math.min(46,W*0.11)+'px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(t,W/2,y);};
   const small=(t,y,col)=>{cx.fillStyle=col||'#B7C0CF';cx.font='600 16px "Hanken Grotesk",system-ui,sans-serif';cx.fillText(t,W/2,y);};
   const digit=(end,start)=>{cx.fillStyle='#fff';cx.font='800 64px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(String(Math.max(1,Math.ceil((end-now)/beatOf(start,end)))),W/2,H*0.42);};
-  if(now<r.listen){small('Écoute bien…',H*0.28);digit(r.listen,r.t);}
+  const say=t=>{if(gm.said!==t){gm.said=t;$('#gmSay').textContent=t;}};
+  if(now<r.listen){say('Manche '+(i+1)+' : écoute.');small('Écoute bien…',H*0.28);digit(r.listen,r.t);}
   else if(now<r.count2){
     const guide=gm.lvl!=='difficile',y=guide?H*0.26:H*0.4;
     big('Écoute',y);small((now<r.listen+r.L?'Première':'Seconde')+' écoute'+(r.n>1?' · deux mesures':''),y+40);
     if(guide)gmDrawEchoGuide(cx,r,(now-r.listen)%r.L);
   }
-  else if(now<r.play){small('À toi, de mémoire…',H*0.28);digit(r.play,r.count2);}
+  else if(now<r.play){say('À toi, après quatre clics.');small('À toi, de mémoire…',H*0.28);digit(r.play,r.count2);}
   else if(now<r.end){
     const p=now<r.passes[1].t?0:1,P=r.passes[p];
     let bar=0;const off=now-P.t;while(bar+1<r.n&&off>=r.barsAt[bar+1])bar++;
     big('À toi',H*0.4);
     small(P.cuts[bar]?'Clic coupé : garde le tempo':p?'Encore une fois':'Rejoue le motif',H*0.4+40,P.cuts[bar]?'#F2BB4A':null);
-  }else gmDrawEchoRes(cx,i,r);
+  }else{say('Manche '+(i+1)+' : '+gmEchoPct(i)+' %.');gmDrawEchoRes(cx,i,r);}
   if(zones===1){small(matchMedia('(hover:hover)').matches?'Tape partout, ou F et J':'Tape partout : seul le rythme compte',H*0.82);return;}
   [['poum',0],['tchak',1]].forEach(([id,k])=>{
     const x=k*W/2+W/4,y=H*0.82;
@@ -5242,6 +5313,18 @@ function gmDrawEchoRes(cx,i,r){
   cx.fillText('Rond creux : attendu · plein : joué · trait : en trop',W/2,H*0.7);
 }
 function gmIdx(now){const ns=gm.chart.notes;let lo=0,hi=ns.length;while(lo<hi){const m=(lo+hi)>>1;if(ns[m].t<=now)lo=m+1;else hi=m;}return lo;}
+/* Quand c'est réussi, les mots de la batterie tombent du ciel. Purement décoratif. */
+function gmConfetti(n){
+  if(n<2||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const box=el('div','gm-confetti');box.setAttribute('aria-hidden','true');
+  const ids=['poum','tchak','tss','doum'];
+  for(let i=0;i<(n>=3?26:14);i++){
+    const id=ids[i%4],b=el('span',null,singleWord(dict,id));
+    b.style.cssText='left:'+(3+Math.random()*88)+'%;--c:var(--c-'+id+');--z:'+Math.round(15+Math.random()*12)+'px;--d:'+(1.1+Math.random()*0.9).toFixed(2)+'s;--w:'+(Math.random()*0.5).toFixed(2)+'s;--r:'+Math.round(Math.random()*360-180)+'deg';
+    box.appendChild(b);
+  }
+  document.body.appendChild(box);setTimeout(()=>box.remove(),2800);
+}
 function gmFinish(fell){
   if(!gm.on)return;
   gmHalt();
@@ -5256,7 +5339,8 @@ function gmFinish(fell){
   const next=gm.song?gm.bpm:fell||p<60?Math.max(40,gm.bpm-5):p>=90?Math.min(220,gm.bpm+5):gm.bpm;
   const lb=el('span',null,gm.song?gm.song.title:(PATTERNS.find(x=>x.id===gm.rh)||{label:'Mon rythme'}).label),label=lb.innerHTML;
   const name=GM_INFO[gm.game].name;
-  const star='<p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>';
+  const cheer='<p class="gm-cheer">'+(fell?'Boum ! Pas grave, ça repart quand tu veux.':GM_CHEER[stars])+'</p>';
+  const star=cheer+'<p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>';
   let h='<button type="button" class="ib pr-x" id="gmResX" aria-label="Fermer le bilan"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
   h+='<div class="pr-sec pr-top"><div><h3>'+name+' · '+label+'</h3>'+star+
     '<p class="pr-score"><b>'+sc.pts+'</b> points · '+(before&&sc.pts>before?'<span class="new">nouveau record !</span>':'record : '+Math.max(before,sc.pts))+'</p></div></div>';
@@ -5266,6 +5350,7 @@ function gmFinish(fell){
     (slowed?' Ralenti jusqu\'à '+Math.round(gm.minRate*100)+' % : record à part.':'')+(gm.ckFrom?' Partie reprise à la '+gm.ckFrom+'.':'')+'</p></div>';
   h+='<div class="row pr-btns">'+(ck?'<button type="button" class="btn" id="gmResCk">Reprendre à la '+gmCkLabel(ck)+'</button>':'')+'<button type="button" class="btn'+(ck?' ghost':'')+'" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':ck?'Rejouer du début':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';
   sheetOpen(h);
+  if(!fell)gmConfetti(before&&sc.pts>before?Math.max(stars,2):stars);
   if(ck)$('#gmResCk').addEventListener('click',()=>{sheetClose();gmLaunch(ck);});
   $('#gmResGo').addEventListener('click',()=>{sheetClose();gmSetBpm(next);$('#gmGo').click();});
   $('#gmResBack').addEventListener('click',sheetClose);
@@ -6645,7 +6730,17 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();sto
 /* ---------- Démarrage ---------- */
 const restored=loadStore();
 {const q=new URLSearchParams(location.search).get('rubrique');if(q&&TABS.includes(q))state.tab=q;}
-showTab(state.tab);
+{const h=location.hash.slice(1);showTab(TAB_NAMES.includes(h)?h:state.tab);}
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(TAB_NAMES.includes(h)&&h!==state.tab)showTab(h);});
+$('#solfWhat').addEventListener('click',()=>{showTab('mots');$('#h-solf').scrollIntoView();});
+/* La première visite : dire ce qu'est l'appli et par où commencer. */
+{
+  let seen=false;try{seen=!!localStorage.getItem('poumtchak.bienvenue');}catch(e){}
+  const done=()=>{$('#welcome').hidden=true;try{localStorage.setItem('poumtchak.bienvenue','1');}catch(e){}};
+  $('#welcome').hidden=seen;
+  $('#welcomeNo').addEventListener('click',done);
+  $('#welcomeGo').addEventListener('click',()=>{done();showTab('parcours');});
+}
 fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();renderCal();
 setBpm(state.bpm);
 if(restored)renderAll();else applyPattern(PATTERNS[0]);

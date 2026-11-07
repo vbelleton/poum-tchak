@@ -56,7 +56,7 @@ test.describe('Mes grooves', () => {
     await expect(autre.locator('#barBar').getByRole('button', { name: /^Mesure \d sur 2$/ })).toHaveCount(2);
     await autre.locator('#barBar').getByRole('button', { name: 'Mesure 2 sur 2' }).click();
     await expect(cellule(autre, 'psch', 0)).toHaveClass(/lv3/);
-    expect(await autre.evaluate(() => location.hash)).toBe('');
+    expect(await autre.evaluate(() => location.hash)).not.toContain('#g=');
   });
 
   test('un lien abîmé est signalé', async ({ page }) => {
