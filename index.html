@@ -865,7 +865,7 @@ body.gm-live{overflow:hidden}
     <button type="button" class="btn ghost gm-how" id="gmHow"></button>
     <div class="gm-opts">
       <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p></div>
-      <div><span class="lab" id="lab-gmFree">Chants libres, prêts à jouer</span><div class="pick" id="gmFree" role="group" aria-labelledby="lab-gmFree"></div><p class="hint" style="margin:6px 0 0">Des mélodies du domaine public jouées par l'appli, sans batterie : le batteur, c'est toi !</p></div>
+      <div><label class="lab" for="gmFree">Chants libres, prêts à jouer</label><select class="sm" id="gmFree" style="width:100%"></select><p class="hint" style="margin:6px 0 0">De vraies chansons d'une minute, sous licence libre, avec leur batterie. Rien à importer. Le tempo est indiqué pour chacune, du plus lent au plus rapide.</p></div>
       <div><span class="lab" id="lab-gmCh">Mes chants</span><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
         <div class="row" style="margin-top:8px">
           <button type="button" class="btn ghost" id="gmImp">Importer des chants</button>
@@ -1201,6 +1201,19 @@ body.gm-live{overflow:hidden}
   <footer class="foot">
     <p class="hint" id="offlineMsg">Ouvre cette page une fois avec du réseau : elle restera disponible ensuite, même sans connexion.</p>
     <p class="hint"><b>Poum Tchak</b> : une application gratuite pour apprendre la batterie, qui fonctionne sans compte et garde tes données sur ton appareil.</p>
+    <details class="hint"><summary>Crédits des chants libres</summary>
+      <p>Extraits d'une minute issus du jeu de données <a href="https://doi.org/10.5281/zenodo.15690078" target="_blank" rel="noopener">STAR Drums<span class="sr"> (nouvel onglet)</span></a> (Weber et al., 2025), d'après des titres publiés sur Jamendo. Modifications : batterie d'origine remplacée par une batterie de synthèse jouée d'après une transcription automatique. Ces extraits restent sous la licence de chaque titre.</p>
+      <ul><li><a href="http://www.jamendo.com/track/1125484" target="_blank" rel="noopener">Freeway<span class="sr"> (nouvel onglet)</span></a>, Offenbach Project : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/207517" target="_blank" rel="noopener">The Deceiver<span class="sr"> (nouvel onglet)</span></a>, Sean T Wright : <a href="http://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/1109741" target="_blank" rel="noopener">Dawn (Instrumental)<span class="sr"> (nouvel onglet)</span></a>, UletarnO : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/970364" target="_blank" rel="noopener">Nonostante le tue parole<span class="sr"> (nouvel onglet)</span></a>, Doppia Essenza : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/1093728" target="_blank" rel="noopener">Through My Window<span class="sr"> (nouvel onglet)</span></a>, MoOt : <a href="http://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/1192252" target="_blank" rel="noopener">Blameless<span class="sr"> (nouvel onglet)</span></a>, Yvalain : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/230805" target="_blank" rel="noopener">Drip Feeding<span class="sr"> (nouvel onglet)</span></a>, Sean T Wright : <a href="http://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/1349623" target="_blank" rel="noopener">In the groove<span class="sr"> (nouvel onglet)</span></a>, Index : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/790452" target="_blank" rel="noopener">Six Twenty Nine<span class="sr"> (nouvel onglet)</span></a>, BOREA : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/1049738" target="_blank" rel="noopener">Тінь (Shadow)<span class="sr"> (nouvel onglet)</span></a>, ТЕЛЬНЮК: Сестри (The Telnyuk Sisters) : <a href="http://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA/3.0<span class="sr"> (nouvel onglet)</span></a></li>
+<li><a href="http://www.jamendo.com/track/1093733" target="_blank" rel="noopener">I Feel Free<span class="sr"> (nouvel onglet)</span></a>, MoOt : <a href="http://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY/3.0<span class="sr"> (nouvel onglet)</span></a></li></ul></details>
     <p class="hint">Sons de batterie : Web Audio Samples de l'équipe Chrome Web Audio, sous licence Apache 2.0.</p>
   </footer>
 </main>
@@ -1945,52 +1958,12 @@ function gmTiming(offs){
   return 'Justesse : '+bias+', et tu es '+reg+' (±'+Math.round(mad)+' ms)'+(Math.abs(med)>=30&&mad<=45?'. Touche « Caler » pour corriger ce décalage':'');
 }
 const GM_CHEER=['Ça viendra ! On remet ça ?','Pas mal du tout !','Bien joué !','Tchak ! Quel groove !'];
-/* Chants libres : des mélodies du domaine public, écrites ici note par note, et leur arrangement.
-   Aucun fichier son : l'appli les joue elle-même, sans batterie, puisque le batteur, c'est le joueur.
-   Écriture : note:durée en temps ; une mesure d'accords par chaîne, un ou deux accords. Tout est en 4/4. */
-const FREE_DEFS=[
-  {id:'frere-jacques',title:'Frère Jacques',bpm:92,passes:3,
-   mel:'C4 D4 E4 C4 C4 D4 E4 C4 E4 F4 G4:2 E4 F4 G4:2 G4:.5 A4:.5 G4:.5 F4:.5 E4 C4 G4:.5 A4:.5 G4:.5 F4:.5 E4 C4 C4 G3 C4:2 C4 G3 C4:2',
-   ch:['C','C','C','C','C','C','C G','C G']},
-  {id:'mary',title:'Mary Had a Little Lamb',bpm:96,passes:4,
-   mel:'E4 D4 C4 D4 E4 E4 E4:2 D4 D4 D4:2 E4 G4 G4:2 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4:4',
-   ch:['C','C','G','C','C','C','G','C']},
-  {id:'clair-de-la-lune',title:'Au clair de la lune',bpm:88,passes:2,
-   mel:'C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4 C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4 D4 D4 D4 D4 A3:2 A3:2 D4 C4 B3 A3 G3:4 C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4',
-   ch:['C','C G','C G','C','C','C G','C G','C','G','D','G D','G','C','C G','C G','C']},
-  {id:'ah-vous-dirai-je',title:'Ah ! vous dirai-je, maman',bpm:92,passes:2,
-   mel:'C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2 G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2 C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2',
-   ch:['C','F C','F C','G C','C G','C G','C G','C G','C','F C','F C','G C']},
-  {id:'ode-a-la-joie',title:'Ode à la joie (Beethoven)',bpm:100,passes:2,
-   mel:'E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:.5 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2 D4 D4 E4 C4 D4 E4:.5 F4:.5 E4 C4 D4 E4:.5 F4:.5 E4 D4 C4 D4 G3:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2',
-   ch:['C','G','C','G','C','G','C','G C','G','G C','G C','D G','C','G','C','G C']},
-  {id:'jingle-bells',title:'Jingle Bells',bpm:112,passes:3,
-   mel:'E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:.5 E4:4 F4 F4 F4:1.5 F4:.5 F4 E4 E4 E4:.5 E4:.5 E4 D4 D4 E4 D4:2 G4:2 E4 E4 E4:2 E4 E4 E4:2 E4 G4 C4:1.5 D4:.5 E4:4 F4 F4 F4:1.5 F4:.5 F4 E4 E4 E4:.5 E4:.5 G4 G4 F4 D4 C4:4',
-   ch:['C','C','C','C','F','C','G','G','C','C','C','C','F','C','G','C']}
-];
-const FREE_PITCH={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-const freeHz=n=>440*Math.pow(2,(12*(+n[1]+1)+FREE_PITCH[n[0]]-69)/12);
-const FREE_CHORD={C:[48,60,64,67],D:[50,62,66,69],F:[53,60,65,69],G:[43,59,62,67]};
-/* Trois passages de plus en plus riches : poum et tchak, puis le charley, puis les toms et la cymbale. */
-function freeSong(def){
-  const barDur=240/def.bpm,beat=60/def.bpm,sx=beat/4,nb=def.ch.length,notes=[],downbeats=[];
-  const total=2+nb*def.passes;
-  for(let b=0;b<=total;b++)downbeats.push(+(b*barDur).toFixed(4));
-  const add=(t,id)=>{const x=+t.toFixed(4);notes.push([x,x,id]);};
-  for(let p=0;p<def.passes;p++)for(let i=0;i<nb;i++){
-    const t0=(2+p*nb+i)*barDur,rich=def.passes>1?p/(def.passes-1):1,lastBar=i===nb-1;
-    add(t0,'poum');add(t0+8*sx,'poum');
-    if(rich>0.6&&!lastBar)add(t0+10*sx,'poum');
-    add(t0+4*sx,'tchak');
-    if(lastBar&&rich>0.6){add(t0+8*sx,'doum');add(t0+10*sx,'doum');add(t0+12*sx,'toum');add(t0+14*sx,'toum');}
-    else add(t0+12*sx,'tchak');
-    if(rich>=0.5)for(let k=0;k<8;k++)add(t0+k*2*sx,'tss');
-    if(rich>0.6&&i===0)add(t0,'psch');
-  }
-  notes.sort((a,b)=>a[0]-b[0]);
-  return {id:'libre-'+def.id,title:def.title,bpm:def.bpm,dur:total*barDur+1.5,notes,downbeats,free:def};
-}
-const FREE_SONGS=FREE_DEFS.map(freeSong);
+/* Chants libres : de vraies chansons sous licence Creative Commons, extraits d'une minute tirés du jeu de
+   données STAR Drums. Leur batterie est rejouée d'après une notation, donc les notes tombent exactement sur
+   le son. Les fichiers sont dans chants/ : on ne les charge qu'au moment de jouer. */
+const FREE_META=[{"id":"libre-1125484","title":"Freeway","artist":"Offenbach Project","bpm":80.0,"dur":60.0,"first":0.173,"bar":3.0,"n":19,"url":"http://www.jamendo.com/track/1125484","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-207517","title":"The Deceiver","artist":"Sean T Wright","bpm":91.5,"dur":60.0,"first":0.105,"bar":2.623,"n":22,"url":"http://www.jamendo.com/track/207517","lic":"by/3.0","licUrl":"http://creativecommons.org/licenses/by/3.0/"},{"id":"libre-1109741","title":"Dawn (Instrumental)","artist":"UletarnO","bpm":92.0,"dur":60.0,"first":0.056,"bar":2.6087,"n":22,"url":"http://www.jamendo.com/track/1109741","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-970364","title":"Nonostante le tue parole","artist":"Doppia Essenza","bpm":95.0,"dur":60.0,"first":0.154,"bar":2.5263,"n":23,"url":"http://www.jamendo.com/track/970364","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-1093728","title":"Through My Window","artist":"MoOt","bpm":96.0,"dur":60.0,"first":0.868,"bar":2.5,"n":23,"url":"http://www.jamendo.com/track/1093728","lic":"by/3.0","licUrl":"http://creativecommons.org/licenses/by/3.0/"},{"id":"libre-1192252","title":"Blameless","artist":"Yvalain","bpm":110.0,"dur":60.0,"first":0.532,"bar":2.1818,"n":27,"url":"http://www.jamendo.com/track/1192252","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-230805","title":"Drip Feeding","artist":"Sean T Wright","bpm":120.0,"dur":60.0,"first":0.639,"bar":2.0,"n":29,"url":"http://www.jamendo.com/track/230805","lic":"by/3.0","licUrl":"http://creativecommons.org/licenses/by/3.0/"},{"id":"libre-1349623","title":"In the groove","artist":"Index","bpm":125.0,"dur":60.0,"first":0.451,"bar":1.92,"n":31,"url":"http://www.jamendo.com/track/1349623","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-790452","title":"Six Twenty Nine","artist":"BOREA","bpm":128.0,"dur":60.0,"first":-0.015,"bar":1.875,"n":32,"url":"http://www.jamendo.com/track/790452","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-1049738","title":"Тінь (Shadow)","artist":"ТЕЛЬНЮК: Сестри (The Telnyuk Sisters)","bpm":136.0,"dur":60.0,"first":-0.007,"bar":1.7647,"n":34,"url":"http://www.jamendo.com/track/1049738","lic":"by-sa/3.0","licUrl":"http://creativecommons.org/licenses/by-sa/3.0/"},{"id":"libre-1093733","title":"I Feel Free","artist":"MoOt","bpm":138.0,"dur":60.0,"first":0.571,"bar":1.7391,"n":34,"url":"http://www.jamendo.com/track/1093733","lic":"by/3.0","licUrl":"http://creativecommons.org/licenses/by/3.0/"}];
+const FREE_SONGS=FREE_META.map(m=>({id:m.id,title:m.title+' · '+m.artist,bpm:m.bpm,dur:m.dur,notes:[],free:m,
+  downbeats:Array.from({length:m.n+1},(_,k)=>+(m.first+k*m.bar).toFixed(3))}));
 const gmStars=p=>p>=95?3:p>=80?2:p>=60?1:0;
 //#pure-end
 
@@ -4477,8 +4450,12 @@ function gmRender(){
   const ch=$('#gmCh');ch.textContent='';ch.hidden=!gm.songs.length;
   $('#lab-gmCh').textContent=gm.songs.length?'Mes chants':'Mes chants (aucun pour l\'instant)';
   gm.songs.forEach(x=>chip(ch,'chant:'+x.id,x.title));
-  const fr=$('#gmFree');fr.textContent='';
-  FREE_SONGS.forEach(x=>chip(fr,'chant:'+x.id,x.title));
+  const fr=$('#gmFree');
+  if(!fr.options.length){
+    const o0=el('option',null,'Choisis un chant…');o0.value='';fr.appendChild(o0);
+    FREE_SONGS.forEach(x=>{const o=el('option',null,x.title+' · '+Math.round(x.bpm)+' BPM');o.value='chant:'+x.id;fr.appendChild(o);});
+  }
+  fr.value=FREE_SONGS.some(x=>'chant:'+x.id===gm.rh)?gm.rh:'';
   const lv=$('#gmLv');lv.textContent='';
   Object.entries(GM_LEVELS).forEach(([id,label])=>{const b=el('button',null,label);b.type='button';b.dataset.v=id;b.setAttribute('aria-pressed',String(gm.lvl===id));lv.appendChild(b);});
   $('#gmBpm').textContent=gm.bpm+' BPM';
@@ -4517,7 +4494,8 @@ function gmRender(){
   $('#gmMsg').className='msg';
 }
 $('#gmGames').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.game=b.dataset.v;gmSave();gmRender();});
-['#gmRh','#gmCh','#gmFree'].forEach(q=>$(q).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.rh=b.dataset.v;gmSave();gmRender();}));
+$('#gmFree').addEventListener('change',e=>{if(e.target.value){gm.rh=e.target.value;gmSave();gmRender();}});
+['#gmRh','#gmCh'].forEach(q=>$(q).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.rh=b.dataset.v;gmSave();gmRender();}));
 $('#gmLv').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.lvl=b.dataset.v;gmSave();gmRender();});
 $('#gmTol').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.tol=b.dataset.v;gmSave();gmRender();});
 ['#gmSlowBtn','#lpSlowBtn'].forEach(q=>$(q).addEventListener('click',()=>{gm.slow=!gm.slow;gmSave();gmRender();}));
@@ -4570,45 +4548,15 @@ $('#gmDel').addEventListener('click',async()=>{
   $('#gmMsg').textContent='« '+song.title+' » retiré de cet appareil.';
 });
 /* Le son du chant est décodé juste avant de jouer : un chant de 4 minutes prend 80 Mo en mémoire. */
-/* Le son d'un chant libre, fabriqué une fois puis gardé : accords, basse et mélodie, calculés
-   directement dans un tableau (bien plus rapide qu'une multitude d'oscillateurs sur un téléphone). */
+/* Le fichier d'un chant libre : téléchargé la première fois, puis gardé pour jouer sans réseau. */
 const gmFreeBufs={};
-function gmFreeAudio(song){
+async function gmFreeAudio(song){
   if(gmFreeBufs[song.id])return gmFreeBufs[song.id];
-  const def=song.free,sr=22050,n=Math.ceil(song.dur*sr),d=new Float32Array(n),beat=60/def.bpm,barDur=4*beat;
-  const tone=(hz,t,len,vol)=>{
-    const i0=Math.round(t*sr),m=Math.min(n-i0,Math.round(len*sr)),inc=hz/sr,fall=Math.pow(0.2,1/Math.max(1,m)),att=Math.round(0.012*sr),rel=Math.round(0.02*sr);
-    let ph=0,g=vol;
-    for(let i=0;i<m;i++){
-      const w=4*Math.abs(ph-0.5)-1,e=(i<att?i/att:1)*(m-i<rel?(m-i)/rel:1);
-      d[i0+i]+=w*g*e;
-      g*=fall;ph+=inc;if(ph>=1)ph-=1;
-    }
-  };
-  const midi=m=>440*Math.pow(2,(m-69)/12);
-  const nb=def.ch.length,mel=def.mel.split(' ').map(x=>{const [note,len]=x.split(':');return {note,len:len?+len:1};});
-  const bar=(i,t0)=>{
-    const cs=def.ch[i].split(' '),each=4/cs.length;
-    cs.forEach((c,k)=>{
-      const [bass,...up]=FREE_CHORD[c]||FREE_CHORD.C;
-      for(let q=0;q<each;q++){
-        const at=t0+(k*each+q)*beat;
-        if(q%2===0)tone(midi(bass-12),at,beat*1.6,0.34);
-        up.forEach(m=>tone(midi(m),at,beat*0.8,0.08));
-      }
-    });
-  };
-  /* deux mesures d'accords pour s'installer, puis la mélodie à chaque passage */
-  bar(0,0);bar(0,barDur);
-  for(let p=0;p<def.passes;p++){
-    const t0=(2+p*nb)*barDur;
-    for(let i=0;i<nb;i++)bar(i,t0+i*barDur);
-    let t=t0;
-    mel.forEach(x=>{const len=x.len*beat;tone(freeHz(x.note),t,len*0.95,0.36);tone(freeHz(x.note)*2,t,len*0.6,0.06);t+=len;});
-  }
-  let peak=0;for(let i=0;i<n;i++){const v=Math.abs(d[i]);if(v>peak)peak=v;}
-  if(peak>0.85){const k=0.85/peak;for(let i=0;i<n;i++)d[i]*=k;}
-  const buf=ctx.createBuffer(1,n,sr);buf.copyToChannel(d,0);
+  const r=await fetch('chants/'+song.id+'.poumtchak');
+  if(!r.ok)throw new Error('absent');
+  const full=gmParseSong(await r.arrayBuffer());
+  song.notes=full.notes;
+  const buf=await ctx.decodeAudioData(full.audio);
   gmFreeBufs[song.id]=buf;
   return buf;
 }
@@ -4627,7 +4575,7 @@ async function gmGoSong(song,ck){
     const buffer=await gmDecode(song);
     say('');
     withCalib(gm.midi?'midi':'screen',()=>gmStart(song,buffer,{ck}));
-  }catch(e){say('Impossible de lire le son de ce chant sur cet appareil.');}
+  }catch(e){say('Impossible de charger ce chant. Vérifie ta connexion la première fois.');}
   gm.busy=false;btn.disabled=false;$('#gmResume').disabled=false;
 }
 /* Comment jouer : proposé à la première partie de chaque jeu, et toujours accessible depuis le choix. */

@@ -49,8 +49,9 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   muettes. **Boucler un passage** : un chant importé, une mesure de départ, 1, 2, 4
   ou 8 mesures qui tournent sans jauge, avec la précision de chaque tour.
 - **Jeux** : tes rythmes (les modèles ou ta grille) et tes chants en jeux d'arcade.
-  **Chants libres** : six mélodies du domaine public écrites dans l'appli et jouées par
-  elle, sans fichier ni import, à jouer dans tous les jeux et à boucler dans Pratique.
+  **Chants libres** : onze vraies chansons sous licence Creative Commons (extraits d'une
+  minute du jeu de données STAR Drums, dans `chants/`), jouables sans import. Crédits en
+  bas de page. Les chants YouTube, eux, restent hors du dépôt.
   **Couloirs** : des notes descendent dans quatre colonnes (poum, tchak, tss, doum ;
   touches D F J K). **Rebonds** : une balle saute de tuile en tuile, poum à gauche,
   tchak à droite ; on la dirige du doigt, en inclinant le téléphone ou en frappant au

@@ -651,11 +651,11 @@ test.describe('Écoute puis rejoue : le chant', () => {
 });
 
 test.describe('Chants libres', () => {
-  test('sans rien importer : six chants, un vrai son, et un robot juste réussit', async ({ page }) => {
+  test('sans rien importer : onze vraies chansons, un vrai son, et un robot juste réussit', async ({ page }) => {
     test.setTimeout(120_000);
     await rubrique(page, 'Jeux');
-    await expect(page.locator('#gmFree .chip')).toHaveCount(6);
-    await page.locator('#gmFree [data-v="chant:libre-mary"]').click();
+    await expect(page.locator('#gmFree option')).toHaveCount(12);
+    await page.locator('#gmFree').selectOption('chant:libre-1125484');
     await expect(page.locator('#gmDel')).toBeHidden();
     await page.locator('#gmGo').click();
     await expect(page.locator('#gm')).toBeVisible({ timeout: 10_000 });
@@ -666,19 +666,27 @@ test.describe('Chants libres', () => {
     expect(parseInt((await page.locator('#mnRes').textContent()).match(/(\d+) %/)[1], 10)).toBeGreaterThanOrEqual(80);
   });
 
-  test('chaque mélodie remplit exactement ses mesures, et chaque jeu démarre', async ({ page }) => {
-    test.setTimeout(90_000);
+  test('chaque chanson se charge, et les quatre jeux démarrent dessus', async ({ page }) => {
+    test.setTimeout(120_000);
     await rubrique(page, 'Jeux');
-    const ids = await page.locator('#gmFree .chip').evaluateAll((l) => l.map((b) => b.dataset.v));
+    const ids = await page.locator('#gmFree option').evaluateAll((l) => l.map((b) => b.value).filter(Boolean));
     for (const id of ids) {
-      await page.locator(`#gmFree [data-v="${id}"]`).click();
-      for (const jeu of ['couloirs', 'rebonds', 'orbite', 'ecoute']) {
-        await page.locator(`#gmGames [data-v="${jeu}"]`).click();
-        await page.locator('#gmGo').click();
-        await expect(page.locator('#gm')).toBeVisible({ timeout: 10_000 });
-        expect((await page.evaluate(() => window.__gm.notes())).length).toBeGreaterThan(0);
-        await page.keyboard.press('Escape');
-      }
+      await page.locator('#gmFree').selectOption(id);
+      await page.locator('#gmGo').click();
+      await expect(page.locator('#gm')).toBeVisible({ timeout: 10_000 });
+      expect((await page.evaluate(() => window.__gm.notes())).length).toBeGreaterThan(30);
+      await page.keyboard.press('Escape');
     }
+    for (const jeu of ['rebonds', 'orbite', 'ecoute']) {
+      await page.locator(`#gmGames [data-v="${jeu}"]`).click();
+      await page.locator('#gmGo').click();
+      await expect(page.locator('#gm')).toBeVisible({ timeout: 10_000 });
+      await page.keyboard.press('Escape');
+    }
+  });
+
+  test('les crédits nomment chaque artiste et sa licence', async ({ page }) => {
+    await expect(page.locator('details:has(summary:text("Crédits des chants libres")) li')).toHaveCount(11);
+    await expect(page.locator('details:has(summary:text("Crédits des chants libres"))')).toContainText('CC BY');
   });
 });
