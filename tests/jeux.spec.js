@@ -690,3 +690,28 @@ test.describe('Chants libres', () => {
     await expect(page.locator('details:has(summary:text("Crédits des chants libres"))')).toContainText('CC BY');
   });
 });
+
+test.describe('Rebonds : chute au ralenti', () => {
+  test('une tuile ratée fait tomber une balle fantôme, sauf si on coupe l\'effet', async ({ page }) => {
+    test.setTimeout(60_000);
+    await lancer(page, 'rebonds');
+    await page.waitForFunction(() => window.__gm.sc().miss >= 1, null, { timeout: 15_000 });
+    expect(await page.evaluate(() => window.__gm.chutes())).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+    await page.locator('#gmFallBtn').click();
+    await expect(page.locator('#gmFallBtn')).toHaveAttribute('aria-pressed', 'false');
+    await page.locator('#gmGo').click();
+    await page.waitForFunction(() => window.__gm.sc().miss >= 1, null, { timeout: 15_000 });
+    expect(await page.evaluate(() => window.__gm.chutes())).toBe(0);
+    await page.keyboard.press('Escape');
+  });
+});
+
+test('Rebonds en mode Glisser : rester immobile au milieu ne marque pas', async ({ page }) => {
+  test.setTimeout(60_000);
+  await lancer(page, 'rebonds', 'Peu', 'Glisser');
+  await page.waitForFunction(() => window.__gm.sc().miss >= 3, null, { timeout: 15_000 });
+  expect(await page.evaluate(() => window.__gm.sc().perfect + window.__gm.sc().good)).toBe(0);
+  expect(await page.evaluate(() => window.__gm.chutes())).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+});
