@@ -4738,7 +4738,7 @@ function gmStart(song,buffer,opt={}){
   gm.sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,pts:0,offs:[]};
   if(ck)Object.assign(gm.sc,ck.sc,{streak:0,offs:(ck.sc.offs||[]).slice()});
   gm.sx=0;gm.vx=0;gm.tilt0=null;gm.tiltSeen=false;gm.fallAt=null;
-  gmGaugeSet(1);gm.flash=new Array(c.nLanes).fill(-9);gm.bursts=[];gm.pops=[];gm.ended=false;gm.taps=[];gm.drop=null;gm.lastDrop=0;
+  gmGaugeSet(1);gm.flash=new Array(c.nLanes).fill(-9);gm.bursts=[];gm.pops=[];gm.ended=false;gm.taps=[];gm.drop=null;gm.lastDrop=0;gm.impacts=[];
   gm.hh=gmHHOn()?gmHHChart(c).filter(n=>n.t>=from-0.03):[];gm.hhNext=0;gm.hhPtr=null;gm.hhSc={n:0,ok:0,x:0};gm.hhFlash=-9;
   gm.nextMiss=ns.findIndex(n=>!n.done);
   gm.firstT=ns[gm.nextMiss].t;gm.from=from;
@@ -5053,7 +5053,8 @@ function gmMisses(now){
 function gmLandings(now){
   const ns=gm.chart.notes,sc=gm.sc;
   while(gm.nextMiss<ns.length&&ns[gm.nextMiss].t<=now){
-    const n=ns[gm.nextMiss++],d=Math.abs(gm.sx-(n.lane===0?-0.5:0.5));
+    const n=ns[gm.nextMiss++],dx=gm.sx-(n.lane===0?-0.5:0.5),d=Math.abs(dx);
+    gm.impacts.push({t:now,lane:n.lane,dx});if(gm.impacts.length>6)gm.impacts.shift();
     n.done=true;
     /* entre les deux tuiles (balle au milieu), c'est raté : rester immobile ne marque pas */
     if(d<0.4){
@@ -5062,11 +5063,11 @@ function gmLandings(now){
       n.res=best?'perfect':'good';gmGaugeMove(n.res);
       sc.pts+=(best?100:60)*Math.min(4,1+Math.floor(sc.streak/8));
       voice(n.id,ctx.currentTime,VEL[n.vel]*(gm.song?0.75:1));
-      gm.pops.push({t:now,lane:n.lane,txt:best?'Parfait':'Bien',sub:best?'':'balle un peu à côté de la tuile',kind:'ok'});
+      gm.pops.push({t:now,lane:n.lane,txt:best?'Parfait':'Bien',sub:best?'':'un peu trop '+(dx<0?'à gauche':'à droite'),kind:'ok'});
       gm.bursts.push({t:now,lane:n.lane,id:n.id,note:n});
     }else{
       n.res='miss';sc.miss++;sc.streak=0;
-      gm.pops.push({t:now,lane:n.lane,txt:'Raté',kind:'bad'});
+      gm.pops.push({t:now,lane:n.lane,txt:'Raté',sub:'trop '+(dx<0?'à gauche':'à droite'),kind:'bad'});
       gmDrop(gm.vx);
       gmGaugeMove('miss');
     }
@@ -5280,6 +5281,17 @@ function gmDrawHops(cx,now){
   const bg=cx.createRadialGradient(bx-r*0.3,by-r*0.3,r*0.1,bx,by,r);
   bg.addColorStop(0,'#fff');bg.addColorStop(1,'#B9C4D8');
   cx.globalAlpha=fade;cx.fillStyle=bg;cx.beginPath();cx.ellipse(bx,by,r/squash,r*squash,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  /* Glisser, Incliner : où la balle a touché la tuile. Trait clair = le centre, point = l'impact. */
+  for(const m of gm.impacts){
+    const a=now-m.t;if(a<0||a>0.7)continue;
+    const cxl=W/2+(m.lane===0?-0.5:0.5)*unit,ix=cxl+m.dx*unit,k=a/0.7,ok=Math.abs(m.dx)<0.4;
+    cx.globalAlpha=1-k;
+    cx.fillStyle='rgba(255,255,255,.7)';cx.fillRect(cxl-1,ground-14,2,28);
+    cx.strokeStyle=ok?(Math.abs(m.dx)<=0.2?GM_POP.ok:GM_POP.warn):GM_POP.bad;cx.lineWidth=3;
+    cx.beginPath();cx.ellipse(ix,ground,10+6*k,5+3*k,0,0,Math.PI*2);cx.stroke();
+    cx.fillStyle=cx.strokeStyle;cx.beginPath();cx.ellipse(ix,ground,4,2.5,0,0,Math.PI*2);cx.fill();
+    cx.globalAlpha=1;
+  }
   /* un anneau sur la tuile qu'on vient de jouer */
   for(const b of gm.bursts){
     const a=now-b.t;if(a<0||a>0.3)continue;
@@ -5520,7 +5532,7 @@ function gmFinish(fell){
 gmRender();gmLoadSongs();
 /* Tests automatiques : lire la partie en cours. */
 if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
-  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:()=>ctx.suspend(),charley:()=>gm.hh.map(n=>n.t),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop};
+  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:()=>ctx.suspend(),charley:()=>gm.hh.map(n=>n.t),impacts:()=>gm.impacts,padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop};
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
    Croches main droite. Départ à 50 BPM, +8 à chaque mesure tant que tu suis.
    Deux mesures de suite sous 85 % : c'est fini. Ta forme = le tempo le plus rapide tenu à 85 %. */

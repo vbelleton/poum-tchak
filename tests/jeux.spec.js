@@ -781,3 +781,20 @@ test.describe('Rebonds avec le charley', () => {
     await page.keyboard.press('Escape');
   });
 });
+
+test('Rebonds en Glisser : le verdict parle de position, pas de temps', async ({ page }) => {
+  test.setTimeout(60_000);
+  await lancer(page, 'rebonds', 'Peu', 'Glisser');
+  const r = await page.evaluate(async () => {
+    const cv = document.querySelector('#gmCv'), b = cv.getBoundingClientRect();
+    const n = window.__gm.notes()[1];
+    // un peu à côté du centre de la tuile, côté extérieur
+    cv.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'touch', clientX: b.left + b.width * (n.lane ? 0.76 : 0.24), clientY: 400 }));
+    while (window.__gm.now() < n.t + 0.05) await new Promise((f) => setTimeout(f, 2));
+    return { pops: window.__gm.pops().map((p) => p.txt + ' ' + (p.sub || '')), impacts: window.__gm.impacts().length };
+  });
+  expect(r.impacts).toBeGreaterThan(0);
+  expect(r.pops.join(' ')).toMatch(/trop à (gauche|droite)/);
+  expect(r.pops.join(' ')).not.toMatch(/ms/);
+  await page.keyboard.press('Escape');
+});
