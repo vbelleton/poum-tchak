@@ -830,3 +830,28 @@ test.describe('Écoute puis rejoue : les aides', () => {
     await expect(page.locator('#gmLvHint')).not.toContainText('dessiné');
   });
 });
+
+test('le pad du charley est en haut à gauche, se déplace en le gardant appuyé, et reste à sa place', async ({ page }) => {
+  test.setTimeout(60_000);
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmGames [data-v="rebonds"]').click();
+  await page.locator('#gmHHBtn').click();
+  await lancer(page, 'rebonds', 'Peu', 'Glisser');
+  const avant = await page.evaluate(() => window.__gm.padCharley());
+  const b = await page.locator('#gmCv').boundingBox();
+  expect(avant.x).toBeLessThan(b.width / 2);
+  expect(avant.y).toBeLessThan(b.height / 2);
+  await page.evaluate(async () => {
+    const cv = document.querySelector('#gmCv'), r = cv.getBoundingClientRect(), P = window.__gm.padCharley();
+    const ev = (type, x, y) => cv.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', clientX: r.left + x, clientY: r.top + y }));
+    ev('pointerdown', P.x, P.y);
+    await new Promise((f) => setTimeout(f, 650));
+    ev('pointermove', r.width * 0.8, r.height * 0.7);
+    ev('pointerup', r.width * 0.8, r.height * 0.7);
+  });
+  const apres = await page.evaluate(() => window.__gm.padCharley());
+  expect(apres.x).toBeGreaterThan(b.width / 2);
+  expect(apres.y).toBeGreaterThan(b.height / 2);
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.jeux.charley')).fx)).toBeGreaterThan(0.7);
+});
