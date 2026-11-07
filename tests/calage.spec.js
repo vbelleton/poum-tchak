@@ -45,6 +45,23 @@ test.describe('Calage avant de jouer', () => {
     await expect(page.locator('body')).toHaveClass(/mn-live/);
   });
 
+  test('plusieurs calages : la moyenne compte, et on peut oublier les anciens', async ({ page }) => {
+    await rubrique(page, 'Mains');
+    await page.locator('#play').click();
+    await taperCalage(page, 20);
+    await expect(page.locator('#cbDo')).toHaveText("C'est calé !", { timeout: 4000 });
+    await page.locator('#cbAgain').click();
+    await expect(page.locator('#cbDo')).toContainText('Écoute');
+    await taperCalage(page, 120);
+    await expect(page.locator('#cbDo')).toHaveText("C'est calé !", { timeout: 4000 });
+    await expect(page.locator('#cbRes')).toContainText('moyenne de tes 2 derniers calages');
+    const moyenne = parseInt((await page.locator('#offVal').textContent()).replace('+', ''), 10);
+    expect(Math.abs(moyenne - 70)).toBeLessThan(30);
+    await page.locator('#cbForget').click();
+    const seul = parseInt((await page.locator('#offVal').textContent()).replace('+', ''), 10);
+    expect(Math.abs(seul - 120)).toBeLessThan(30);
+  });
+
   test('le calage est retenu : après rechargement, on ne redemande pas', async ({ page }) => {
     await rubrique(page, 'Mains');
     await page.locator('#play').click();

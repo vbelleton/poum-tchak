@@ -1291,7 +1291,7 @@ body.gm-live{overflow:hidden}
     <p class="cb-res" id="cbRes" role="status"></p>
     <div class="row cb-btns">
       <button type="button" class="btn ghost" id="cbSkip">Passer</button>
-      <button type="button" class="btn ghost" id="cbAgain" hidden>Recommencer</button>
+      <button type="button" class="btn ghost" id="cbAgain" hidden>Recommencer</button><button type="button" class="btn ghost" id="cbForget" hidden>Oublier les anciens calages</button>
       <button type="button" class="btn" id="cbGo" hidden>Jouer</button>
     </div>
   </div>
@@ -5625,11 +5625,23 @@ function cbSet(src,ms){
   if(src==='screen')setOff(ms);
   else{state.kvl[src==='midi'?'midiOff':'micOff']=Math.max(-200,Math.min(500,Math.round(ms)));save();}
 }
+/* Les 5 derniers calages comptent, par entrée, tant que le son sort au même endroit : changer
+   d'écouteurs change le délai, et les anciennes mesures ne valent plus. */
+const CB_HIST_KEY='poumtchak.calib.hist',CB_HIST=5;
+let cbHist={};try{const o=JSON.parse(localStorage.getItem(CB_HIST_KEY)||'{}');if(o&&typeof o==='object')cbHist=o;}catch(e){}
+function cbHistSave(){try{localStorage.setItem(CB_HIST_KEY,JSON.stringify(cbHist));}catch(e){}}
+function cbAverage(src,ms){
+  const now=outLat(),old=Array.isArray(cbHist[src])?cbHist[src]:[];
+  const L=old.filter(x=>x&&typeof x.ms==='number'&&isFinite(x.ms)&&Math.abs((x.lat||0)-now)<=0.03);
+  L.push({ms:Math.round(ms),lat:now});
+  cbHist[src]=L.slice(-CB_HIST);cbHistSave();
+  return {ms:cbHist[src].reduce((a,x)=>a+x.ms,0)/cbHist[src].length,n:cbHist[src].length};
+}
 function cbEnd(){
   cb.on=false;cancelAnimationFrame(cb.raf);
   [...$('#cbDots').children].forEach(n=>n.classList.remove('now'));
   $('#cbTap').classList.remove('go');
-  $('#cbSkip').hidden=true;$('#cbAgain').hidden=false;$('#cbGo').hidden=false;
+  $('#cbSkip').hidden=true;$('#cbAgain').hidden=false;$('#cbGo').hidden=false;$('#cbForget').hidden=true;
   const n=cb.taps.length;
   if(n<CB_MIN){
     $('#cbDo').textContent='Pas assez de frappes ('+n+' sur '+CB_TAPS+').';
@@ -5638,11 +5650,13 @@ function cbEnd(){
     return;
   }
   const ds=cb.taps.map(x=>x.d*1000),med=cbMed(ds),mad=cbMed(ds.map(d=>Math.abs(d-med)));
-  cbSet(cb.src,Math.round(med));
+  const avg=cbAverage(cb.src,med);
+  cbSet(cb.src,Math.round(avg.ms));
   cbRemember(cb.src);
-  const tot=Math.max(0,Math.round(outLat()*1000+med));
+  const tot=Math.max(0,Math.round(outLat()*1000+avg.ms));
   $('#cbDo').textContent='C\'est calé !';
-  $('#cbRes').textContent='Délai compensé : '+tot+' ms. '+(mad<=25?'Tes frappes étaient très régulières.':mad<=50?'Tes frappes étaient assez régulières.':'Tes frappes étaient un peu irrégulières : recommence si tu veux un calage plus précis.');
+  $('#cbForget').hidden=avg.n<2;
+  $('#cbRes').textContent='Délai compensé : '+tot+' ms'+(avg.n>1?', moyenne de tes '+avg.n+' derniers calages':'')+'. '+(mad<=25?'Tes frappes étaient très régulières.':mad<=50?'Tes frappes étaient assez régulières.':'Tes frappes étaient un peu irrégulières : recommence si tu veux un calage plus précis.');
   const g=$('#cbG');g.querySelectorAll('b').forEach(b=>b.remove());
   ds.forEach(d=>{const b=document.createElement('b');b.style.left=(50+Math.max(-48,Math.min(48,(d-med)/2)))+'%';g.appendChild(b);});
   $('#cbLine').hidden=false;
@@ -5655,6 +5669,13 @@ function cbFinish(){
 $('#cbTap').addEventListener('pointerdown',e=>{e.preventDefault();cbScreenTap();});
 $('#cbTap').addEventListener('click',e=>{if(e.detail===0)cbScreenTap();});
 $('#cbTap').addEventListener('contextmenu',e=>e.preventDefault());
+$('#cbForget').addEventListener('click',()=>{
+  const L=cbHist[cb.src]||[],last=L[L.length-1];
+  cbHist[cb.src]=last?[last]:[];cbHistSave();
+  if(last)cbSet(cb.src,last.ms);
+  $('#cbForget').hidden=true;
+  $('#cbRes').textContent='Anciens calages oubliés : seul le dernier compte.';
+});
 $('#cbAgain').addEventListener('click',()=>{$('#cbGo').textContent=cb.go?'Jouer':'OK';cbRun();});
 $('#cbGo').addEventListener('click',cbFinish);
 $('#cbSkip').addEventListener('click',()=>{cbRemember(cb.src);cbFinish();});
