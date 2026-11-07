@@ -4545,6 +4545,7 @@ function gmRender(){
   $('#gmTempoRow').hidden=!!song;$('#gmDel').hidden=!song||!!song.free;
   const best=gmBest(gmKey());
   $('#gmMsg').textContent=gm.rh==='mine'&&!gmMyGroove()?'Écris d\'abord un rythme dans la grille de la rubrique Rythme.':(song?'Tempo du chant : '+Math.round(song.bpm)+' BPM. ':'')+(best?'Record sur ce choix : '+best+' points.':'');
+  if(gm.whyMsg)$('#gmMsg').textContent=gm.whyMsg+' '+$('#gmMsg').textContent;
   $('#gmMsg').className='msg';
 }
 $('#gmGames').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.game=b.dataset.v;gmSave();gmRender();});
@@ -4612,7 +4613,8 @@ async function gmFreeAudio(song){
   if(!r.ok)throw new Error('absent');
   const full=gmParseSong(await r.arrayBuffer());
   song.notes=full.notes;
-  const buf=await ctx.decodeAudioData(full.audio);
+  const buf=gmMono(await ctx.decodeAudioData(full.audio));
+  Object.keys(gmFreeBufs).forEach(k=>delete gmFreeBufs[k]);
   gmFreeBufs[song.id]=buf;
   return buf;
 }
@@ -4620,12 +4622,20 @@ async function gmDecode(song){
   /* un décodage qui ne répond plus (son bloqué) ne doit pas laisser le bouton Jouer grisé */
   return Promise.race([gmDecode0(song),new Promise((ok,ko)=>setTimeout(()=>{audioReset();ko(new Error('délai'));},20000))]);
 }
+/* Un chant de 5 minutes décodé en stéréo occupe plus de 100 Mo : un iPhone peut alors recharger la page
+   en pleine partie. On le garde en mono, et un seul à la fois. */
+function gmMono(buf){
+  if(buf.numberOfChannels<2)return buf;
+  const n=buf.length,out=ctx.createBuffer(1,n,buf.sampleRate),d=out.getChannelData(0),a=buf.getChannelData(0),b=buf.getChannelData(1);
+  for(let i=0;i<n;i++)d[i]=(a[i]+b[i])*0.5;
+  return out;
+}
 async function gmDecode0(song){
   if(song.free){if(!ensureAudio())throw new Error('son');return gmFreeAudio(song);}
   if(!ensureAudio())throw new Error('son');
   const data=await gmDbDo('readonly',tx=>tx.objectStore('audio').get(song.id));
   if(!data)throw new Error('absent');
-  return ctx.decodeAudioData(data.slice(0));
+  return gmMono(await ctx.decodeAudioData(data.slice(0)));
 }
 async function gmGoSong(song,ck){
   const btn=$('#gmGo'),say=t=>{$('#gmMsg').textContent=t;};
@@ -4818,6 +4828,8 @@ function gmStart(song,buffer,opt={}){
   if(!gm.startCtx||gm.startCtx<ctx.currentTime)gm.startCtx=ctx.currentTime+0.2;
   $('#gmSkip').hidden=true;$('#gmFast').hidden=true;
   gm.on=true;
+  try{localStorage.setItem(GM_LIVE_KEY,'1');}catch(e){}
+  gm.whyMsg='';
   $('#gmGauge').hidden=!!gm.loop||gmNoFail();
   $('#gm').hidden=false;document.body.classList.add('gm-live');
   gmSize();gmScore();
@@ -4828,7 +4840,7 @@ function gmStart(song,buffer,opt={}){
   gm.timer=setInterval(gmTick,25);gmTick();
   gm.raf=requestAnimationFrame(gmFrame);
   const myChart=gm.chart;
-  audioWatch(()=>gm.on&&gm.chart===myChart,()=>{gmHalt();audioReset();$(opt.loop?'#lpMsg':'#gmMsg').textContent='Le son s\'était bloqué sur cet appareil : il est relancé, touche Jouer de nouveau.';});
+  audioWatch(()=>gm.on&&gm.chart===myChart,()=>{gmHalt('son-depart');audioReset();$(opt.loop?'#lpMsg':'#gmMsg').textContent='Le son s\'était bloqué sur cet appareil : il est relancé, touche Jouer de nouveau.';});
 }
 /* Boucle : les tours se recopient au fil de la partie ; les plus anciens sont oubliés. */
 function gmLoopFeed(now){
@@ -4905,8 +4917,22 @@ $('#lpGo').addEventListener('click',async()=>{
   }catch(e){say('Impossible de lire le son de ce chant sur cet appareil.');}
   gm.busy=false;btn.disabled=false;
 });
-function gmHalt(){
+/* Pourquoi la dernière partie s'est arrêtée : gardé pour pouvoir le dire au joueur (et à nous). */
+const GM_WHY_KEY='poumtchak.jeux.arret',GM_LIVE_KEY='poumtchak.jeux.enCours';
+const GM_WHY={masquee:'l\'appli est passée en arrière-plan (écran verrouillé, appel ou notification ouverte)',son:'le son du téléphone s\'est figé','son-depart':'le son n\'a pas démarré',rechargement:'la page s\'est rechargée en pleine partie, sans doute faute de mémoire sur le téléphone'};
+function gmWhySet(r){try{localStorage.setItem(GM_WHY_KEY,JSON.stringify({r,d:Date.now(),game:gm.game,at:gm.chart&&gm.on?Math.round(gmNow()):null}));localStorage.removeItem(GM_LIVE_KEY);}catch(e){}}
+function gmWhySay(){
+  try{
+    if(localStorage.getItem(GM_LIVE_KEY)){localStorage.removeItem(GM_LIVE_KEY);gmWhySet('rechargement');}
+    const o=JSON.parse(localStorage.getItem(GM_WHY_KEY)||'null');
+    if(!o||!GM_WHY[o.r]||Date.now()-o.d>3600e3||o.shown)return;
+    o.shown=1;localStorage.setItem(GM_WHY_KEY,JSON.stringify(o));
+    gm.whyMsg='Ta dernière partie s\'est arrêtée'+(o.at!=null?' au bout de '+o.at+' s':'')+' : '+GM_WHY[o.r]+'.';gmRender();
+  }catch(e){}
+}
+function gmHalt(why){
   if(!gm.on)return;
+  gmWhySet(typeof why==='string'?why:'quitter');
   gm.on=false;clearInterval(gm.timer);cancelAnimationFrame(gm.raf);
   if(gm.src){try{gm.src.stop();}catch(e){}gm.src=null;}
   gm.clipSrcs.forEach(x=>{try{x.stop();}catch(e){}});gm.clipSrcs=[];gm.buffer=null;
@@ -5175,7 +5201,7 @@ document.addEventListener('keydown',e=>{
   gmHit(lane,gmEventAt(e),true);
 },true);
 $('#gmQuit').addEventListener('click',gmHalt);
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&gm.on)gmHalt();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&gm.on)gmHalt('masquee');});
 function gmMidi(e){
   const [st,note,vel]=e.data;
   if((st&0xf0)!==0x90||!vel)return;
@@ -5196,7 +5222,7 @@ function gmStallCheck(){
   const idle=P-gm.stP;
   if(idle>600&&ctx.state!=='running')ctx.resume().catch(()=>{});
   if(idle>2500){
-    gmHalt();audioReset();
+    gmHalt('son');audioReset();
     $(gm.loop?'#lpMsg':'#gmMsg').textContent='Le son s\'est arrêté sur cet appareil (appel, notification, autre appli ?). Il est relancé : touche Reprendre ou Jouer.';
     return true;
   }
@@ -5595,7 +5621,7 @@ function gmConfetti(n){
 }
 function gmFinish(fell){
   if(!gm.on)return;
-  gmHalt();
+  gmHalt(fell?'jauge':'fin');
   const sc=gm.sc,p=gmPct(sc),n=sc.perfect+sc.good+sc.approx+sc.miss+sc.extra,slowed=gm.minRate<1,key=gmKey()+(slowed?'|lent':''),ckKey=gmCkKey();
   if(!fell)gmCkDrop(ckKey);
   const ck=fell?gmCkGet(ckKey):null;
@@ -5624,7 +5650,7 @@ function gmFinish(fell){
   $('#gmResBack').addEventListener('click',sheetClose);
   $('#gmResX').addEventListener('click',sheetClose);
 }
-gmRender();gmLoadSongs();
+gmRender();gmLoadSongs().then(gmWhySay);
 /* Tests automatiques : lire la partie en cours. */
 if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
   debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:(figé)=>{if(figé)ctx.resume=()=>Promise.resolve();return ctx.suspend();},charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop};

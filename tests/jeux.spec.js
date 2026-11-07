@@ -891,3 +891,26 @@ test.describe('Écoute puis rejoue : longueur et son figé', () => {
     await page.keyboard.press('Escape');
   });
 });
+
+test.describe('Pourquoi une partie s\'est arrêtée', () => {
+  test('une page rechargée en pleine partie est signalée au retour', async ({ page }) => {
+    // une page tuée par le téléphone ne prévient pas : il reste juste la marque « partie en cours »
+    await page.evaluate(() => localStorage.setItem('poumtchak.jeux.enCours', '1'));
+    await page.reload();
+    await rubrique(page, 'Jeux');
+    await expect(page.locator('#gmMsg')).toContainText('la page s\'est rechargée');
+  });
+
+  test('une appli passée en arrière-plan est signalée, quitter ne l\'est pas', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGo').click();
+    await page.waitForFunction(() => window.__gm.now() > 1, null, { timeout: 8000 });
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    await expect(page.locator('#gm')).toBeHidden();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.jeux.arret')).r)).toBe('masquee');
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { value: false, configurable: true }); });
+    await page.locator('#gmGo').click();
+    await page.locator('#gmQuit').click();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.jeux.arret')).r)).toBe('quitter');
+  });
+});
