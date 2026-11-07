@@ -798,3 +798,36 @@ test('Rebonds en Glisser : le verdict parle de position, pas de temps', async ({
   expect(r.pops.join(' ')).not.toMatch(/ms/);
   await page.keyboard.press('Escape');
 });
+
+test.describe('Écoute puis rejoue : les aides', () => {
+  test('au premier lancement on choisit ses aides, puis elles sont gardées et modifiables', async ({ page }) => {
+    await page.evaluate(() => { window.__howForce = true; localStorage.setItem('poumtchak.jeux.vus', JSON.stringify({ ecoute: 1 })); });
+    await page.reload();
+    await page.evaluate(() => { window.__howForce = true; });
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#mnRes')).toContainText('Tes aides');
+    await page.locator('#gmEPAsk [data-ep="live"]').getByRole('button', { name: 'À la fin de la manche' }).click();
+    await page.locator('#gmEPAsk [data-ep="guide"]').getByRole('button', { name: 'Rien à l\'écran' }).click();
+    await page.locator('#gmEPOk').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    expect(await page.evaluate(() => window.__gm.aides())).toEqual({ guide: 'non', cursor: 'oui', live: 'fin' });
+    await page.keyboard.press('Escape');
+    // gardé : on ne redemande pas, et on peut changer sous le choix du jeu
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.locator('#gmEPBox [data-ep="live"]').getByRole('button', { name: 'En direct' }).click();
+    await page.reload();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.jeux.ecoute')).live)).toBe('direct');
+  });
+
+  test('les aides ne dépendent plus du nombre de notes', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await page.locator('#gmLv').getByRole('button', { name: 'Beaucoup' }).click();
+    await expect(page.locator('#gmEPBox [data-ep="guide"] [aria-pressed="true"]')).toHaveText('Motif dessiné');
+    await expect(page.locator('#gmLvHint')).not.toContainText('dessiné');
+  });
+});
