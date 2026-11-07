@@ -4770,7 +4770,7 @@ function gmStart(song,buffer,opt={}){
   gm.sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,pts:0,offs:[]};
   if(ck)Object.assign(gm.sc,ck.sc,{streak:0,offs:(ck.sc.offs||[]).slice()});
   gm.sx=0;gm.vx=0;gm.tilt0=null;gm.tiltSeen=false;gm.fallAt=null;
-  gmGaugeSet(1);gm.flash=new Array(c.nLanes).fill(-9);gm.bursts=[];gm.pops=[];gm.ended=false;gm.taps=[];gm.drop=null;gm.lastDrop=0;gm.impacts=[];
+  gmGaugeSet(1);gm.flash=new Array(c.nLanes).fill(-9);gm.bursts=[];gm.pops=[];gm.ended=false;gm.taps=[];gm.drop=null;gm.lastDrop=0;
   gm.hh=gmHHOn()?gmHHChart(c).filter(n=>n.t>=from-0.03):[];gm.hhNext=0;gm.hhPtr=null;gm.hhSc={n:0,ok:0,x:0};gm.hhFlash=-9;
   gm.nextMiss=ns.findIndex(n=>!n.done);
   gm.firstT=ns[gm.nextMiss].t;gm.from=from;
@@ -5086,20 +5086,20 @@ function gmLandings(now){
   const ns=gm.chart.notes,sc=gm.sc;
   while(gm.nextMiss<ns.length&&ns[gm.nextMiss].t<=now){
     const n=ns[gm.nextMiss++],dx=gm.sx-(n.lane===0?-0.5:0.5),d=Math.abs(dx);
-    gm.impacts.push({t:now,lane:n.lane,dx});if(gm.impacts.length>6)gm.impacts.shift();
+    n.dx=dx;
     n.done=true;
-    /* entre les deux tuiles (balle au milieu), c'est raté : rester immobile ne marque pas */
-    if(d<0.4){
-      const best=d<=0.2;
+    /* la balle doit toucher la tuile dessinée : entre les deux tuiles, c'est raté */
+    if(d<0.45){
+      const best=d<=0.18;
       sc[best?'perfect':'good']++;sc.streak++;if(sc.streak>sc.best)sc.best=sc.streak;
       n.res=best?'perfect':'good';gmGaugeMove(n.res);
       sc.pts+=(best?100:60)*Math.min(4,1+Math.floor(sc.streak/8));
       voice(n.id,ctx.currentTime,VEL[n.vel]*(gm.song?0.75:1));
-      gm.pops.push({t:now,lane:n.lane,txt:best?'Parfait':'Bien',sub:best?'':'un peu trop '+(dx<0?'à gauche':'à droite'),kind:'ok'});
+      gm.pops.push({t:now,lane:n.lane,txt:best?'Parfait':'Bien',kind:'ok'});
       gm.bursts.push({t:now,lane:n.lane,id:n.id,note:n});
     }else{
       n.res='miss';sc.miss++;sc.streak=0;
-      gm.pops.push({t:now,lane:n.lane,txt:'Raté',sub:'trop '+(dx<0?'à gauche':'à droite'),kind:'bad'});
+      gm.pops.push({t:now,lane:n.lane,txt:'Raté',kind:'bad'});
       gmDrop(gm.vx);
       gmGaugeMove('miss');
     }
@@ -5268,7 +5268,7 @@ function gmDrawHops(cx,now){
   /* rails */
   cx.strokeStyle='rgba(255,255,255,.14)';cx.lineWidth=1;
   [-1,1].forEach(s=>{const a=proj(8,s),b=proj(-0.5,s);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();});
-  const Xof=n=>n.lane===0?-0.5:0.5,hopLen=Math.min(0.24,Math.max(0.1,0.3*S*beat/2)),hw=0.46;
+  const Xof=n=>n.lane===0?-0.5:0.5,hopLen=Math.min(0.24,Math.max(0.1,0.3*S*beat/2)),hw=0.4;
   /* du plus loin au plus près */
   let idx=ns.length-1;
   for(;idx>=0;idx--){
@@ -5289,6 +5289,15 @@ function gmDrawHops(cx,now){
     cx.fillStyle=col;cx.fillRect(b.x-hw*unit*b.p,b.y,2*hw*unit*b.p,edge);
     cx.fillStyle='rgba(0,0,0,.38)';cx.fillRect(b.x-hw*unit*b.p,b.y,2*hw*unit*b.p,edge);
     if(n.res!=='miss'&&b.p>0.4&&b.y-a.y>16){cx.fillStyle='#0B0E14';cx.font='800 '+Math.round(11+9*Math.min(1,b.p))+'px "Bricolage Grotesque",system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(singleWord(dict,n.id),(a.x+b.x)/2,(a.y+b.y)/2);}
+    /* Glisser, Incliner : le point où la balle a rebondi, en couleur (vert centré, ambre à côté, rouge raté) */
+    if(n.dx!=null){
+      const q=proj(z,X+Math.max(-0.75,Math.min(0.75,n.dx))),ad=Math.abs(n.dx);
+      cx.globalAlpha=Math.min(1,(8-z)/2);
+      cx.fillStyle=ad<=0.18?GM_POP.ok:ad<0.45?GM_POP.warn:GM_POP.bad;
+      cx.strokeStyle='#0B0E14';cx.lineWidth=2;
+      cx.beginPath();cx.ellipse(q.x,q.y,Math.max(4,11*q.p),Math.max(2.5,6*q.p),0,0,Math.PI*2);cx.fill();cx.stroke();
+      cx.globalAlpha=1;
+    }
     if(n.res==='miss'){cx.strokeStyle='#0B0E14';cx.lineWidth=2;cx.beginPath();cx.moveTo(a.x-8*a.p,a.y);cx.lineTo(b.x+6*b.p,(a.y+b.y)/2);cx.lineTo(b.x-4*b.p,b.y);cx.stroke();}
     cx.globalAlpha=1;
   }
@@ -5313,17 +5322,6 @@ function gmDrawHops(cx,now){
   const bg=cx.createRadialGradient(bx-r*0.3,by-r*0.3,r*0.1,bx,by,r);
   bg.addColorStop(0,'#fff');bg.addColorStop(1,'#B9C4D8');
   cx.globalAlpha=fade;cx.fillStyle=bg;cx.beginPath();cx.ellipse(bx,by,r/squash,r*squash,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
-  /* Glisser, Incliner : où la balle a touché la tuile. Trait clair = le centre, point = l'impact. */
-  for(const m of gm.impacts){
-    const a=now-m.t;if(a<0||a>0.7)continue;
-    const cxl=W/2+(m.lane===0?-0.5:0.5)*unit,ix=cxl+m.dx*unit,k=a/0.7,ok=Math.abs(m.dx)<0.4;
-    cx.globalAlpha=1-k;
-    cx.fillStyle='rgba(255,255,255,.7)';cx.fillRect(cxl-1,ground-14,2,28);
-    cx.strokeStyle=ok?(Math.abs(m.dx)<=0.2?GM_POP.ok:GM_POP.warn):GM_POP.bad;cx.lineWidth=3;
-    cx.beginPath();cx.ellipse(ix,ground,10+6*k,5+3*k,0,0,Math.PI*2);cx.stroke();
-    cx.fillStyle=cx.strokeStyle;cx.beginPath();cx.ellipse(ix,ground,4,2.5,0,0,Math.PI*2);cx.fill();
-    cx.globalAlpha=1;
-  }
   /* un anneau sur la tuile qu'on vient de jouer */
   for(const b of gm.bursts){
     const a=now-b.t;if(a<0||a>0.3)continue;
@@ -5586,7 +5584,7 @@ function gmFinish(fell){
 gmRender();gmLoadSongs();
 /* Tests automatiques : lire la partie en cours. */
 if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
-  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:()=>ctx.suspend(),charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.impacts,padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop};
+  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:()=>ctx.suspend(),charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop};
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
    Croches main droite. Départ à 50 BPM, +8 à chaque mesure tant que tu suis.
    Deux mesures de suite sous 85 % : c'est fini. Ta forme = le tempo le plus rapide tenu à 85 %. */

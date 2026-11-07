@@ -782,7 +782,7 @@ test.describe('Rebonds avec le charley', () => {
   });
 });
 
-test('Rebonds en Glisser : le verdict parle de position, pas de temps', async ({ page }) => {
+test('Rebonds en Glisser : le point de rebond est gardé sur la tuile, sans texte d\'écart', async ({ page }) => {
   test.setTimeout(60_000);
   await lancer(page, 'rebonds', 'Peu', 'Glisser');
   const r = await page.evaluate(async () => {
@@ -794,8 +794,7 @@ test('Rebonds en Glisser : le verdict parle de position, pas de temps', async ({
     return { pops: window.__gm.pops().map((p) => p.txt + ' ' + (p.sub || '')), impacts: window.__gm.impacts().length };
   });
   expect(r.impacts).toBeGreaterThan(0);
-  expect(r.pops.join(' ')).toMatch(/trop à (gauche|droite)/);
-  expect(r.pops.join(' ')).not.toMatch(/ms/);
+  expect(r.pops.join(' ')).not.toMatch(/ms|trop/);
   await page.keyboard.press('Escape');
 });
 
