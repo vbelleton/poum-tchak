@@ -104,6 +104,14 @@ test.describe('Menu et batterie du haut', () => {
 });
 
 test.describe('Accueil, référencement et liens', () => {
+  test('le tempo du haut ne s\'affiche que sur Rythme et Pratique', async ({ page }) => {
+    for (const [nom, vu] of [['Rythme', true], ['Pratique', true], ['Parcours', false], ['Jeux', false], ['Mains', false], ['Écoute', false], ['Mots', false]]) {
+      await page.getByRole('tab', { name: nom, exact: true }).click();
+      if (vu) await expect(page.locator('#tempoRead')).toBeVisible();
+      else await expect(page.locator('#tempoRead')).toBeHidden();
+    }
+  });
+
   test('la page dit ce qu\'elle est, aux moteurs comme aux partages', async ({ page }) => {
     await expect(page).toHaveTitle(/apprendre la batterie/);
     expect(await page.locator('meta[name="description"]').getAttribute('content')).toContain('batterie');
@@ -111,7 +119,7 @@ test.describe('Accueil, référencement et liens', () => {
     expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toContain('icon-512.png');
     const ld = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent());
     expect(ld.name).toBe('Poum Tchak');
-    await expect(page.locator('#wsub')).toHaveText('apprendre la batterie');
+    await expect(page.locator('#word')).toHaveText('Poum Tchak');
   });
 
   test('première visite : l\'accueil mène au parcours et ne revient pas', async ({ page }) => {

@@ -9,7 +9,7 @@ test.describe('Lecture et tempo', () => {
     await bouton.click();
     await expect(bouton).toHaveText('Stop');
     await expect(page.locator('#grid .cell.now').first()).toBeVisible();
-    await expect(page.locator('#word')).not.toHaveText('poum tchak');
+    await expect(page.locator('#word')).not.toHaveText('Poum Tchak');
     await bouton.click();
     await expect(bouton).toHaveText('Jouer');
     await expect(page.locator('#grid .cell.now')).toHaveCount(0);
