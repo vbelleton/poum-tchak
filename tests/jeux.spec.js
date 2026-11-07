@@ -731,7 +731,7 @@ test.describe('Pendant le jeu', () => {
     await rubrique(page, 'Jeux');
     await page.locator('#gmGo').click();
     await expect(page.locator('#gm')).toBeVisible();
-    await page.evaluate(() => window.__gm.bloquerSon());
+    await page.evaluate(() => window.__gm.bloquerSon(true));
     await expect(page.locator('#gm')).toBeHidden({ timeout: 5000 });
     await expect(page.locator('#gmMsg')).toContainText('Le son s\'était bloqué');
     await page.locator('#gmGo').click();
@@ -854,4 +854,40 @@ test('le pad du charley est en haut à gauche, se déplace en le gardant appuyé
   expect(apres.y).toBeGreaterThan(b.height / 2);
   await page.keyboard.press('Escape');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.jeux.charley')).fx)).toBeGreaterThan(0.7);
+});
+
+test.describe('Écoute puis rejoue : longueur et son figé', () => {
+  test('la longueur du motif se choisit : 1, 2 ou 4 mesures', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGames [data-v="ecoute"]').click();
+    await page.locator('#gmFree').selectOption({ index: 3 });
+    for (const [nom, n] of [['1 mesure', 1], ['4 mesures', 4], ['2 mesures', 2]]) {
+      await page.locator('#gmELen').getByRole('button', { name: nom }).click();
+      await page.locator('#gmGo').click();
+      await expect(page.locator('#gm')).toBeVisible({ timeout: 10_000 });
+      expect(await page.evaluate(() => window.__gm.chart().rounds.map((r) => r.n))).toEqual(expect.arrayContaining([n]));
+      expect(await page.evaluate(() => window.__gm.chart().rounds.every((r) => r.n === r.n))).toBe(true);
+      await page.keyboard.press('Escape');
+    }
+  });
+
+  test('un son figé en pleine partie arrête proprement, avec un message, au lieu de geler l\'écran', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGo').click();
+    await expect(page.locator('#gm')).toBeVisible();
+    await page.waitForFunction(() => window.__gm.now() > 1, null, { timeout: 8000 });
+    await page.evaluate(() => { window.__gm.bloquerSon(true); });
+    await expect(page.locator('#gm')).toBeHidden({ timeout: 8000 });
+    await expect(page.locator('#gmMsg')).toContainText('Le son');
+  });
+
+  test('un son simplement suspendu repart tout seul, la partie continue', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmGo').click();
+    await page.waitForFunction(() => window.__gm.now() > 1, null, { timeout: 8000 });
+    await page.evaluate(() => window.__gm.bloquerSon());
+    const t = await page.evaluate(() => window.__gm.now());
+    await page.waitForFunction((x) => window.__gm.on() && window.__gm.now() > x + 1, t, { timeout: 8000 });
+    await page.keyboard.press('Escape');
+  });
 });
