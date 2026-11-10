@@ -51,13 +51,48 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   await bouton(page, 'left', 'trigger');
   await expect.poll(async () => (await vr(page)).checked.sort()).toEqual([0, 1, 2, 3, 4, 5]);
 
-  // stick vers le haut : la baguette se relève, et l'angle est gardé
+  // « Hoche la tête » : un petit coup de tête vers le bas fait la grosse caisse, un mouvement lent non
+  await page.evaluate(() => window.__gm.vr().menuPress('kick:tete'));
+  const tete = (dys, attente) => page.evaluate(async ([ds, ms]) => {
+    for (const d of ds) {
+      const p = window.__dev.position; p.set(p.x, 1.6 + d, p.z);
+      const f0 = window.__gm.vr().frames();
+      while (window.__gm.vr().frames() < f0 + 1) await new Promise((f) => setTimeout(f, 2));
+      if (ms) await new Promise((f) => setTimeout(f, ms));
+    }
+  }, [dys, attente]);
+  await tete([0, -0.04, -0.08, -0.05, 0], 0);
+  await expect.poll(async () => (await vr(page)).headKicks).toBe(1);
+  await tete([0, -0.005, -0.01, -0.015, -0.02, -0.025, -0.02, -0.01, 0], 250);
+  expect((await vr(page)).headKicks).toBe(1);
+  await page.evaluate(() => window.__gm.vr().menuPress('kick:gachette'));
+
+  // le stick déplace le bouton choisi dans le menu, A le valide
+  const etat = () => page.evaluate(() => window.__gm.vr().state());
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('mini'); v.menuPress('open'); });
+  await expect.poll(async () => (await etat()).focus).toBe('play');
+  const stick = async (x, y) => {
+    await page.evaluate(([a, b]) => window.__dev.controllers.right.updateAxes('thumbstick', a, b), [x, y]);
+    await page.waitForTimeout(90);
+    await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 0, 0));
+    await page.waitForTimeout(90);
+  };
+  for (let i = 0; i < 6; i++) await stick(0, -1); // remonter jusqu'à la ligne « Notes »
+  expect((await etat()).focus).toMatch(/^lvl:/);
+  await page.evaluate(() => window.__gm.vr().menuPress('lvl:facile'));
+  await stick(1, 0);
+  expect((await etat()).focus).toBe('lvl:moyen');
+  await bouton(page, 'right', 'a-button');
+  expect((await page.evaluate(() => window.__gm.vrApi.opts())).lvl).toBe('moyen');
+  await page.evaluate(() => window.__gm.vr().menuPress('lvl:facile'));
+  // l'angle des baguettes se règle dans le menu et est gardé
   const angle = (await vr(page)).tilt;
-  await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 0, -1));
-  await page.waitForTimeout(120);
-  await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 0, 0));
-  await expect.poll(async () => (await vr(page)).tilt).toBeGreaterThan(angle);
+  await page.evaluate(() => window.__gm.vr().menuPress('tilt+'));
+  expect((await vr(page)).tilt).toBeGreaterThan(angle);
   expect(+(await page.evaluate(() => localStorage.getItem('poumtchak.vr.angle')))).toBeGreaterThan(angle);
+  // le focus revient sur Jouer
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('mini'); v.menuPress('open'); });
+  await expect.poll(async () => (await etat()).focus).toBe('play');
 
   // A : la partie démarre ; le robot joue aux baguettes (caisse claire) et à la gâchette (grosse caisse)
   await bouton(page, 'right', 'a-button');
@@ -97,8 +132,18 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   const grossesCaisses = await page.evaluate(() => window.__gm.chart().notes.filter((n) => n.lane === 0 && n.at != null).length);
   expect(grossesCaisses).toBeGreaterThan(0);
 
-  // B arrête la partie et revient au menu ; B encore quitte la VR
+  // B met en pause (le temps du jeu s'arrête), A reprend, B encore puis « Arrêter » revient au menu ;
+  // B encore quitte la VR
   await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await etat()).paused).toBe(true);
+  const fige = await page.evaluate(() => window.__gm.now());
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__gm.now())).toBeCloseTo(fige, 2);
+  await bouton(page, 'right', 'a-button');
+  await expect.poll(async () => (await etat()).paused).toBe(false);
+  await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await etat()).paused).toBe(true);
+  await page.evaluate(() => window.__gm.vr().menuPress('menu'));
   await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(false);
   await expect.poll(async () => (await vr(page)).menu).toBe(true);
   await bouton(page, 'right', 'b-button');

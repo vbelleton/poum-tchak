@@ -36,13 +36,11 @@ function setHeight(v){
   S.hOff=Math.max(-0.3,Math.min(0.3,Math.round(v*100)/100));
   try{localStorage.setItem(H_KEY,String(S.hOff));}catch(e){}
   if(S.head)place(S.head,S.kit.rotation.y,S.preview);
-  S.msg='Hauteur de la batterie : '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm';
 }
 function setTilt(v){
   S.tilt=Math.max(0.2,Math.min(1.3,v));
   for(const st of S.sticks)if(st.holder)st.holder.rotation.x=-S.tilt;
   try{localStorage.setItem(TILT_KEY,String(S.tilt));}catch(e){}
-  S.msg='Angle des baguettes : '+Math.round(S.tilt*180/Math.PI)+'°';
 }
 
 /* Un panneau de texte : un plan dont la texture est un canvas redessiné seulement quand le texte change. */
@@ -105,7 +103,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),head:null,btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();
   if(preview){
@@ -117,10 +115,13 @@ export async function enter(api,{preview=false}={}){
     camera.position.set(0,1.55,0.5);camera.lookAt(0,1.12,-1.2);
     place(new THREE.Vector3(0,1.42,0),0,true);
     addSimStick();
-    S.keyH=e=>{ /* pendant la partie, le clavier appartient au jeu de la page (touches B F D J K L) */
-      if(api.gm.on)return;
-      if(e.key==='Escape'){e.preventDefault();exit();}
-      else if(e.key==='Enter'||e.key===' '){e.preventDefault();start();}
+    S.keyH=e=>{ /* pendant la partie, le clavier appartient au jeu de la page (touches B F D J K L, P ou Échap : pause) */
+      const mode=menuMode();
+      if(!mode)return;
+      const mv={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
+      if(mv){e.preventDefault();menuMove(mv[0],mv[1]);}
+      else if(e.key==='Enter'||e.key===' '){e.preventDefault();menuDo(S.focus);}
+      else if(e.key==='Escape'){e.preventDefault();if(mode==='pause')pause(false);else if(S.mini)S.mini=false;else exit();}
     };
     document.addEventListener('keydown',S.keyH);
     S.ptrH=e=>{ /* un clic sur un pad : une frappe */
@@ -383,22 +384,56 @@ function buttons(t){
     const now=gp.buttons.map(b=>b.pressed);
     const down=i=>now[i]&&!prev[i];
     S.btnPrev.set(st,now);
+    const mode=menuMode();
     /* un bouton est lu une fois par image : on date le coup de maintenant, pas de l'instant
        d'affichage prévu de l'image (qui peut être un peu dans le futur) */
-    if(down(0)&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
+    if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
     else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
-    if(down(4)&&!S.api.gm.on)start();
-    /* stick vers le haut ou le bas : l'angle des baguettes, gardé pour la prochaine fois */
-    const ay=gp.axes&&gp.axes.length>3?gp.axes[3]:0;
-    if(Math.abs(ay)>0.6&&t-(S.tiltT||0)>180){S.tiltT=t;setTilt(S.tilt+(ay<0?0.05:-0.05));}
-    /* stick à gauche ou à droite : la batterie descend ou monte de 2 cm (assis, debout) */
-    const ax=gp.axes&&gp.axes.length>2?gp.axes[2]:0;
-    if(Math.abs(ax)>0.6&&Math.abs(ay)<0.4&&t-(S.hT||0)>180){S.hT=t;setHeight(S.hOff+(ax>0?0.02:-0.02));}
-    if(down(5)){if(S.api.gm.on)S.api.stop();else{exit();return;}}
+    if(down(4)){if(mode){menuDo(S.focus);if(!S)return;}}
+    /* le stick déplace le bouton choisi dans le menu */
+    const ax=gp.axes&&gp.axes.length>2?gp.axes[2]:0,ay=gp.axes&&gp.axes.length>3?gp.axes[3]:0;
+    if(mode&&(Math.abs(ax)>0.6||Math.abs(ay)>0.6)){
+      /* un pas tout de suite, puis d'autres si on garde le stick poussé */
+      if(!st.navT||t-st.navT>(st.navN?170:400)){st.navN=st.navT?(st.navN||0)+1:0;st.navT=t;if(Math.abs(ay)>Math.abs(ax))menuMove(0,ay>0?1:-1);else menuMove(ax>0?1:-1,0);}
+    }else if(Math.abs(ax)<0.3&&Math.abs(ay)<0.3){st.navT=0;st.navN=0;}
+    if(down(5)){
+      if(S.api.gm.on)pause(!S.paused);
+      else if(S.mini)S.mini=false;
+      else{exit();return;}
+    }
   }
 }
 
+/* « Hoche la tête » : la grosse caisse part quand la tête, qui descendait vite, remonte
+   après une descente d'au moins 2,5 cm. L'instant est celui du point le plus bas. */
+const _h=new THREE.Vector3();
+function headKick(t,frame){
+  if(S.api.opts().kick!=='tete'){S.hd=null;return;}
+  /* la pose de la tête pour cette image (la caméra de three.js n'est mise à jour qu'au dessin) */
+  const ref=S.renderer.xr.getReferenceSpace(),vp=ref&&frame.getViewerPose(ref);
+  if(!vp)return;
+  _h.set(vp.transform.position.x,vp.transform.position.y,vp.transform.position.z);
+  const h=S.hd||(S.hd={y:_h.y,t,dir:0,top:_h.y,topT:t,lastKick:0});
+  if(t<=h.t)return;
+  const dy=_h.y-h.y;
+  if(dy<-0.001){ /* la tête descend */
+    if(h.dir>=0){h.top=h.y;h.topT=h.t;}
+    h.dir=-1;h.botT=t;
+  }else if(dy>0.001){ /* elle remonte : le point le plus bas était l'image d'avant */
+    if(h.dir<0){
+      const drop=h.top-h.y,dur=Math.max(0.001,(h.botT-h.topT)/1000);
+      /* vitesse moyenne de la descente, indépendante du nombre d'images par seconde :
+         un vrai coup de tête dépasse 0,15 m/s, se pencher pour regarder reste en dessous */
+      if(drop>0.025&&drop/dur>0.15&&t-h.lastKick>180){
+        h.lastKick=t;S.headKicks=(S.headKicks||0)+1;
+        const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(h.botT,performance.now())),1);
+      }
+    }
+    h.dir=1;
+  }
+  h.y=_h.y;h.t=t;
+}
 async function start(){
   if(S.busy||S.api.gm.on)return;
   S.busy=true;S.msg='Chargement…';S.result=null;
@@ -430,7 +465,9 @@ function loop(t,frame){
     const cam=renderer.xr.getCamera(),v=new THREE.Vector3();cam.getWorldPosition(v);
     if(v.lengthSq()>0.01)placeFromHead();
   }
-  if(S.placed){sticks(t);if(frame){rays();buttons(t);}}
+  if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
+  /* casque retiré ou menu du système ouvert : pause */
+  if(S&&S.session&&gm.on&&!S.paused&&S.session.visibilityState&&S.session.visibilityState!=='visible')pause(true);
   if(!S)return;  /* les coups d'abord, puis les notes ratées */
   if(gm.on)api.step();          /* le jeu avance au rythme du casque */
   if(S.wasOn&&!gm.on)finished();
@@ -516,79 +553,125 @@ function draw(t){
   S.hud.mesh.visible=!!on;
   if(on){
     const sc=gm.sc,mult=Math.min(4,1+Math.floor(sc.streak/8));
-    const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:sc.streak>1?'Série de '+sc.streak:' ',size:3.6,color:'#97A1B2'}];
+    const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:sc.streak>1?'Série de '+sc.streak:(S.preview?'P : pause':'B/Y : pause'),size:3.6,color:'#97A1B2'}];
     if(now<gm.firstT-0.2)lines[1]={t:'Prépare-toi…',size:3.6,color:'#F2BB4A'};
     drawPanel(S.hud,lines,{bar:gm.loop||api.noFail()?null:gm.gauge});
   }
-  /* menu, hors partie */
-  S.menu.mesh.visible=!on;
-  if(!on){
-    drawMenu();
+  /* menu : hors partie, ou en pause */
+  const mode=menuMode();
+  S.menu.mesh.visible=!!mode;
+  if(mode){
+    drawMenu(mode);
+    /* en pause, le menu vient devant les couloirs ; masqué, il descend au bas du champ */
+    S.menu.mesh.position.z=mode==='pause'?-0.9:-1.25;
   }
 }
 
-/* Le menu dans le casque : chant, nombre de notes, tolérance, tempo, ralentissement, Jouer.
-   On vise avec la manette (un rayon sort de chacune) et on appuie sur la gâchette ; en aperçu, à la souris.
-   Tout est dessiné sur un canvas : chaque bouton garde son rectangle (en cm sur le panneau). */
-const MW=124,MH=100;
-function menuItems(){
-  const {api}=S,o=api.opts(),src=api.sources(),i=Math.max(0,src.findIndex(x=>x.id===o.rh));
+/* Le menu dans le casque, en trois formes :
+   - « main » (hors partie) : chant, nombre de notes, tolérance, tempo, grosse caisse, ralentir,
+     angle des baguettes, hauteur de la batterie, puis Jouer, Masquer, Quitter ;
+   - « mini » : le menu masqué, réduit à un bouton, pour jouer librement sur la batterie ;
+   - « pause » (en partie, après B/Y) : Reprendre, Recommencer, Menu.
+   On vise avec la manette et on appuie sur la gâchette, ou on se déplace au stick et on valide avec A/X ;
+   en aperçu, souris ou clavier. Tout est dessiné sur un canvas : chaque bouton garde son rectangle (en cm). */
+const MW=124,MH=108;
+const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
+const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
+function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':'main';}
+function menuItems(mode){
+  const {api}=S,it=[];
+  if(mode==='mini'){it.push({id:'open',x:MW/2-16,y:MH-14,w:32,h:10,txt:'☰ Menu',big:true});return it;}
+  if(mode==='pause'){
+    it.push({id:'resume',x:20,y:34,w:MW-40,h:13,txt:'Reprendre',big:true});
+    it.push({id:'restart',x:20,y:51,w:(MW-44)/2,h:10,txt:'Recommencer'});
+    it.push({id:'menu',x:24+(MW-44)/2,y:51,w:(MW-44)/2,h:10,txt:'Arrêter (menu)'});
+    return it;
+  }
+  const o=api.opts(),src=api.sources(),i=Math.max(0,src.findIndex(x=>x.id===o.rh));
   const cur=src[i]||{label:'—'};
-  const it=[];
-  const row=(y,lab)=>it.push({t:'lab',x:5,y,w:24,h:7,txt:lab});
-  const seg=(y,key,opts,val)=>{const ks=Object.keys(opts),w=(MW-35)/ks.length;ks.forEach((k,j)=>it.push({id:key+':'+k,x:30+j*w,y,w:w-1.5,h:7,txt:opts[k],on:k===val}));};
-  row(20,'Chant');
-  it.push({id:'src-',x:30,y:20,w:8,h:7,txt:'◀'});
-  it.push({t:'val',x:39.5,y:20,w:MW-56,h:7,txt:cur.label+'  ('+(i+1)+'/'+src.length+')'});
-  it.push({id:'src+',x:MW-14,y:20,w:8,h:7,txt:'▶'});
-  row(29,'Notes');seg(29,'lvl',o.levels,o.lvl);
-  row(38,'Tolérance');seg(38,'tol',o.tols,o.tol);
-  row(47,'Tempo');
-  if(o.songBpm)it.push({t:'val',x:30,y:47,w:MW-35,h:7,txt:'Tempo du chant : '+o.songBpm+' BPM'});
-  else{it.push({id:'bpm-',x:30,y:47,w:12,h:7,txt:'− 5'});it.push({t:'val',x:43.5,y:47,w:MW-63,h:7,txt:o.bpm+' BPM'});it.push({id:'bpm+',x:MW-18,y:47,w:12,h:7,txt:'+ 5'});}
-  it.push({id:'slow',x:30,y:56,w:MW-35,h:7,txt:'Ralentir quand ça coince : '+(o.slow?'oui':'non'),on:o.slow});
-  it.push({id:'play',x:30,y:66,w:MW-62,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
-  it.push({id:'quit',x:MW-30,y:66,w:24,h:10,txt:'Quitter'});
+  const H=6.6;
+  const row=(y,lab)=>it.push({t:'lab',x:5,y,w:24,h:H,txt:lab});
+  const seg=(y,key,opts,val)=>{const ks=Object.keys(opts),w=(MW-35)/ks.length;ks.forEach((k,j)=>it.push({id:key+':'+k,x:30+j*w,y,w:w-1.5,h:H,txt:opts[k],on:k===val}));};
+  const pm=(y,x,w,key,val)=>{it.push({id:key+'-',x,y,w:9,h:H,txt:'−'});it.push({t:'val',x:x+9.5,y,w:w-19,h:H,txt:val});it.push({id:key+'+',x:x+w-9,y,w:9,h:H,txt:'+'});};
+  row(19,'Chant');
+  it.push({id:'src-',x:30,y:19,w:8,h:H,txt:'◀'});
+  it.push({t:'val',x:39.5,y:19,w:MW-56,h:H,txt:cur.label+'  ('+(i+1)+'/'+src.length+')'});
+  it.push({id:'src+',x:MW-14,y:19,w:8,h:H,txt:'▶'});
+  row(27,'Notes');seg(27,'lvl',o.levels,o.lvl);
+  row(35,'Tolérance');seg(35,'tol',o.tols,o.tol);
+  row(43,'Tempo');
+  if(o.songBpm)it.push({t:'val',x:30,y:43,w:MW-35,h:H,txt:'Tempo du chant : '+o.songBpm+' BPM'});
+  else pm(43,30,MW-35,'bpm',o.bpm+' BPM');
+  row(51,'Grosse caisse');seg(51,'kick',KICKS,o.kick);
+  row(59,'Ralentir');
+  it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
+  row(67,'Baguettes');
+  pm(67,30,(MW-37)/2,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
+  pm(67,32+(MW-37)/2,(MW-37)/2,'haut','hauteur '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
+  it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
+  it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-function drawMenu(){
+const FOCUS0={main:'play',pause:'resume',mini:'open'};
+function drawMenu(mode){
   const {api}=S,p=S.menu;
-  S.items=menuItems();
+  S.items=menuItems(mode);
+  if(!S.items.some(b=>b.id===S.focus))S.focus=FOCUS0[mode];
   const hov=[...S.hover.values()].filter(Boolean);
   const R=S.result,nc=S.checked.size;
-  let status;
-  if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best,c:'#F2BB4A'};
-  else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
-  else status={t:'Vise un bouton avec la manette, gâchette pour choisir',c:'#97A1B2'};
-  const foot=[
-    nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
-    S.preview?{t:'Entrée : jouer · Échap : quitter · B F D J K L ou clic sur un pad : frapper',c:'#C9D1DC'}:
-      {t:'A/X : jouer · B/Y : quitter · gâchette : grosse caisse · stick : haut/bas angle, gauche/droite hauteur, enfoncé replacer',c:'#C9D1DC'},
-    {t:api.midiText(),c:'#7BE3A6'}
-  ];
-  const key=JSON.stringify([S.items.map(x=>[x.txt,x.on]),hov,status,foot]);
+  let title='Poum Tchak · VR',status=null,foot=[];
+  if(mode==='pause'){title='Pause';status={t:api.title(),c:'#97A1B2'};foot=[{t:'B/Y ou A/X : reprendre · vise un bouton, gâchette pour choisir',c:'#C9D1DC'}];}
+  else if(mode==='main'){
+    if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best,c:'#F2BB4A'};
+    else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
+    else status={t:KICK_HINT[api.opts().kick],c:'#97A1B2'};
+    foot=[
+      nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
+      S.preview?{t:'Souris, ou flèches + Entrée · Échap : quitter · P : pause · B F D J K L : frapper',c:'#C9D1DC'}:
+        {t:'Vise + gâchette, ou stick + A/X · B/Y : quitter (en partie : pause) · stick enfoncé : replacer la batterie',c:'#C9D1DC'},
+      {t:api.midiText(),c:'#7BE3A6'}
+    ];
+  }
+  const key=JSON.stringify([mode,S.items.map(x=>[x.txt,x.on]),hov,S.focus,status,foot]);
   if(key===p.key)return;p.key=key;
   const {cx,cv}=p,k=cv.width/MW;
   cx.clearRect(0,0,cv.width,cv.height);
-  cx.fillStyle='rgba(11,14,20,0.92)';cx.beginPath();
-  if(cx.roundRect)cx.roundRect(2,2,cv.width-4,cv.height-4,40);else cx.rect(2,2,cv.width-4,cv.height-4);
-  cx.fill();cx.strokeStyle='#39414F';cx.lineWidth=3;cx.stroke();
+  const box=(x,y,w,h,r)=>{cx.beginPath();if(cx.roundRect)cx.roundRect(x*k,y*k,w*k,h*k,r*k);else cx.rect(x*k,y*k,w*k,h*k);};
+  if(mode!=='mini'){
+    const h=mode==='pause'?70:MH-1;
+    cx.fillStyle='rgba(11,14,20,0.92)';box(0.5,0.5,MW-1,h,5);cx.fill();cx.strokeStyle='#39414F';cx.lineWidth=3;cx.stroke();
+  }
   cx.textAlign='center';cx.textBaseline='middle';
   const text=(t,x,y,size,color,weight,maxW)=>{cx.font=(weight||600)+' '+size*k+'px '+FONT;cx.fillStyle=color;cx.fillText(t,x*k,y*k,maxW?maxW*k:undefined);};
-  text('Poum Tchak · VR',MW/2,7,5.6,'#E8ECF2',800);
-  text(status.t,MW/2,14,3.2,status.c,700,MW-8);
+  if(mode!=='mini'){text(title,MW/2,mode==='pause'?12:7,mode==='pause'?8:5.6,'#E8ECF2',800);if(status)text(status.t,MW/2,mode==='pause'?22:13.5,3.2,status.c,700,MW-8);}
   for(const b of S.items){
     const cxm=(b.x+b.w/2),cym=b.y+b.h/2;
-    if(b.t==='lab'){cx.textAlign='left';text(b.txt,b.x,cym,3.4,'#97A1B2',700);cx.textAlign='center';continue;}
-    if(b.t==='val'){text(b.txt,cxm,cym,3.3,'#E8ECF2',700,b.w-1);continue;}
-    const h=hov.includes(b.id);
-    cx.fillStyle=b.big?(h?'#9BF0BF':'#7BE3A6'):b.on?'#2F4BD0':h?'#39414F':'#1D232E';
-    cx.beginPath();if(cx.roundRect)cx.roundRect(b.x*k,b.y*k,b.w*k,b.h*k,1.6*k);else cx.rect(b.x*k,b.y*k,b.w*k,b.h*k);cx.fill();
-    cx.strokeStyle=h?'#FFFFFF':b.on?'#8D9CFF':'#39414F';cx.lineWidth=h?4:2;cx.stroke();
-    text(b.txt,cxm,cym+0.2,b.big?4.6:3.2,b.big?'#0B0E14':'#E8ECF2',b.big?800:700,b.w-1);
+    if(b.t==='lab'){cx.textAlign='left';text(b.txt,b.x,cym,3.2,'#97A1B2',700,b.w);cx.textAlign='center';continue;}
+    if(b.t==='val'){text(b.txt,cxm,cym,3.2,'#E8ECF2',700,b.w-1);continue;}
+    const h=hov.includes(b.id),f=S.focus===b.id;
+    cx.fillStyle=b.big?(h||f?'#9BF0BF':'#7BE3A6'):b.on?'#2F4BD0':h?'#39414F':'#1D232E';
+    box(b.x,b.y,b.w,b.h,1.6);cx.fill();
+    cx.strokeStyle=h||f?'#FFFFFF':b.on?'#8D9CFF':'#39414F';cx.lineWidth=h||f?5:2;cx.stroke();
+    text(b.txt,cxm,cym+0.2,b.big?4.6:3.1,b.big?'#0B0E14':'#E8ECF2',b.big?800:700,b.w-1);
   }
-  foot.forEach((f,j)=>text(f.t,MW/2,82+j*5.5,2.9,f.c,600,MW-6));
+  foot.forEach((f,j)=>text(f.t,MW/2,91+j*5.5,2.8,f.c,600,MW-6));
   p.tex.needsUpdate=true;
+}
+/* Le stick (ou les flèches) déplace le bouton choisi : haut/bas d'une ligne, gauche/droite dans la ligne. */
+function menuMove(dx,dy){
+  const L=S.items.filter(b=>b.id);if(!L.length)return;
+  let cur=L.find(b=>b.id===S.focus)||L[0];
+  const cxOf=b=>b.x+b.w/2;
+  if(dx){
+    const rowI=L.filter(b=>Math.abs(b.y-cur.y)<1).sort((a,b)=>a.x-b.x),i=rowI.indexOf(cur);
+    cur=rowI[(i+dx+rowI.length)%rowI.length];
+  }else if(dy){
+    const ys=[...new Set(L.map(b=>b.y))].sort((a,b)=>a-b),i=ys.indexOf(cur.y),y=ys[(i+dy+ys.length)%ys.length];
+    const rowI=L.filter(b=>b.y===y);
+    cur=rowI.reduce((a,b)=>Math.abs(cxOf(b)-cxOf(cur))<Math.abs(cxOf(a)-cxOf(cur))?b:a);
+  }
+  S.focus=cur.id;
 }
 /* Le bouton du menu sous un rayon (origine, direction dans le monde), ou null. */
 const _ray=new THREE.Raycaster();
@@ -604,13 +687,28 @@ function menuAt(origin,dir){
 function menuDo(id){
   const {api}=S,o=api.opts();
   if(!id||S.busy)return;
+  S.focus=id;
+  if(id==='resume'){pause(false);return;}
+  if(id==='restart'){pause(false);api.stop();S.result=null;start();return;}
+  if(id==='menu'){pause(false);api.stop();return;}
+  if(id==='open'){S.mini=false;return;}
   S.result=null;S.msg='';
   if(id==='play'){start();return;}
+  if(id==='mini'){S.mini=true;return;}
   if(id==='quit'){exit();return;}
   if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
   else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));
+  else if(id==='tilt-'||id==='tilt+'){setTilt(S.tilt+(id==='tilt+'?0.05:-0.05));S.msg='';}
+  else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
   else{const [k,v]=id.split(':');api.set(k,v);}
+}
+/* Pause : le son s'arrête et la partie se fige (l'horloge du son ne bouge plus). */
+function pause(on){
+  if(on===S.paused)return;
+  if(on&&!S.api.gm.on)return;
+  S.paused=on;S.api.pause(on);
+  if(on)S.focus='resume';
 }
 /* Les rayons des manettes, visibles quand le menu est là. */
 function addRay(st,i){
@@ -652,10 +750,13 @@ export function simStrike(lane){
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+S.kit.rotation.y.toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+S.kit.rotation.y.toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id)};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
+/* La page : P ou Échap pendant une partie en VR met en pause (ou reprend). */
+export function togglePause(){if(S&&S.api.gm.on)pause(!S.paused);}
+export function state(){return S?{mode:menuMode(),focus:S.focus,paused:S.paused,mini:S.mini}:null;}

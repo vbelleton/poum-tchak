@@ -4799,6 +4799,7 @@ function gmStart(song,buffer,opt={}){
   }else{
     gm.loop=null;
     gm.chart=gmBuild(song);
+    if(gm.game==='vr'&&vrKick==='auto')vrAutoKick(gm.chart,song);
     if(!gm.chart.notes.length){say(gm.game==='ecoute'?'Pas de motif à rejouer à ce niveau : essaie un niveau plus haut ou un autre rythme.':'Rien à jouer à ce niveau dans ce rythme : essaie un niveau plus haut.');return;}
   }
   const c=gm.chart,ns=c.notes;
@@ -4950,6 +4951,7 @@ function gmWhySay(){
 }
 function gmHalt(why){
   if(!gm.on)return;
+  if(gm.paused){gm.paused=false;ctx.resume().catch(()=>{});}
   gmWhySet(typeof why==='string'?why:'quitter');
   gm.on=false;clearInterval(gm.timer);cancelAnimationFrame(gm.raf);
   if(gm.src){try{gm.src.stop();}catch(e){}gm.src=null;}
@@ -5090,7 +5092,7 @@ function gmGaugeMove(kind){
 }
 /* Une frappe : `lane` = colonne ou côté, `at` = l'instant sur l'horloge de la partie. */
 function gmHit(lane,at,withSound){
-  if(!gm.on||gm.ended||gmSteers())return;
+  if(!gm.on||gm.ended||gm.paused||gmSteers())return;
   if(gm.chart.nLanes===1)lane=0; /* une seule zone : tout pad, toute touche compte */
   gm.flash[lane]=gmNow();
   const win=gmWin();let best=null,bd=1e9;
@@ -5207,6 +5209,12 @@ $('#gmCv').addEventListener('pointermove',e=>{
 }));
 document.addEventListener('keydown',e=>{
   if(!gm.on||e.key==='Tab')return;
+  /* en VR (aperçu), Échap ou P met en pause ; en pause, le menu du casque prend les touches */
+  if(gm.vr&&vrMod){
+    const v=vrMod.state&&vrMod.state();
+    if(e.key==='Escape'||e.key.toLowerCase()==='p'){e.preventDefault();e.stopImmediatePropagation();vrMod.togglePause();return;}
+    if(v&&v.paused)return;
+  }
   /* pendant la partie, le clavier n'appartient qu'au jeu (pas de lecture à la barre d'espace) */
   e.preventDefault();e.stopImmediatePropagation();
   if(e.key==='Escape'){gmHalt();return;}
@@ -5235,6 +5243,7 @@ function gmMidi(e){
 /* Pendant la partie : si l'horloge du son ne bouge plus (téléphone qui coupe le son), on la relance ;
    si elle reste figée, on arrête proprement et on recrée le son, au lieu d'un écran qui ne bouge plus. */
 function gmStallCheck(){
+  if(gm.paused)return false; /* pause voulue (VR) : le son est arrêté exprès */
   const T=ctx.currentTime,P=performance.now();
   if(T!==gm.stT){gm.stT=T;gm.stP=P;return false;}
   if(!gm.stP)gm.stP=P;
@@ -5258,7 +5267,7 @@ function gmUpdate(){
 }
 /* En VR, c'est le casque qui fait avancer la partie, à sa cadence d'images. */
 function gmVrStep(){
-  if(!gm.on)return;
+  if(!gm.on||gm.paused)return;
   gmStallCheck();gmTick();
   const now=gmUpdate();
   if(gm.on&&!gm.ended&&now>gm.chart.dur+0.6){gm.ended=true;gmFinish(false);}
@@ -5683,7 +5692,16 @@ gmRender();gmLoadSongs().then(gmWhySay);
    un pad par fût, les manettes comme baguettes, la gâchette pour la grosse caisse, et la batterie MIDI si
    elle est allumée. Le dessin 3D et les manettes sont dans vr/vr.js, chargé seulement si le casque est là.
    ?vr=apercu montre la scène sur un écran d'ordinateur, pour essayer sans casque. */
-gm.vr=false;gm.vrPrev='couloirs';
+gm.vr=false;gm.vrPrev='couloirs';gm.paused=false;
+/* La grosse caisse sans batterie : à la gâchette, jouée toute seule, ou d'un coup de tête. */
+const VR_KICK_KEY='poumtchak.vr.grossecaisse';
+let vrKick='gachette';try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','auto','tete'].includes(k))vrKick=k;}catch(e){}
+function vrAutoKick(c,song){
+  const k=c.notes.filter(n=>n.lane===0);if(!k.length)return;
+  c.notes=c.notes.filter(n=>n.lane!==0);
+  /* un chant a déjà sa grosse caisse dans le son ; un rythme la joue avec l'accompagnement */
+  if(!song)c.backing=c.backing.concat(k.map(n=>({t:n.t,id:n.id,vel:n.vel}))).sort((a,b)=>a.t-b.t);
+}
 let vrMod=null;
 const vrPreview=/[?&]vr=apercu\b/.test(location.search);
 const vrApi={
@@ -5714,7 +5732,12 @@ const vrApi={
     if(gmMyGroove())L.push({id:'mine',label:'Mon rythme'});
     return L;
   },
-  opts(){const s=gmCurSong();return {rh:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  pause(on){
+    if(!gm.on)return;
+    gm.paused=!!on;
+    if(on)ctx.suspend().catch(()=>{});else ctx.resume().catch(()=>{});
+  },
+  opts(){const s=gmCurSong();return {kick:vrKick,rh:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
   set(k,v){
     if(gm.on)return;
     if(k==='rh'&&typeof v==='string')gm.rh=v;
@@ -5722,6 +5745,7 @@ const vrApi={
     else if(k==='tol'&&GM_TOL[v])gm.tol=v;
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
     else if(k==='slow')gm.slow=!!v;
+    else if(k==='kick'&&['gachette','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
     gmSave();
   },
   setVR(on){
