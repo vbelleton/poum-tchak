@@ -72,6 +72,18 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   importer un fichier .poumtchak ou un .zip, gardé sur l'appareil ; c'est le son du
   morceau qui joue, batterie d'origine comprise. Tempo au choix pour les rythmes,
   batterie MIDI, même calage et même notation que le reste, avec étoiles et record.
+- **Jouer en VR** (casque Meta Quest, dans son navigateur) : le bouton apparaît dans Jeux
+  quand le navigateur sait ouvrir un casque. Une batterie en 3D, un pad par fût (grosse caisse,
+  caisse claire, charley, tom médium, tom basse, crash) avec sa couleur et son mot ; les notes
+  arrivent dans le couloir de chaque pad. Les manettes sont les baguettes (vibration à chaque
+  coup), la gâchette fait la grosse caisse. Avec **Batterie MIDI** allumé avant d'entrer, la
+  vraie batterie compte aussi, pédale comprise (si le navigateur du casque gère le MIDI). Avant
+  de jouer, on **vérifie ses pads** : chaque pad frappé reçoit sa coche. A ou X : jouer ;
+  B ou Y : arrêter, puis quitter ; stick enfoncé : replacer la batterie devant soi. Le chant
+  ou le rythme, le nombre de notes et la tolérance sont ceux choisis dans Jeux ; les records
+  VR sont à part. Peu : grosse caisse et caisse claire ; Moyen : + charley ; Beaucoup : tout.
+  Sans casque, `?vr=apercu` à la fin de l'adresse montre la scène sur l'écran (touches
+  B F D J K L ou clic sur un pad).
 - **Mains** : indépendance des mains. Un tableau à deux colonnes (main gauche,
   main droite) : 1, 2, 3 ou 4 coups par temps, ou 1 → ¼ qui change à chaque
   temps, avec la fraction du temps, le nom de la note, le solfège (Kodály ou
@@ -165,6 +177,9 @@ l'équipe Chrome Web Audio, sous licence Apache 2.0 : grosse caisse, caisse
 claire, toms, charleston et crash. Le charleston ouvert est fabriqué à partir du
 charleston fermé.
 
+La 3D du mode VR utilise [three.js](https://threejs.org) (version 0.170, licence MIT,
+`vr/three-LICENSE.txt`).
+
 ## Tests
 
 Les tests Playwright vérifient l'interface sur téléphone et sur ordinateur :
@@ -190,7 +205,8 @@ Raccourcis de l'icône : Parcours, Mains, Rythme.
 
 ## Fichiers
 
-Tout tient dans `index.html` : pas de dépendance, pas de compilation. Les
+Tout tient dans `index.html` : pas de compilation. Seul le mode VR charge `vr/vr.js` et
+three.js (`vr/three.module.min.js`), et seulement sur un casque (ou en aperçu). Les
 autres fichiers servent à l'installation sur mobile et au mode hors ligne
 (`sw.js`, `manifest.webmanifest`, `icon-*.png`, dont une icône « maskable ») et aux tests (`tests/`,
 `playwright.config.js`, `package.json`).
