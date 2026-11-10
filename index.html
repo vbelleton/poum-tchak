@@ -5691,11 +5691,8 @@ const vrApi={
   word:id=>singleWord(dict,id),
   now:()=>gmNow(),
   /* l'instant d'un geste, donné sur l'horloge de la page (ms), ramené sur l'horloge de la partie */
-  atPerf(ms){
-    let T=ctx.currentTime-(performance.now()-ms)/1000;
-    try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.performanceTime)T=o.contextTime+(ms-o.performanceTime)/1000;}catch(e){}
-    return gmToGame(T-latency());
-  },
+  /* même règle qu'une frappe sur l'écran (gmEventAt) : l'horloge du son moins le temps écoulé depuis le geste */
+  atPerf(ms){return gmToGame(ctx.currentTime-Math.max(-0.05,Math.min(0.15,(performance.now()-ms)/1000))-latency());},
   hit:(lane,at)=>gmHit(lane,at,true),
   play:(id,v)=>{if(ensureAudio())voice(id,ctx.currentTime,v||1);},
   step:()=>gmVrStep(),
@@ -5708,6 +5705,24 @@ const vrApi={
   midiText(){
     if(!gm.midi)return 'Batterie MIDI : coupée (à allumer dans Jeux, avant d\'entrer)';
     const ins=midiInputs();return ins.length?'Batterie MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓':'Batterie MIDI : allumée, aucune batterie branchée';
+  },
+  /* le menu du casque : tout ce qu'on peut choisir dans Jeux, sans retirer le casque */
+  sources(){
+    const L=FREE_SONGS.map(x=>({id:'chant:'+x.id,label:x.title+' · '+Math.round(x.bpm)+' BPM'}));
+    gm.songs.forEach(x=>L.push({id:'chant:'+x.id,label:x.title}));
+    PATTERNS.forEach(x=>L.push({id:x.id,label:'Rythme : '+x.label}));
+    if(gmMyGroove())L.push({id:'mine',label:'Mon rythme'});
+    return L;
+  },
+  opts(){const s=gmCurSong();return {rh:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  set(k,v){
+    if(gm.on)return;
+    if(k==='rh'&&typeof v==='string')gm.rh=v;
+    else if(k==='lvl'&&GM_LEVELS[v])gm.lvl=v;
+    else if(k==='tol'&&GM_TOL[v])gm.tol=v;
+    else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
+    else if(k==='slow')gm.slow=!!v;
+    gmSave();
   },
   setVR(on){
     if(on){if(!gm.vr){gm.vrPrev=gm.game;gm.vr=true;}gm.game='vr';}
@@ -5733,10 +5748,23 @@ async function vrLaunch(){
 }
 function vrShow(){$('#gmVR').hidden=false;$('#gmVRHint').hidden=false;}
 async function vrLoad(){if(!vrMod)vrMod=await import('./vr/vr.js');return vrMod;}
-if(vrPreview){vrShow();$('#gmVR').textContent='Aperçu VR (sans casque)';}
-else if(navigator.xr&&navigator.xr.isSessionSupported){
-  navigator.xr.isSessionSupported('immersive-vr').then(ok=>{if(ok){vrShow();vrLoad().catch(()=>{});}}).catch(()=>{});
+/* ?vr=simulateur : un Meta Quest 2 simulé sur l'ordinateur (IWER, de Meta), avec ses manettes qu'on
+   bouge à la souris et au clavier. Chargé seulement à la demande, depuis le CDN. */
+const vrSim=/[?&]vr=simulateur\b/.test(location.search);
+function vrScript(src){return new Promise((ok,ko)=>{const e=document.createElement('script');e.src=src;e.crossOrigin='anonymous';e.onload=ok;e.onerror=ko;document.head.appendChild(e);});}
+async function vrDetect(){
+  if(vrPreview){vrShow();$('#gmVR').textContent='Aperçu VR (sans casque)';return;}
+  if(vrSim&&!window.__vrDevice){
+    try{
+      await vrScript('https://cdn.jsdelivr.net/npm/iwer@2.7.0/build/iwer.min.js');
+      await vrScript('https://cdn.jsdelivr.net/npm/@iwer/devui@2.7.0/build/iwer-devui.min.js');
+      const d=new IWER.XRDevice(IWER.metaQuest2);d.installRuntime({forceInstall:true});d.installDevUI(IWER_DevUI.DevUI);window.__vrDevice=d;
+    }catch(e){$('#gmMsg').textContent='Simulateur VR indisponible (pas de réseau ?).';return;}
+  }
+  if(!navigator.xr||!navigator.xr.isSessionSupported)return;
+  try{if(await navigator.xr.isSessionSupported('immersive-vr')){vrShow();if(vrSim)$('#gmVR').textContent='Jouer en VR (casque simulé)';vrLoad().catch(()=>{});}}catch(e){}
 }
+vrDetect();
 $('#gmVR').addEventListener('click',async()=>{
   const say=t=>{$('#gmMsg').textContent=t;};
   ensureAudio();

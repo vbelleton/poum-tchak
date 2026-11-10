@@ -78,12 +78,15 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   arrivent dans le couloir de chaque pad. Les manettes sont les baguettes (vibration à chaque
   coup), la gâchette fait la grosse caisse. Avec **Batterie MIDI** allumé avant d'entrer, la
   vraie batterie compte aussi, pédale comprise (si le navigateur du casque gère le MIDI). Avant
-  de jouer, on **vérifie ses pads** : chaque pad frappé reçoit sa coche. A ou X : jouer ;
-  B ou Y : arrêter, puis quitter ; stick enfoncé : replacer la batterie devant soi. Le chant
-  ou le rythme, le nombre de notes et la tolérance sont ceux choisis dans Jeux ; les records
-  VR sont à part. Peu : grosse caisse et caisse claire ; Moyen : + charley ; Beaucoup : tout.
-  Sans casque, `?vr=apercu` à la fin de l'adresse montre la scène sur l'écran (touches
-  B F D J K L ou clic sur un pad).
+  de jouer, on **vérifie ses pads** : chaque pad frappé reçoit sa coche. Un **menu dans le
+  casque** (on vise avec la manette, gâchette pour choisir) règle le chant ou le rythme, le
+  nombre de notes, la tolérance, le tempo et le ralentissement, gardés pour la page. A ou X :
+  jouer ; B ou Y : arrêter, puis quitter ; stick enfoncé : replacer la batterie devant soi ;
+  stick haut/bas : angle des baguettes ; gauche/droite : hauteur de la batterie (gardés). Les
+  records VR sont à part. Peu : grosse caisse et caisse claire ; Moyen : + charley ; Beaucoup :
+  tout. Sans casque : `?vr=apercu` à la fin de l'adresse montre la scène sur l'écran (touches
+  B F D J K L ou clic) ; `?vr=simulateur` simule un Meta Quest 2 complet (IWER, de Meta, chargé
+  depuis le CDN), avec ses manettes qu'on déplace et ses boutons.
 - **Mains** : indépendance des mains. Un tableau à deux colonnes (main gauche,
   main droite) : 1, 2, 3 ou 4 coups par temps, ou 1 → ¼ qui change à chaque
   temps, avec la fraction du temps, le nom de la note, le solfège (Kodály ou
@@ -212,5 +215,8 @@ autres fichiers servent à l'installation sur mobile et au mode hors ligne
 `playwright.config.js`, `package.json`).
 
 Tests sur le moteur de Safari (iPhone) : `npx playwright install webkit` une fois, puis `npm run test:iphone`.
+Les tests VR (`tests/vr.spec.js`, `tests/vr-casque.spec.js`) jouent dans l'aperçu et dans un
+Quest 2 simulé par IWER (dépendance de test) : vérification des pads, menu, coups de baguette,
+gâchette, boutons A et B, réglage de l'angle.
 Les parties complètes et les enchaînements (`tests/parties.spec.js`, marqués @lent) attrapent les
 régressions qui n'apparaissent qu'au bout de 20 s de jeu ou à la deuxième partie.

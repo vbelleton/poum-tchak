@@ -28,6 +28,22 @@ const STICK=0.40;         /* longueur de la baguette */
 const MIN_VY=-0.35;       /* vitesse verticale minimale d'un coup (m/s) */
 
 let S=null; /* l'état de la session en cours, null hors VR */
+const TILT_KEY='poumtchak.vr.angle';
+function loadTilt(){try{const v=+localStorage.getItem(TILT_KEY);if(v>=0.2&&v<=1.3)return v;}catch(e){}return 0.7;}
+const H_KEY='poumtchak.vr.hauteur';
+function loadHeight(){try{const v=+localStorage.getItem(H_KEY);if(Math.abs(v)<=0.3)return v;}catch(e){}return 0;}
+function setHeight(v){
+  S.hOff=Math.max(-0.3,Math.min(0.3,Math.round(v*100)/100));
+  try{localStorage.setItem(H_KEY,String(S.hOff));}catch(e){}
+  if(S.head)place(S.head,S.kit.rotation.y,S.preview);
+  S.msg='Hauteur de la batterie : '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm';
+}
+function setTilt(v){
+  S.tilt=Math.max(0.2,Math.min(1.3,v));
+  for(const st of S.sticks)if(st.holder)st.holder.rotation.x=-S.tilt;
+  try{localStorage.setItem(TILT_KEY,String(S.tilt));}catch(e){}
+  S.msg='Angle des baguettes : '+Math.round(S.tilt*180/Math.PI)+'°';
+}
 
 /* Un panneau de texte : un plan dont la texture est un canvas redessiné seulement quand le texte change. */
 function panel(w,h,ppm=520){
@@ -89,7 +105,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),head:null,btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();
   if(preview){
@@ -98,7 +114,7 @@ export async function enter(api,{preview=false}={}){
     document.body.appendChild(cv);
     const size=()=>{renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();};
     size();S.resizeH=size;addEventListener('resize',size);
-    camera.position.set(0,1.5,0.45);camera.lookAt(0,0.95,-1.2);
+    camera.position.set(0,1.55,0.5);camera.lookAt(0,1.12,-1.2);
     place(new THREE.Vector3(0,1.42,0),0,true);
     addSimStick();
     S.keyH=e=>{ /* pendant la partie, le clavier appartient au jeu de la page (touches B F D J K L) */
@@ -110,11 +126,19 @@ export async function enter(api,{preview=false}={}){
     S.ptrH=e=>{ /* un clic sur un pad : une frappe */
       const r=cv.getBoundingClientRect(),ray=new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);
+      const m=menuAt(ray.ray.origin,ray.ray.direction);
+      if(m&&m.hit){menuDo(m.id);return;}
       const hit=ray.intersectObjects(S.pads.map(p=>p.mesh),false)[0];
       if(hit)strike(S.pads.find(p=>p.mesh===hit.object),api.atPerf(e.timeStamp||performance.now()),1);
-      else if(!api.gm.on)start();
     };
     cv.addEventListener('pointerdown',S.ptrH);
+    cv.addEventListener('pointermove',e=>{
+      if(!S)return;
+      const r=cv.getBoundingClientRect(),ray=new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);
+      const m=menuAt(ray.ray.origin,ray.ray.direction);S.hover.set('souris',m&&m.id||null);
+      cv.style.cursor=m&&m.id?'pointer':'default';
+    });
   }else{
     renderer.xr.enabled=true;
     renderer.xr.setReferenceSpaceType('local-floor');
@@ -196,17 +220,18 @@ function buildWorld(){
   const ringGeo=new THREE.TorusGeometry(1,0.06,8,40);
   for(let i=0;i<10;i++){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,depthWrite:false}));m.visible=false;kit.add(m);S.rings.push(m);}
   const popGeo=new THREE.PlaneGeometry(0.28,0.07);
-  for(let i=0;i<10;i++){const m=new THREE.Mesh(popGeo,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));m.visible=false;m.renderOrder=5;kit.add(m);S.pops.push(m);}
+  for(let i=0;i<10;i++){const m=new THREE.Mesh(popGeo,new THREE.MeshBasicMaterial({map:popTexture('Bien','ok'),transparent:true,depthWrite:false}));m.visible=false;m.renderOrder=5;kit.add(m);S.pops.push(m);}
   /* score au-dessus de la batterie, menu devant */
   S.hud=panel(0.9,0.2);kit.add(S.hud.mesh);
-  S.menu=panel(1.1,0.62);kit.add(S.menu.mesh);
+  S.menu=panel(MW/100,MH/100,700);kit.add(S.menu.mesh);S.items=[];S.hover=new Map();
 }
 
 /* Pose la batterie à la hauteur et dans la direction du joueur. head : position de la tête. */
 function place(head,yaw,fixedFloor){
   const local=!fixedFloor&&S.renderer.xr.isPresenting&&head.y<0.5; /* repère sans sol : on suppose 1,60 m */
   S.floorY=local?head.y-1.6:0;
-  S.padH=Math.max(0.45,Math.min(1.15,head.y-S.floorY-0.62));
+  S.head=head.clone();
+  S.padH=Math.max(0.4,Math.min(1.3,head.y-S.floorY-0.62+S.hOff));
   S.kit.position.set(head.x,S.floorY,head.z);S.kit.rotation.set(0,yaw,0);
   for(const p of S.pads){
     const P=p.P;
@@ -225,7 +250,7 @@ function place(head,yaw,fixedFloor){
     p.lane.position.y-=P.kick?0:0.02;
   }
   S.hud.mesh.position.set(0,S.padH+0.78,-1.45);
-  S.menu.mesh.position.set(0,S.padH+0.66,-1.3);S.menu.mesh.rotation.x=-0.08;
+  S.menu.mesh.position.set(0,S.padH+0.72,-1.25);S.menu.mesh.rotation.x=-0.12;
   S.placed=true;
 }
 function placeFromHead(){
@@ -240,15 +265,17 @@ function placeFromHead(){
 /* Les manettes : une baguette dans chaque main, la gâchette pour la grosse caisse. */
 function addController(i){
   const grip=S.renderer.xr.getControllerGrip(i);S.scene.add(grip);
-  const holder=new THREE.Group();holder.rotation.x=-0.45;grip.add(holder); /* baguette un peu vers le bas */
+  /* la poignée de la manette est inclinée de 45° par rapport à son axe de visée : la baguette
+     part vers l'avant, un peu vers le bas, dans le prolongement du poing */
+  const holder=new THREE.Group();holder.rotation.x=-S.tilt;grip.add(holder);
   const wood=new THREE.MeshStandardMaterial({color:0xE9D6B0,roughness:0.5});
   const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.009,STICK,10),wood);
   stick.rotation.x=-Math.PI/2;stick.position.z=-STICK/2+0.05;holder.add(stick);
   const tipM=new THREE.Mesh(new THREE.SphereGeometry(0.012,10,8),wood);tipM.position.z=-STICK+0.05;holder.add(tipM);
-  const st={grip,tip:tipM,src:null,prev:null,prevT:0,armed:new Map(),hand:''};
+  const st={grip,holder,tip:tipM,src:null,prev:null,prevT:0,armed:new Map(),hand:''};
   grip.addEventListener('connected',e=>{st.src=e.data;st.hand=e.data.handedness||'';});
   grip.addEventListener('disconnected',()=>{st.src=null;st.prev=null;});
-  S.sticks.push(st);
+  S.sticks.push(st);addRay(st,i);
 }
 /* Aperçu et tests : une baguette sans manette, déplacée par une liste de positions. */
 function addSimStick(){
@@ -304,6 +331,9 @@ function sticks(t){
   }
 }
 function sticksAt(st,t){
+  /* un instant qui recule (deux horloges d'images, comme dans un simulateur) ferait perdre le coup :
+     on garde des instants croissants */
+  if(st.prev&&t<=st.prevT)t=st.prevT+1;
   {
     const cur=_w.clone();
     if(st.prev){
@@ -314,6 +344,16 @@ function sticksAt(st,t){
         const armed=st.armed.get(p)!==false;
         if(!armed){
           if(cur.y>top+0.025||Math.hypot(cur.x-p.g.position.x,cur.z-p.g.position.z)>P.r*1.6)st.armed.set(p,true);
+          continue;
+        }
+        const near=Math.hypot(st.prev.x-p.g.position.x,st.prev.z-p.g.position.z)<=P.r*1.3;
+        const vyNow=dt>0?(cur.y-st.prev.y)/dt:0;
+        /* coup rapide qui remonte avant de traverser (entre deux images) : la pointe descendait vite,
+           elle remonte maintenant, et son point le plus bas est tout près de la surface */
+        if(near&&st.prev.y>top&&st.prev.y<top+0.03&&(st.vy||0)<MIN_VY*1.5&&vyNow>=0){
+          st.armed.set(p,false);
+          strike(p,S.api.atPerf(st.prevT),-(st.vy)/2.5);
+          pulse(st,0.35-st.vy/6,22);
           continue;
         }
         if(st.prev.y>top&&cur.y<=top){
@@ -329,6 +369,7 @@ function sticksAt(st,t){
         }
       }
     }
+    if(st.prev){const dt=(t-st.prevT)/1000;st.vy=dt>0?(cur.y-st.prev.y)/dt:0;}
     st.prev=cur;st.prevT=t;
   }
 }
@@ -341,11 +382,20 @@ function buttons(t){
     const prev=S.btnPrev.get(st)||[];
     const now=gp.buttons.map(b=>b.pressed);
     const down=i=>now[i]&&!prev[i];
-    if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(t),1);pulse(st,0.8,35);}
+    S.btnPrev.set(st,now);
+    /* un bouton est lu une fois par image : on date le coup de maintenant, pas de l'instant
+       d'affichage prévu de l'image (qui peut être un peu dans le futur) */
+    if(down(0)&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
+    else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
     if(down(4)&&!S.api.gm.on)start();
-    if(down(5)){if(S.api.gm.on)S.api.stop();else exit();}
-    S.btnPrev.set(st,now);
+    /* stick vers le haut ou le bas : l'angle des baguettes, gardé pour la prochaine fois */
+    const ay=gp.axes&&gp.axes.length>3?gp.axes[3]:0;
+    if(Math.abs(ay)>0.6&&t-(S.tiltT||0)>180){S.tiltT=t;setTilt(S.tilt+(ay<0?0.05:-0.05));}
+    /* stick à gauche ou à droite : la batterie descend ou monte de 2 cm (assis, debout) */
+    const ax=gp.axes&&gp.axes.length>2?gp.axes[2]:0;
+    if(Math.abs(ax)>0.6&&Math.abs(ay)<0.4&&t-(S.hT||0)>180){S.hT=t;setHeight(S.hOff+(ax>0?0.02:-0.02));}
+    if(down(5)){if(S.api.gm.on)S.api.stop();else{exit();return;}}
   }
 }
 
@@ -373,12 +423,15 @@ function gemFor(nt,p){
 
 function loop(t,frame){
   if(!S)return;
+  S.frames=(S.frames||0)+1;
+  if(S.lastT)S.dt=(S.dt||16)*0.9+(t-S.lastT)*0.1;S.lastT=t;
   const {api,renderer,scene,camera}=S,gm=api.gm;
   if(!S.placed&&frame){
     const cam=renderer.xr.getCamera(),v=new THREE.Vector3();cam.getWorldPosition(v);
     if(v.lengthSq()>0.01)placeFromHead();
   }
-  if(S.placed){sticks(t);if(frame)buttons(t);}  /* les coups d'abord, puis les notes ratées */
+  if(S.placed){sticks(t);if(frame){rays();buttons(t);}}
+  if(!S)return;  /* les coups d'abord, puis les notes ratées */
   if(gm.on)api.step();          /* le jeu avance au rythme du casque */
   if(S.wasOn&&!gm.on)finished();
   S.wasOn=gm.on;
@@ -470,25 +523,120 @@ function draw(t){
   /* menu, hors partie */
   S.menu.mesh.visible=!on;
   if(!on){
-    const L=[{t:'Poum Tchak · VR',size:6.4,weight:800},{t:api.title(),size:3.8,color:'#97A1B2'}];
-    const R=S.result;
-    if(R&&!R.quit){
-      L.push({t:R.fell?'Boum ! La jauge est vide.':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars),size:R.fell?4:6,color:'#F2BB4A',weight:800});
-      L.push({t:R.p+' % · '+R.pts+' points · série '+R.best,size:4.2});
-    }else if(S.msg)L.push({t:S.msg,size:3.8,color:'#F2BB4A'});
-    else L.push({t:' ',size:2});
-    const nc=S.checked.size;
-    L.push(nc>=S.pads.length?{t:'Tous les pads répondent ✓',size:3.6,color:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',size:3.6,color:'#E8ECF2'});
-    if(S.preview)L.push({t:'Entrée : jouer · Échap : quitter · B F D J K L ou clic : frapper',size:3.8,color:'#C9D1DC'});
-    else{
-      L.push({t:'A ou X : jouer · B ou Y : quitter la VR',size:4.2,color:'#C9D1DC'});
-      L.push({t:'Baguettes : frappe les pads · Gâchette : grosse caisse',size:3.8,color:'#97A1B2'});
-      L.push({t:'Stick enfoncé : replacer la batterie devant toi',size:3.8,color:'#97A1B2'});
-    }
-    L.push({t:api.midiText(),size:3.8,color:'#7BE3A6'});
-    drawPanel(S.menu,L);
+    drawMenu();
   }
 }
+
+/* Le menu dans le casque : chant, nombre de notes, tolérance, tempo, ralentissement, Jouer.
+   On vise avec la manette (un rayon sort de chacune) et on appuie sur la gâchette ; en aperçu, à la souris.
+   Tout est dessiné sur un canvas : chaque bouton garde son rectangle (en cm sur le panneau). */
+const MW=124,MH=100;
+function menuItems(){
+  const {api}=S,o=api.opts(),src=api.sources(),i=Math.max(0,src.findIndex(x=>x.id===o.rh));
+  const cur=src[i]||{label:'—'};
+  const it=[];
+  const row=(y,lab)=>it.push({t:'lab',x:5,y,w:24,h:7,txt:lab});
+  const seg=(y,key,opts,val)=>{const ks=Object.keys(opts),w=(MW-35)/ks.length;ks.forEach((k,j)=>it.push({id:key+':'+k,x:30+j*w,y,w:w-1.5,h:7,txt:opts[k],on:k===val}));};
+  row(20,'Chant');
+  it.push({id:'src-',x:30,y:20,w:8,h:7,txt:'◀'});
+  it.push({t:'val',x:39.5,y:20,w:MW-56,h:7,txt:cur.label+'  ('+(i+1)+'/'+src.length+')'});
+  it.push({id:'src+',x:MW-14,y:20,w:8,h:7,txt:'▶'});
+  row(29,'Notes');seg(29,'lvl',o.levels,o.lvl);
+  row(38,'Tolérance');seg(38,'tol',o.tols,o.tol);
+  row(47,'Tempo');
+  if(o.songBpm)it.push({t:'val',x:30,y:47,w:MW-35,h:7,txt:'Tempo du chant : '+o.songBpm+' BPM'});
+  else{it.push({id:'bpm-',x:30,y:47,w:12,h:7,txt:'− 5'});it.push({t:'val',x:43.5,y:47,w:MW-63,h:7,txt:o.bpm+' BPM'});it.push({id:'bpm+',x:MW-18,y:47,w:12,h:7,txt:'+ 5'});}
+  it.push({id:'slow',x:30,y:56,w:MW-35,h:7,txt:'Ralentir quand ça coince : '+(o.slow?'oui':'non'),on:o.slow});
+  it.push({id:'play',x:30,y:66,w:MW-62,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'quit',x:MW-30,y:66,w:24,h:10,txt:'Quitter'});
+  return it;
+}
+function drawMenu(){
+  const {api}=S,p=S.menu;
+  S.items=menuItems();
+  const hov=[...S.hover.values()].filter(Boolean);
+  const R=S.result,nc=S.checked.size;
+  let status;
+  if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best,c:'#F2BB4A'};
+  else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
+  else status={t:'Vise un bouton avec la manette, gâchette pour choisir',c:'#97A1B2'};
+  const foot=[
+    nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
+    S.preview?{t:'Entrée : jouer · Échap : quitter · B F D J K L ou clic sur un pad : frapper',c:'#C9D1DC'}:
+      {t:'A/X : jouer · B/Y : quitter · gâchette : grosse caisse · stick : haut/bas angle, gauche/droite hauteur, enfoncé replacer',c:'#C9D1DC'},
+    {t:api.midiText(),c:'#7BE3A6'}
+  ];
+  const key=JSON.stringify([S.items.map(x=>[x.txt,x.on]),hov,status,foot]);
+  if(key===p.key)return;p.key=key;
+  const {cx,cv}=p,k=cv.width/MW;
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.fillStyle='rgba(11,14,20,0.92)';cx.beginPath();
+  if(cx.roundRect)cx.roundRect(2,2,cv.width-4,cv.height-4,40);else cx.rect(2,2,cv.width-4,cv.height-4);
+  cx.fill();cx.strokeStyle='#39414F';cx.lineWidth=3;cx.stroke();
+  cx.textAlign='center';cx.textBaseline='middle';
+  const text=(t,x,y,size,color,weight,maxW)=>{cx.font=(weight||600)+' '+size*k+'px '+FONT;cx.fillStyle=color;cx.fillText(t,x*k,y*k,maxW?maxW*k:undefined);};
+  text('Poum Tchak · VR',MW/2,7,5.6,'#E8ECF2',800);
+  text(status.t,MW/2,14,3.2,status.c,700,MW-8);
+  for(const b of S.items){
+    const cxm=(b.x+b.w/2),cym=b.y+b.h/2;
+    if(b.t==='lab'){cx.textAlign='left';text(b.txt,b.x,cym,3.4,'#97A1B2',700);cx.textAlign='center';continue;}
+    if(b.t==='val'){text(b.txt,cxm,cym,3.3,'#E8ECF2',700,b.w-1);continue;}
+    const h=hov.includes(b.id);
+    cx.fillStyle=b.big?(h?'#9BF0BF':'#7BE3A6'):b.on?'#2F4BD0':h?'#39414F':'#1D232E';
+    cx.beginPath();if(cx.roundRect)cx.roundRect(b.x*k,b.y*k,b.w*k,b.h*k,1.6*k);else cx.rect(b.x*k,b.y*k,b.w*k,b.h*k);cx.fill();
+    cx.strokeStyle=h?'#FFFFFF':b.on?'#8D9CFF':'#39414F';cx.lineWidth=h?4:2;cx.stroke();
+    text(b.txt,cxm,cym+0.2,b.big?4.6:3.2,b.big?'#0B0E14':'#E8ECF2',b.big?800:700,b.w-1);
+  }
+  foot.forEach((f,j)=>text(f.t,MW/2,82+j*5.5,2.9,f.c,600,MW-6));
+  p.tex.needsUpdate=true;
+}
+/* Le bouton du menu sous un rayon (origine, direction dans le monde), ou null. */
+const _ray=new THREE.Raycaster();
+function menuAt(origin,dir){
+  if(!S.menu.mesh.visible)return null;
+  _ray.set(origin,dir);
+  const h=_ray.intersectObject(S.menu.mesh,false)[0];
+  if(!h||!h.uv)return {hit:null};
+  const x=h.uv.x*MW,y=(1-h.uv.y)*MH;
+  const b=S.items.find(b=>b.id&&x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);
+  return {hit:h,id:b?b.id:null};
+}
+function menuDo(id){
+  const {api}=S,o=api.opts();
+  if(!id||S.busy)return;
+  S.result=null;S.msg='';
+  if(id==='play'){start();return;}
+  if(id==='quit'){exit();return;}
+  if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
+  else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));
+  else if(id==='slow')api.set('slow',!o.slow);
+  else{const [k,v]=id.split(':');api.set(k,v);}
+}
+/* Les rayons des manettes, visibles quand le menu est là. */
+function addRay(st,i){
+  const ctl=S.renderer.xr.getController(i);S.scene.add(ctl);
+  const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]);
+  const line=new THREE.Line(g,new THREE.LineBasicMaterial({color:0x7BE3A6,transparent:true,opacity:0.8}));
+  line.scale.z=2.5;ctl.add(line);
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(0.008,8,6),new THREE.MeshBasicMaterial({color:0xffffff}));S.scene.add(dot);
+  st.ray=ctl;st.line=line;st.dot=dot;
+}
+const _o=new THREE.Vector3(),_d=new THREE.Vector3(),_q=new THREE.Quaternion();
+function rays(){
+  for(const st of S.sticks){
+    if(!st.ray)continue;
+    const show=S.menu.mesh.visible&&!!st.src;
+    st.line.visible=show;st.dot.visible=false;
+    if(!show){S.hover.delete(st);continue;}
+    st.ray.getWorldPosition(_o);st.ray.getWorldQuaternion(_q);_d.set(0,0,-1).applyQuaternion(_q);
+    const m=menuAt(_o,_d);
+    S.hover.set(st,m&&m.id||null);
+    if(m&&m.hit){st.line.scale.z=m.hit.distance;st.dot.position.copy(m.hit.point);st.dot.visible=true;}else st.line.scale.z=2.5;
+  }
+}
+/* Tests : un bouton du menu, comme si on l'avait visé. */
+export function menuPress(id){if(S&&S.menu.mesh.visible)menuDo(id);}
+export function menuIds(){return S?S.items.filter(b=>b.id).map(b=>b.id):[];}
 
 /* Tests automatiques et aperçu : un coup de baguette simulé sur le pad d'un couloir,
    au-dessus puis en dessous de sa surface, deux images de suite. */
@@ -503,5 +651,11 @@ export function simStrike(lane){
 }
 export function debug(){
   if(!S)return null;
-  return {checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id)};
+  const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
+  return {frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+S.kit.rotation.y.toFixed(3),kitPos:w(S.kit.position),
+    padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
+    tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
+    checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id)};
 }
+/* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
+export function frames(){return S?S.frames||0:0;}
