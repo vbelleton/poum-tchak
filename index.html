@@ -764,6 +764,8 @@ body[data-mnview="orbites"] .mn-lane{display:none}
   #gmGameTxt{display:block}
 }
 .gm-go{width:100%;min-height:54px;font-size:17px}
+#gmVR{margin-top:8px}
+#gmVRHint{margin:6px 0 0}
 .gm-resume{width:100%;min-height:50px;font-size:16px;margin-bottom:6px}
 .gm-resume[hidden]{display:none}
 .gm-how{width:100%;margin-bottom:12px}
@@ -890,6 +892,8 @@ body.gm-live{overflow:hidden}
       <p class="gm-sum" id="gmSum"></p>
       <button type="button" class="btn gm-resume" id="gmResume" hidden></button>
       <button type="button" class="btn gm-go" id="gmGo">Jouer</button>
+      <button type="button" class="btn ghost gm-go" id="gmVR" hidden>Jouer en VR</button>
+      <p class="hint" id="gmVRHint" hidden>Dans un casque (Meta Quest) : une batterie en 3D, les manettes sont tes baguettes et la gâchette fait la grosse caisse. Avec « Batterie MIDI » allumé, ta vraie batterie compte aussi, pédale comprise. Le chant ou le rythme choisi ici, au nombre de notes choisi.</p>
       <p class="msg" id="gmMsg" role="status"></p>
     </div>
   </section>
@@ -1748,7 +1752,9 @@ const GM_LANES={
   couloirs:[{ids:['poum']},{ids:['tchak']},{ids:['tss','tchaa']},{ids:['doum','toum','psch']}],
   rebonds:[{ids:['poum']},{ids:['tchak']}],
   orbite:[{ids:[]}],
-  ecoute:[{ids:['poum']},{ids:['tchak']}]
+  ecoute:[{ids:['poum']},{ids:['tchak']}],
+  /* réalité virtuelle : un pad par fût, comme sur une vraie batterie (grosse caisse à la gâchette ou à la pédale MIDI) */
+  vr:[{ids:['poum']},{ids:['tchak']},{ids:['tss','tchaa']},{ids:['doum']},{ids:['toum']},{ids:['psch']}]
 };
 const GM_LEVELS={facile:'Peu',moyen:'Moyen',difficile:'Beaucoup'};
 const GM_LV_TXT={facile:'peu de notes',moyen:'notes moyennes',difficile:'beaucoup de notes'};
@@ -1757,6 +1763,8 @@ function gmKeeps(game,lvl,lane,step,m){
   if(step%sub)return false;
   if(game==='couloirs'&&lvl==='facile'&&lane>1)return false;
   if(game==='couloirs'&&lvl==='moyen'&&lane>2)return false;
+  if(game==='vr'&&lvl==='facile'&&lane>1)return false;
+  if(game==='vr'&&lvl==='moyen'&&lane>2)return false;
   return true;
 }
 function gmChart(bars,meterKey,bpm,swing,game,lvl,nBars){
@@ -3092,7 +3100,7 @@ function midiMsg(e){
   if(!state.playing)midiTempo(t);
   judge(id,t-midiLatency());
 }
-function midiRoute(e){if(cb.on){cbMidi(e);return;}if(gm.on){if(gm.midi)gmMidi(e);return;}if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
+function midiRoute(e){if(cb.on){cbMidi(e);return;}if(gm.vr&&!gm.on&&vrMod){const [st,nt,v]=e.data;if((st&0xf0)===0x90&&v&&GM_DRUM[nt])vrMod.midiIdle(GM_DRUM[nt]);return;}if(gm.on){if(gm.midi)gmMidi(e);return;}if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
 function midiInputs(){return midiAcc?[...midiAcc.inputs.values()]:[];}
 function midiBind(){
   const ins=midiInputs();
@@ -4318,9 +4326,11 @@ const GM_INFO={
   couloirs:{name:'Couloirs',txt:'Des notes descendent dans quatre colonnes : tape chacune quand elle touche la ligne.'},
   rebonds:{name:'Rebonds',txt:'Une balle saute de tuile en tuile : glisse le doigt, incline le téléphone ou frappe. Jauge d\'erreurs vide : elle tombe.'},
   orbite:{name:'Orbite',txt:'Un point tourne, un tour par mesure. Tape n\'importe où sur l\'écran quand il arrive sur la lune entourée.'},
-  ecoute:{name:'Écoute puis rejoue',txt:'Écoute un petit motif deux fois, puis rejoue-le de mémoire. Le bilan montre ce que tu as joué.'}
+  ecoute:{name:'Écoute puis rejoue',txt:'Écoute un petit motif deux fois, puis rejoue-le de mémoire. Le bilan montre ce que tu as joué.'},
+  /* pas dans la liste des jeux : on y entre par « Jouer en VR » */
+  vr:{name:'Batterie VR',txt:'Une batterie en 3D : les notes arrivent vers chaque pad, frappe-les avec les baguettes au bon moment.'}
 };
-const GM_KEYS={couloirs:{d:0,f:1,j:2,k:3},rebonds:{f:0,j:1,arrowleft:0,arrowright:1},orbite:{' ':0,enter:0,f:0,j:0},ecoute:{f:0,j:1,arrowleft:0,arrowright:1}};
+const GM_KEYS={couloirs:{d:0,f:1,j:2,k:3},rebonds:{f:0,j:1,arrowleft:0,arrowright:1},orbite:{' ':0,enter:0,f:0,j:0},ecoute:{f:0,j:1,arrowleft:0,arrowright:1},vr:{b:0,f:1,d:2,j:3,k:4,l:5}};
 const GM_CLICK={coupe:'Se coupe',toujours:'Toujours là'};
 const GM_CLICK_HINT={coupe:'Dès la 4e manche, le clic se tait sur la fin du second passage, puis sur tout ce passage à partir de la 7e.',toujours:'Le clic reste sur toutes les mesures : pour apprendre les motifs.'};
 /* Écoute puis rejoue : trois aides, choisies au premier lancement puis gardées. */
@@ -4385,7 +4395,7 @@ const GM_CTL_HINT={glisser:'Glisse le doigt pour amener la balle sur la tuile. L
 const gm={on:false,midi:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,ctl:'glisser',tol:'normal',click:'coupe',echoSong:'toujours',eLen:2,drop:null,hhOn:false,hh:[],hhNext:0,hhPtr:null,hhSc:null,slow:false,rate:1,slowRate:1,minRate:1,g0:0,c0:0,recent:[],ffOn:false,ffTo:0,ffUi:'',startCtx:0,srcGain:null,from:0,firstT:0,sched:[],clipI:0,clipSrcs:[],ckNext:0,ckFrom:null,loop:null,taps:[],sx:0,vx:0,tilt0:null,tiltSeen:false,tiltOk:false,
   songs:[],song:null,src:null,curBpm:90,count:[],busy:false,chart:null,t0:0,bi:0,cli:0,timer:0,raf:0,sc:null,gauge:1,flash:[],bursts:[],pops:[],nextMiss:0,ended:false,w:0,h:0,dpr:1,col:{}};
 try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
-  if(GM_INFO[o.game])gm.game=o.game;
+  if(GM_INFO[o.game]&&o.game!=='vr')gm.game=o.game;
   if(typeof o.rh==='string')gm.rh=o.rh;
   if(GM_LEVELS[o.lvl])gm.lvl=o.lvl;
   if(GM_CTL[o.ctl])gm.ctl=o.ctl;
@@ -4397,7 +4407,7 @@ try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
   if(GM_ECHO_SONG[o.echoSong])gm.echoSong=o.echoSong;
   if(+o.bpm>=40&&+o.bpm<=220)gm.bpm=Math.round(+o.bpm);
 }}catch(e){}
-function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl,tol:gm.tol,click:gm.click,slow:gm.slow,echoSong:gm.echoSong,hhOn:gm.hhOn,eLen:gm.eLen}));}catch(e){}}
+function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.vr?gm.vrPrev:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl,tol:gm.tol,click:gm.click,slow:gm.slow,echoSong:gm.echoSong,hhOn:gm.hhOn,eLen:gm.eLen}));}catch(e){}}
 /* Reprise : par jeu, rythme ou chant, et nombre de notes. Le score d'alors est gardé avec le point de
    contrôle, et la mesure compte en numéro plutôt qu'en secondes pour survivre à un changement de tempo. */
 const GM_CK_KEY='poumtchak.jeux.reprises';
@@ -4492,7 +4502,7 @@ function gmArt(game){
     '<path d="M59 53q-8-26-11-20" fill="none" stroke="#fff" stroke-dasharray="2 3"/><circle cx="59" cy="42" r="6" fill="#fff"/></svg>';
 }
 function gmRender(){
-  $('#gmGames').innerHTML=Object.entries(GM_INFO).map(([id,g])=>{
+  $('#gmGames').innerHTML=Object.entries(GM_INFO).filter(([id])=>id!=='vr').map(([id,g])=>{
     const best=pr.s.reduce((b,x)=>x.g==='jeux'&&x.game===id&&!x.lent&&x.score>b?x.score:b,0);
     return '<button type="button" class="gm-game" data-v="'+id+'" aria-pressed="'+(gm.game===id)+'">'+gmArt(id)+'<b>'+g.name+'</b><span>'+g.txt+'</span><small>'+(best?'Record : '+best:'Pas encore joué')+'</small></button>';
   }).join('');
@@ -5209,7 +5219,8 @@ document.addEventListener('keydown',e=>{
   gmHit(lane,gmEventAt(e),true);
 },true);
 $('#gmQuit').addEventListener('click',gmHalt);
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&gm.on)gmHalt('masquee');});
+/* dans le casque, la page peut passer pour cachée : la partie continue */
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&gm.on&&!gm.vr)gmHalt('masquee');});
 function gmMidi(e){
   const [st,note,vel]=e.data;
   if((st&0xf0)!==0x90||!vel)return;
@@ -5232,9 +5243,8 @@ function gmStallCheck(){
   if(idle>600&&ctx.state!=='running'&&(!gm.stTry||P-gm.stTry>1000)){gm.stTry=P;ctx.resume().catch(()=>{});}
   return false;
 }
-function gmFrame(){
-  if(!gm.on)return;
-  if(gmStallCheck())return;
+/* La partie avance : notes ratées, reprises, vitesse. Appelée à chaque image, par l'écran ou par le casque. */
+function gmUpdate(){
   const now=gmNow();
   if(gm.loop&&!gm.ended)gmLoopTick(now);
   gmDropTick();
@@ -5244,6 +5254,20 @@ function gmFrame(){
   if(!gm.loop&&!gm.ended)gmCkCross(now);
   const prog=gm.loop?((now-gm.chart.A)/gm.chart.L%1+1)%1:now/gm.chart.dur;
   $('#gmProg').style.width=Math.max(0,Math.min(100,prog*100))+'%';
+  return now;
+}
+/* En VR, c'est le casque qui fait avancer la partie, à sa cadence d'images. */
+function gmVrStep(){
+  if(!gm.on)return;
+  gmStallCheck();gmTick();
+  const now=gmUpdate();
+  if(gm.on&&!gm.ended&&now>gm.chart.dur+0.6){gm.ended=true;gmFinish(false);}
+}
+function gmFrame(){
+  if(!gm.on)return;
+  if(gmStallCheck())return;
+  if(gm.vr){gm.raf=requestAnimationFrame(gmFrame);return;}
+  const now=gmUpdate();
   const cx=$('#gmCv').getContext('2d');
   cx.setTransform(gm.dpr,0,0,gm.dpr,0,0);
   ({couloirs:gmDrawLanes,rebonds:gmDrawHops,orbite:gmDrawOrbit,ecoute:gmDrawEcho})[gm.game](cx,now);
@@ -5655,9 +5679,76 @@ function gmFinish(fell){
   $('#gmResX').addEventListener('click',sheetClose);
 }
 gmRender();gmLoadSongs().then(gmWhySay);
+/* Réalité virtuelle : « Jouer en VR » ouvre la partie dans un casque (Meta Quest…), avec le jeu « vr » :
+   un pad par fût, les manettes comme baguettes, la gâchette pour la grosse caisse, et la batterie MIDI si
+   elle est allumée. Le dessin 3D et les manettes sont dans vr/vr.js, chargé seulement si le casque est là.
+   ?vr=apercu montre la scène sur un écran d'ordinateur, pour essayer sans casque. */
+gm.vr=false;gm.vrPrev='couloirs';
+let vrMod=null;
+const vrPreview=/[?&]vr=apercu\b/.test(location.search);
+const vrApi={
+  gm,
+  word:id=>singleWord(dict,id),
+  now:()=>gmNow(),
+  /* l'instant d'un geste, donné sur l'horloge de la page (ms), ramené sur l'horloge de la partie */
+  atPerf(ms){
+    let T=ctx.currentTime-(performance.now()-ms)/1000;
+    try{const o=ctx.getOutputTimestamp&&ctx.getOutputTimestamp();if(o&&o.performanceTime)T=o.contextTime+(ms-o.performanceTime)/1000;}catch(e){}
+    return gmToGame(T-latency());
+  },
+  hit:(lane,at)=>gmHit(lane,at,true),
+  play:(id,v)=>{if(ensureAudio())voice(id,ctx.currentTime,v||1);},
+  step:()=>gmVrStep(),
+  stop:()=>gmHalt(),
+  launch:()=>vrLaunch(),
+  pct:()=>gmPct(gm.sc),
+  stars:p=>gmStars(p),
+  noFail:()=>gmNoFail(),
+  title(){const s=gmCurSong(),p=PATTERNS.find(x=>x.id===gm.rh);return [s?s.title:gm.rh==='mine'?'Mon rythme':p?p.label:'',GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');},
+  midiText(){
+    if(!gm.midi)return 'Batterie MIDI : coupée (à allumer dans Jeux, avant d\'entrer)';
+    const ins=midiInputs();return ins.length?'Batterie MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓':'Batterie MIDI : allumée, aucune batterie branchée';
+  },
+  setVR(on){
+    if(on){if(!gm.vr){gm.vrPrev=gm.game;gm.vr=true;}gm.game='vr';}
+    else if(gm.vr){gm.vr=false;gm.game=gm.vrPrev;gmRender();}
+  }
+};
+/* Une partie dans le casque : pas d'explication ni de calibration à l'écran (personne ne le voit). */
+async function vrLaunch(){
+  if(gm.on||gm.busy)return '';
+  sheetClose();
+  if(!ensureAudio())return 'Le son n\'est pas disponible.';
+  gm.game='vr';
+  const song=gmCurSong();
+  if(!song&&gm.rh==='mine'&&!gmMyGroove())return 'Écris d\'abord un rythme dans la rubrique Rythme.';
+  $('#gmMsg').textContent='';
+  if(song){
+    gm.busy=true;
+    try{const buffer=await gmDecode(song);gmStart(song,buffer,{});}
+    catch(e){return 'Impossible de charger ce chant.';}
+    finally{gm.busy=false;}
+  }else gmStart(null,null,{});
+  return gm.on?'':($('#gmMsg').textContent||'Rien à jouer à ce niveau : essaie « Beaucoup ».');
+}
+function vrShow(){$('#gmVR').hidden=false;$('#gmVRHint').hidden=false;}
+async function vrLoad(){if(!vrMod)vrMod=await import('./vr/vr.js');return vrMod;}
+if(vrPreview){vrShow();$('#gmVR').textContent='Aperçu VR (sans casque)';}
+else if(navigator.xr&&navigator.xr.isSessionSupported){
+  navigator.xr.isSessionSupported('immersive-vr').then(ok=>{if(ok){vrShow();vrLoad().catch(()=>{});}}).catch(()=>{});
+}
+$('#gmVR').addEventListener('click',async()=>{
+  const say=t=>{$('#gmMsg').textContent=t;};
+  ensureAudio();
+  try{
+    /* le module est déjà là sur un casque : la session part dans le geste, sans attente */
+    const m=vrMod||await vrLoad();
+    await m.enter(vrApi,{preview:vrPreview});
+  }catch(e){say('Impossible d\'entrer en VR'+(e&&e.message?' : '+e.message:'')+'.');}
+});
 /* Tests automatiques : lire la partie en cours. */
 if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
-  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:(figé)=>{if(figé)ctx.resume=()=>Promise.resolve();return ctx.suspend();},charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop};
+  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:(figé)=>{if(figé)ctx.resume=()=>Promise.resolve();return ctx.suspend();},charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop,vr:()=>vrMod,vrApi};
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
    Croches main droite. Départ à 50 BPM, +8 à chaque mesure tant que tu suis.
    Deux mesures de suite sous 85 % : c'est fini. Ta forme = le tempo le plus rapide tenu à 85 %. */
