@@ -79,13 +79,17 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   coup), la gâchette fait la grosse caisse. Avec **Batterie MIDI** allumé avant d'entrer, la
   vraie batterie compte aussi, pédale comprise (si le navigateur du casque gère le MIDI). Avant
   de jouer, on **vérifie ses pads** : chaque pad frappé reçoit sa coche. Un **menu dans le
-  casque** (on vise avec la manette, gâchette pour choisir) règle le chant ou le rythme, le
-  nombre de notes, la tolérance, le tempo et le ralentissement, gardés pour la page. A ou X :
-  jouer ; B ou Y : arrêter, puis quitter ; stick enfoncé : replacer la batterie devant soi ;
-  stick haut/bas : angle des baguettes ; gauche/droite : hauteur de la batterie (gardés). Les
+  casque** (on vise avec la manette et gâchette, ou stick pour se déplacer et A/X pour valider)
+  règle le chant ou le rythme, le nombre de notes, la tolérance, le tempo, la grosse caisse, le
+  ralentissement, l'angle des baguettes et la hauteur de la batterie, tous gardés. « Masquer »
+  le réduit à un bouton pour jouer librement. **Pause** : B ou Y en partie (le son et les notes
+  s'arrêtent), puis Reprendre, Recommencer ou Arrêter ; casque retiré : pause automatique.
+  **Grosse caisse sans batterie** : à la gâchette, automatique (elle se joue toute seule, on
+  fait les mains) ou « Hoche la tête » (un petit coup de tête vers le bas). Stick enfoncé :
+  replacer la batterie devant soi ; hors partie, B ou Y quitte la VR. Les
   records VR sont à part. Peu : grosse caisse et caisse claire ; Moyen : + charley ; Beaucoup :
   tout. Sans casque : `?vr=apercu` à la fin de l'adresse montre la scène sur l'écran (touches
-  B F D J K L ou clic) ; `?vr=simulateur` simule un Meta Quest 2 complet (IWER, de Meta, chargé
+  B F D J K L ou clic, flèches et Entrée dans le menu, P ou Échap : pause) ; `?vr=simulateur` simule un Meta Quest 2 complet (IWER, de Meta, chargé
   depuis le CDN), avec ses manettes qu'on déplace et ses boutons.
 - **Mains** : indépendance des mains. Un tableau à deux colonnes (main gauche,
   main droite) : 1, 2, 3 ou 4 coups par temps, ou 1 → ¼ qui change à chaque
