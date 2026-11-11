@@ -2,7 +2,7 @@
    Les fichiers de l'appli sont gardés dès la première visite ; les polices et
    le reste sont gardés au fil des chargements. Une nouvelle version remplace
    l'ancienne au lancement suivant. */
-const V = 'poum-tchak-v3';
+const V = 'poum-tchak-v4';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
@@ -41,6 +41,22 @@ self.addEventListener('fetch', e => {
       } catch (err) {
         return (await cache.match('./index.html')) || (await cache.match('./')) ||
           new Response('Hors ligne.', { status: 504, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      }
+    })());
+    return;
+  }
+
+  // Les scripts de l'appli (le mode VR et three.js) vont avec la page : le réseau d'abord, comme elle,
+  // sinon une nouvelle page tournerait avec l'ancien script gardé en cache. Hors ligne : la copie gardée.
+  if (url.origin === location.origin && /\.(m?js)$/.test(url.pathname)) {
+    e.respondWith((async () => {
+      const cache = await caches.open(V);
+      try {
+        const net = await fetch(req, { cache: 'no-cache' });
+        if (net && net.ok) cache.put(req, net.clone());
+        return net;
+      } catch (err) {
+        return (await cache.match(req)) || new Response('', { status: 504 });
       }
     })());
     return;
