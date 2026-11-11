@@ -358,6 +358,7 @@ function cleanup(){
   s.renderer.setAnimationLoop(null);
   if(s.api.gm.on)s.api.stop();
   s.api.setVR(false);
+  if(s.afterExit)setTimeout(s.afterExit,0);
   if(s.keyH)document.removeEventListener('keydown',s.keyH);
   if(s.resizeH)removeEventListener('resize',s.resizeH);
   if(s.preview&&s.canvas.parentNode)s.canvas.parentNode.removeChild(s.canvas);
@@ -837,7 +838,8 @@ function menuItems(mode){
   row(59,'Ralentir');
   it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
   row(67,'Batterie');
-  it.push({id:'kitmenu',x:30,y:67,w:MW-35,h:H,txt:'Sons, style, décor, réglages ›'});
+  it.push({id:'kitmenu',x:30,y:67,w:55,h:H,txt:'Sons, style, décor ›'});
+  it.push({id:'import',x:87,y:67,w:MW-92,h:H,txt:'+ Mes chants'});
   it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
   it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
@@ -927,6 +929,7 @@ function menuDo(id){
   S.result=null;S.msg='';
   if(id==='play'){start();return;}
   if(id==='mini'){S.mini=true;return;}
+  if(id==='import'){S.afterExit=()=>s_importPrompt(api);exit();return;}
   if(id==='kitmenu'){S.sub=true;S.focus='back';return;}
   if(id==='back'){S.sub=false;S.focus='kitmenu';return;}
   if(id==='quit'){exit();return;}
@@ -944,6 +947,8 @@ function menuDo(id){
     else{api.set(k,v);if(k==='sound')api.play('tchak',1);}
   }
 }
+/* Choisir un fichier est impossible dans le casque : on revient à la page, sur le bouton d'import. */
+function s_importPrompt(api){if(api.importPrompt)api.importPrompt();}
 /* Pause : le son s'arrête et la partie se fige (l'horloge du son ne bouge plus). */
 function pause(on){
   if(on===S.paused)return;
