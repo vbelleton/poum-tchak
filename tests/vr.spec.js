@@ -210,8 +210,11 @@ test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', asyn
   // jouer couché : la scène s'incline autour de la tête, les pads passent au-dessus d'elle, et un coup compte toujours
   const y0 = (await vr()).padsWorld[1][1];
   expect(y0).toBeLessThan(1.42);
+  // le menu est accroché au monde : l'incliner ou le tourner ne le déplace pas (il suit seulement quand on se déplace)
+  const menu0 = (await vr()).menuPos;
   await page.evaluate(() => window.__gm.vr().simPitch(90));
   expect((await vr()).pitch).toBeCloseTo(Math.PI / 2, 2);
+  expect((await vr()).menuPos).toEqual(menu0);
   expect((await vr()).padsWorld[1][1]).toBeGreaterThan(1.42);
   await page.evaluate(() => window.__gm.vr().simStrike(4));
   await expect.poll(async () => (await vr()).checked).toContain(4);
@@ -230,6 +233,15 @@ test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', asyn
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('roll-'); });
   expect(+(await page.evaluate(() => localStorage.getItem('poumtchak.vr.roulis')))).toBeCloseTo((75 * Math.PI) / 180, 2);
   await page.evaluate(() => window.__gm.vr().simRoll(0));
+  expect((await vr()).menuPos).toEqual(menu0);
+  // on peut placer le menu ailleurs : il y reste, même quand on se déplace il glisse avec le monde
+  await page.evaluate(() => window.__gm.vr().simMenuMove(0.5, 0.1, 0));
+  const m1 = (await vr()).menuPos;
+  expect(m1[0]).toBeCloseTo(menu0[0] + 0.5, 2);
+  expect((await vr()).menuMoved).toBe(true);
+  await page.evaluate(() => window.__gm.vr().simMove(0, 0.3));
+  const m2 = (await vr()).menuPos;
+  expect(Math.hypot(m2[0] - m1[0], m2[2] - m1[2])).toBeCloseTo(0.3, 2); // il suit le monde (la scène avait déjà tourné)
 
   // remettre les réglages
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('sound:synth'); v.menuPress('style:pads'); v.menuPress('lay:standard'); v.menuPress('decor:chapelle'); });

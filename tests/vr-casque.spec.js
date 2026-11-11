@@ -122,6 +122,19 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   await expect.poll(() => page.evaluate(() => +localStorage.getItem('poumtchak.vr.roulis'))).toBeGreaterThan(0.1);
   expect((await vr(page)).moved).toBe(parti);
   await page.evaluate(() => window.__gm.vr().simRoll(0));
+  // poignée droite : on saisit le menu et on l'emmène avec la manette ; il y reste quand on la lâche
+  const avantM = (await vr(page)).menuPos;
+  await page.evaluate(() => { const c = window.__dev.controllers.right.position; window.__dev.controllers.right.position.set(c.x, c.y, c.z); window.__dev.controllers.right.updateButtonValue('squeeze', 1); });
+  await page.waitForTimeout(200);
+  await page.evaluate(() => { const c = window.__dev.controllers.right.position; window.__dev.controllers.right.position.set(c.x + 0.4, c.y + 0.2, c.z); });
+  await expect.poll(async () => (await vr(page)).menuPos[0]).toBeGreaterThan(avantM[0] + 0.25);
+  await page.evaluate(() => window.__dev.controllers.right.updateButtonValue('squeeze', 0));
+  await page.waitForTimeout(150);
+  const posM = (await vr(page)).menuPos;
+  await page.evaluate(() => { const c = window.__dev.controllers.right.position; window.__dev.controllers.right.position.set(c.x - 0.4, c.y, c.z); });
+  await page.waitForTimeout(200);
+  expect((await vr(page)).menuPos).toEqual(posM);
+  expect((await vr(page)).menuMoved).toBe(true);
   await page.evaluate(() => window.__gm.vr().menuPress('open'));
   // le focus revient sur Jouer
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('mini'); v.menuPress('open'); });

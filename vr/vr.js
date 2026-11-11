@@ -250,6 +250,7 @@ function moveBy(dx,dz){
   }
   const wx=fx*dz-fz*dx,wz=fz*dz+fx*dx; /* dz : vers l'avant, dx : vers la droite */
   if(S.base){S.base.x-=wx;S.base.z-=wz;}
+  S.menu.mesh.position.x-=wx;S.menu.mesh.position.z-=wz;
   if(S.head){S.head.x-=wx;S.head.z-=wz;}
   pose();
   S.moved=(S.moved||0)+Math.hypot(wx,wz);
@@ -259,6 +260,7 @@ function turnBy(a){
   if(S.renderer.xr.isPresenting)S.renderer.xr.getCamera().getWorldPosition(c);else c.copy(S.camera.position);
   const rot=v=>{const x=v.x-c.x,z=v.z-c.z,co=Math.cos(a),si=Math.sin(a);v.x=c.x+x*co+z*si;v.z=c.z-x*si+z*co;};
   if(S.base){rot(S.base);S.base.yaw+=a;}if(S.head)rot(S.head);
+  rot(S.menu.mesh.position);S.menu.mesh.rotation.y+=a;
   pose();S.turns=(S.turns||0)+1;
 }
 function setTilt(v){
@@ -455,7 +457,7 @@ function buildWorld(){
   for(let i=0;i<10;i++){const m=new THREE.Mesh(popGeo,new THREE.MeshBasicMaterial({map:popTexture('Bien','ok'),transparent:true,depthWrite:false}));m.visible=false;m.renderOrder=5;kit.add(m);S.pops.push(m);}
   /* score au-dessus de la batterie, menu devant */
   S.hud=panel(0.9,0.2);kit.add(S.hud.mesh);
-  S.menu=panel(MW/100,MH/100,700);kit.add(S.menu.mesh);S.items=[];S.hover=new Map();
+  S.menu=panel(MW/100,MH/100,700);S.ui=new THREE.Group();scene.add(S.ui);S.ui.add(S.menu.mesh);S.menuMoved=false;S.items=[];S.hover=new Map();
 }
 
 /* Pose la batterie à la hauteur et dans la direction du joueur. head : position de la tête. */
@@ -482,8 +484,27 @@ function place(head,yaw,fixedFloor){
     p.lane.position.y-=P.kick?0:0.02;
   }
   S.hud.mesh.position.set(0,S.padH+0.78,-1.45);
-  S.menu.mesh.position.set(0,S.padH+0.72,-1.25);S.menu.mesh.rotation.x=-0.12;
+  if(!S.menuMoved)menuDefault();
   S.placed=true;
+}
+/* Le menu est accroché au monde, pas à la batterie : incliner ou tourner la scène ne le déplace pas.
+   Par défaut il se pose devant la tête ; on peut aussi le saisir (poignée droite) et le placer où l'on veut. */
+function menuDefault(){
+  if(!S.base||!S.head)return;
+  const yaw=S.base.yaw,d=menuMode()==='pause'?0.9:1.25,m=S.menu.mesh;
+  m.position.set(S.head.x-Math.sin(yaw)*d,S.floorY+S.padH+0.72,S.head.z-Math.cos(yaw)*d);
+  m.rotation.set(-0.12,yaw,0,'YXZ');
+}
+const _gm=new THREE.Matrix4(),_gr=new THREE.Matrix4(),_gs=new THREE.Vector3();
+function menuGrab(st){
+  const held=!!st.src&&st.src.gamepad&&st.src.gamepad.buttons[1]&&st.src.gamepad.buttons[1].pressed;
+  const m=S.menu.mesh;
+  if(held&&S.menu.mesh.visible){
+    st.ray.updateMatrixWorld(true);
+    if(!st.grab){m.updateMatrixWorld(true);st.grab=st.ray.matrixWorld.clone().invert().multiply(m.matrixWorld);}
+    _gm.copy(st.ray.matrixWorld).multiply(st.grab);
+    _gm.decompose(m.position,m.quaternion,_gs);S.menuMoved=true;
+  }else if(st.grab)st.grab=null;
 }
 function placeFromHead(){
   const cam=S.renderer.xr.getCamera(),pos=new THREE.Vector3(),q=new THREE.Quaternion();
@@ -491,6 +512,7 @@ function placeFromHead(){
   const f=new THREE.Vector3(0,0,-1).applyQuaternion(q);f.y=0;
   if(f.lengthSq()<1e-4)f.set(0,0,-1);
   /* la batterie recule un peu : la tête est au-dessus du tabouret, pas au-dessus des pads */
+  S.menuMoved=false;
   place(pos,Math.atan2(-f.x,-f.z));
 }
 
@@ -621,6 +643,7 @@ function buttons(t){
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
     else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
+    if(st.hand==='right')menuGrab(st);
     if(down(4)){if(mode){menuDo(S.focus);if(!S)return;}}
     const ax=gp.axes&&gp.axes.length>2?gp.axes[2]:0,ay=gp.axes&&gp.axes.length>3?gp.axes[3]:0;
     /* stick gauche : se déplacer, à la vitesse de la marche */
@@ -819,7 +842,7 @@ function draw(t){
   if(mode){
     drawMenu(mode);
     /* en pause, le menu vient devant les couloirs ; masqué, il descend au bas du champ */
-    S.menu.mesh.position.z=mode==='pause'?-0.9:-1.25;
+    if(S.menuMode!==mode){S.menuMode=mode;if(!S.menuMoved)menuDefault();}
   }
 }
 
@@ -1021,6 +1044,7 @@ function rays(){
 }
 /* Tests : un bouton du menu, comme si on l'avait visé. */
 export function simMove(dx,dz){if(S)moveBy(dx,dz);}
+export function simMenuMove(dx,dy,dz){if(S){S.menu.mesh.position.x+=dx;S.menu.mesh.position.y+=dy;S.menu.mesh.position.z+=dz;S.menuMoved=true;}}
 export function simRoll(deg){if(S)setRoll(deg*Math.PI/180);}
 export function simPitch(deg){if(S)setPitch(deg*Math.PI/180);}
 export function simTurn(dir){if(S)turnBy(dir>0?-TURN:TURN);}
@@ -1041,7 +1065,7 @@ export function simStrike(lane){
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
