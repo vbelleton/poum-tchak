@@ -90,13 +90,21 @@ test('aperçu VR : pause, grosse caisse automatique, menu masqué, navigation au
 
   // flèches et Entrée : du bouton Jouer, on remonte sur « Grosse caisse » et on choisit « Automatique »
   expect((await etat()).focus).toBe('play');
-  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowUp');
   expect((await etat()).focus).toMatch(/^kick:/);
   await page.evaluate(() => window.__gm.vr().menuPress('kick:gachette'));
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
   expect((await page.evaluate(() => window.__gm.vrApi.opts())).kick).toBe('auto');
   expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.grossecaisse'))).toBe('auto');
+
+  // reculer la batterie pour la voir plus petite : les pads s'éloignent de la tête, le réglage est gardé
+  const vr = () => page.evaluate(() => window.__gm.vr().debug());
+  const z0 = (await vr()).padsWorld[1][2];
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('dist+'); v.menuPress('dist+'); });
+  expect(Math.abs((await vr()).padsWorld[1][2] - z0)).toBeGreaterThan(0.15);
+  expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.distance'))).toBe('0.2');
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('dist-'); v.menuPress('dist-'); });
 
   // masquer le menu laisse jouer librement sur la batterie ; Échap le rouvre
   await page.evaluate(() => window.__gm.vr().menuPress('mini'));

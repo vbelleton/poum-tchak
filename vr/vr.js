@@ -37,6 +37,13 @@ function setHeight(v){
   try{localStorage.setItem(H_KEY,String(S.hOff));}catch(e){}
   if(S.head)place(S.head,S.kit.rotation.y,S.preview);
 }
+const D_KEY='poumtchak.vr.distance';
+function loadDist(){try{const v=+localStorage.getItem(D_KEY);if(v>=-0.3&&v<=1.5)return v;}catch(e){}return 0;}
+function setDist(v){
+  S.dOff=Math.max(-0.3,Math.min(1.5,Math.round(v*10)/10));
+  try{localStorage.setItem(D_KEY,String(S.dOff));}catch(e){}
+  if(S.head)place(S.head,S.kit.rotation.y,S.preview);
+}
 function setTilt(v){
   S.tilt=Math.max(0.2,Math.min(1.3,v));
   for(const st of S.sticks)if(st.holder)st.holder.rotation.x=-S.tilt;
@@ -103,7 +110,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();
   if(preview){
@@ -233,7 +240,7 @@ function place(head,yaw,fixedFloor){
   S.floorY=local?head.y-1.6:0;
   S.head=head.clone();
   S.padH=Math.max(0.4,Math.min(1.3,head.y-S.floorY-0.62+S.hOff));
-  S.kit.position.set(head.x,S.floorY,head.z);S.kit.rotation.set(0,yaw,0);
+  S.kit.position.set(head.x-Math.sin(yaw)*S.dOff,S.floorY,head.z-Math.cos(yaw)*S.dOff); /* dOff : on recule la batterie, pour la voir plus petite */S.kit.rotation.set(0,yaw,0);
   for(const p of S.pads){
     const P=p.P;
     if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0,-1);}
@@ -606,11 +613,13 @@ function menuItems(mode){
   row(59,'Ralentir');
   it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
   row(67,'Baguettes');
-  pm(67,30,(MW-37)/2,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
-  pm(67,32+(MW-37)/2,(MW-37)/2,'haut','hauteur '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
-  it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
-  it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
-  it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
+  pm(67,30,MW-35,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
+  row(75,'Batterie');
+  pm(75,30,(MW-37)/2,'haut','hauteur '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
+  pm(75,32+(MW-37)/2,(MW-37)/2,'dist','recul '+(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
+  it.push({id:'play',x:30,y:84,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'mini',x:MW-49,y:84,w:21,h:10,txt:'Masquer'});
+  it.push({id:'quit',x:MW-27,y:84,w:21,h:10,txt:'Quitter'});
   return it;
 }
 const FOCUS0={main:'play',pause:'resume',mini:'open'};
@@ -699,6 +708,7 @@ function menuDo(id){
   if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
   else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));
   else if(id==='tilt-'||id==='tilt+'){setTilt(S.tilt+(id==='tilt+'?0.05:-0.05));S.msg='';}
+  else if(id==='dist-'||id==='dist+'){setDist(S.dOff+(id==='dist+'?0.1:-0.1));S.msg='';}
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
   else{const [k,v]=id.split(':');api.set(k,v);}
