@@ -35,14 +35,14 @@ function loadHeight(){try{const v=+localStorage.getItem(H_KEY);if(Math.abs(v)<=0
 function setHeight(v){
   S.hOff=Math.max(-0.3,Math.min(0.3,Math.round(v*100)/100));
   try{localStorage.setItem(H_KEY,String(S.hOff));}catch(e){}
-  if(S.head)place(S.head,S.kit.rotation.y,S.preview);
+  if(S.head)place(S.head,S.base?S.base.yaw:0,S.preview);
 }
 const D_KEY='poumtchak.vr.distance';
 function loadDist(){try{const v=+localStorage.getItem(D_KEY);if(v>=-0.3&&v<=1.5)return v;}catch(e){}return 0;}
 function setDist(v){
   S.dOff=Math.max(-0.3,Math.min(1.5,Math.round(v*10)/10));
   try{localStorage.setItem(D_KEY,String(S.dOff));}catch(e){}
-  if(S.head)place(S.head,S.kit.rotation.y,S.preview);
+  if(S.head)place(S.head,S.base?S.base.yaw:0,S.preview);
 }
 /* Dispositions : où sont les pads. Styles : à quoi ressemble la batterie. */
 for(const P of PADS){P.bx=P.x;P.bz=P.z;P.br=P.r;}
@@ -202,7 +202,7 @@ function updateDecor(t){
 function setLayout(v){
   if(!LAYOUTS[v])return;
   S.layout=v;try{localStorage.setItem(L_KEY,v);}catch(e){}
-  applyLayout();if(S.head)place(S.head,S.kit.rotation.y,S.preview);
+  applyLayout();if(S.head)place(S.head,S.base?S.base.yaw:0,S.preview);
 }
 function setStyle(v){
   if(!STYLES[v])return;
@@ -212,8 +212,27 @@ function setStyle(v){
 /* Se déplacer : le stick gauche fait glisser le joueur (en vrai, c'est le monde qui glisse), le stick droit le fait
    tourner par crans quand le menu n'est pas là. S.head est l'ancre de la batterie : elle bouge avec le monde. */
 const MOVE_SPEED=1.2,TURN=Math.PI/6;
+/* La pose de la batterie : S.base (position au sol et direction), puis l'inclinaison S.pitch, qui fait
+   pivoter toute la scène autour de la tête, vers le haut, pour jouer couché ou allongé. */
+const PITCH_KEY='poumtchak.vr.inclinaison',PITCH_MAX=Math.PI/2;
+function loadPitch(){try{const v=+localStorage.getItem(PITCH_KEY);if(v>=0&&v<=PITCH_MAX)return v;}catch(e){}return 0;}
+function setPitch(v,save=true){
+  S.pitch=Math.max(0,Math.min(PITCH_MAX,v));
+  if(save)try{localStorage.setItem(PITCH_KEY,S.pitch.toFixed(3));}catch(e){}
+  pose();
+}
+function pose(){
+  const b=S.base,k=S.kit;if(!b)return;
+  k.rotation.set(S.pitch,b.yaw,0,'YXZ');
+  k.position.set(b.x,b.y,b.z);
+  if(S.pitch&&S.head){
+    /* le pivot : la tête ; elle garde sa place dans la batterie quand on incline */
+    const H=S.head,l=new THREE.Vector3(H.x-b.x,H.y-b.y,H.z-b.z).applyAxisAngle(new THREE.Vector3(0,1,0),-b.yaw);
+    k.position.copy(H).sub(l.applyQuaternion(k.quaternion));
+  }
+}
 function moveBy(dx,dz){
-  const yaw=S.kit.rotation.y,cam=new THREE.Vector3();
+  const yaw=S.base?S.base.yaw:0,cam=new THREE.Vector3();
   /* avant = où regarde la tête, à plat */
   let fx=-Math.sin(yaw),fz=-Math.cos(yaw);
   if(S.renderer.xr.isPresenting){
@@ -222,16 +241,17 @@ function moveBy(dx,dz){
     if(f.lengthSq()>1e-4){f.normalize();fx=f.x;fz=f.z;}
   }
   const wx=fx*dz-fz*dx,wz=fz*dz+fx*dx; /* dz : vers l'avant, dx : vers la droite */
-  S.kit.position.x-=wx;S.kit.position.z-=wz;
+  if(S.base){S.base.x-=wx;S.base.z-=wz;}
   if(S.head){S.head.x-=wx;S.head.z-=wz;}
+  pose();
   S.moved=(S.moved||0)+Math.hypot(wx,wz);
 }
 function turnBy(a){
   const c=new THREE.Vector3();
   if(S.renderer.xr.isPresenting)S.renderer.xr.getCamera().getWorldPosition(c);else c.copy(S.camera.position);
   const rot=v=>{const x=v.x-c.x,z=v.z-c.z,co=Math.cos(a),si=Math.sin(a);v.x=c.x+x*co+z*si;v.z=c.z-x*si+z*co;};
-  rot(S.kit.position);if(S.head)rot(S.head);
-  S.kit.rotation.y+=a;S.turns=(S.turns||0)+1;
+  if(S.base){rot(S.base);S.base.yaw+=a;}if(S.head)rot(S.head);
+  pose();S.turns=(S.turns||0)+1;
 }
 function setTilt(v){
   S.tilt=Math.max(0.2,Math.min(1.3,v));
@@ -299,7 +319,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
@@ -436,7 +456,7 @@ function place(head,yaw,fixedFloor){
   S.floorY=local?head.y-1.6:0;
   S.head=head.clone();
   S.padH=Math.max(0.4,Math.min(1.3,head.y-S.floorY-0.62+S.hOff));
-  S.kit.position.set(head.x-Math.sin(yaw)*S.dOff,S.floorY,head.z-Math.cos(yaw)*S.dOff); /* dOff : on recule la batterie, pour la voir plus petite */S.kit.rotation.set(0,yaw,0);
+  S.base={x:head.x-Math.sin(yaw)*S.dOff,y:S.floorY,z:head.z-Math.cos(yaw)*S.dOff,yaw}; /* dOff : on recule la batterie, pour la voir plus petite */pose();
   for(const p of S.pads){
     const P=p.P;
     if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0,-1);}
@@ -599,7 +619,12 @@ function buttons(t){
     if(st.hand==='left'){
       const dt=Math.min(0.05,Math.max(0,(t-(st.moveT||t))/1000));st.moveT=t;
       const dz=Math.abs(ay)>0.2?-ay:0,dx=Math.abs(ax)>0.2?ax:0;
-      if(dx||dz)moveBy(dx*MOVE_SPEED*dt,dz*MOVE_SPEED*dt);
+      /* poignée gauche serrée : le stick gauche incline la scène (vers le haut : pour jouer couché) */
+      if(now[1]){if(dz){setPitch(S.pitch+dz*0.9*dt,false);st.pitched=true;}}
+      else{
+        if(st.pitched){st.pitched=false;setPitch(S.pitch);}
+        if(dx||dz)moveBy(dx*MOVE_SPEED*dt,dz*MOVE_SPEED*dt);
+      }
       continue_buttons(st,down,mode);if(!S)return;
       continue;
     }
@@ -819,8 +844,10 @@ function menuItems(mode){
     row(28,'Style');seg(28,'style',STYLES,S.style);
     row(36,'Disposition');seg(36,'lay',LAYOUTS,S.layout);
     row(44,'Baguettes');pm(44,30,MW-35,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
-    row(52,'Hauteur');pm(52,30,MW-35,'haut',(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
-    row(60,'Recul');pm(60,30,MW-35,'dist',(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
+    row(52,'Hauteur, recul');
+    pm(52,30,(MW-37)/2,'haut',(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
+    pm(52,32+(MW-37)/2,(MW-37)/2,'dist',(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
+    row(60,'Inclinaison');pm(60,30,MW-35,'pitch',S.pitch<0.01?'à plat (assis, debout)':Math.round(S.pitch*180/Math.PI)+'° (pour jouer couché)');
     row(68,'Décor');seg(68,'decor',DECORS,S.decor);
     it.push({id:'back',x:30,y:77,w:MW-60,h:10,txt:'‹ Retour',big:true});
     return it;
@@ -863,7 +890,7 @@ function drawMenu(mode){
     foot=[
       nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
       S.preview?{t:'Souris, ou flèches + Entrée · Échap : quitter · P : pause · B F D J K L : frapper',c:'#C9D1DC'}:
-        {t:'Vise + gâchette, ou stick droit + A · stick gauche : se déplacer · B/Y : quitter (en partie : pause)',c:'#C9D1DC'},
+        {t:'Vise + gâchette, ou stick droit + A · stick gauche : se déplacer (poignée serrée : incliner) · B/Y : quitter',c:'#C9D1DC'},
       {t:api.midiText(),c:'#7BE3A6'}
     ];
   }
@@ -936,6 +963,7 @@ function menuDo(id){
   if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
   else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));
   else if(id==='tilt-'||id==='tilt+'){setTilt(S.tilt+(id==='tilt+'?0.05:-0.05));S.msg='';}
+  else if(id==='pitch-'||id==='pitch+'){setPitch(Math.round((S.pitch+(id==='pitch+'?1:-1)*Math.PI/12)/(Math.PI/12))*(Math.PI/12));S.msg='';}
   else if(id==='dist-'||id==='dist+'){setDist(S.dOff+(id==='dist+'?0.1:-0.1));S.msg='';}
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
@@ -980,6 +1008,7 @@ function rays(){
 }
 /* Tests : un bouton du menu, comme si on l'avait visé. */
 export function simMove(dx,dz){if(S)moveBy(dx,dz);}
+export function simPitch(deg){if(S)setPitch(deg*Math.PI/180);}
 export function simTurn(dir){if(S)turnBy(dir>0?-TURN:TURN);}
 export function menuPress(id){if(S&&S.menu.mesh.visible)menuDo(id);}
 export function menuIds(){return S?S.items.filter(b=>b.id).map(b=>b.id):[];}
@@ -998,7 +1027,7 @@ export function simStrike(lane){
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+S.kit.rotation.y.toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
