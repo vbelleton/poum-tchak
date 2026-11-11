@@ -161,7 +161,7 @@ test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', asyn
   // « Ma batterie » : un sous-menu, Échap revient au menu
   await page.evaluate(() => window.__gm.vr().menuPress('kitmenu'));
   expect((await etat()).mode).toBe('kit');
-  expect(await page.evaluate(() => window.__gm.vr().menuIds())).toEqual(expect.arrayContaining(['sound:rock', 'sound:jazz', 'sound:electro', 'style:bois', 'lay:gaucher', 'lay:large', 'tilt+', 'haut-', 'dist+', 'pitch+', 'back']));
+  expect(await page.evaluate(() => window.__gm.vr().menuIds())).toEqual(expect.arrayContaining(['sound:rock', 'sound:jazz', 'sound:electro', 'style:bois', 'lay:gaucher', 'lay:large', 'tilt+', 'haut-', 'dist+', 'pitch+', 'roll+', 'back']));
 
   // le son : gardé pour toute l'appli
   await page.evaluate(() => window.__gm.vr().menuPress('sound:jazz'));
@@ -220,6 +220,16 @@ test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', asyn
   expect(+(await page.evaluate(() => localStorage.getItem('poumtchak.vr.inclinaison')))).toBeCloseTo((75 * Math.PI) / 180, 2);
   await page.evaluate(() => window.__gm.vr().simPitch(0));
   expect((await vr()).padsWorld[1][1]).toBeCloseTo(y0, 2);
+  // sur le côté : couché sur le flanc, la scène pivote autour de l'axe avant-arrière (les pads de droite montent)
+  await page.evaluate(() => window.__gm.vr().simRoll(90));
+  const g = (await vr()).padsWorld;
+  expect(g[4][1]).toBeGreaterThan(1.42); // le tom basse, à droite, passe au-dessus de la tête
+  expect((await vr()).roll).toBeCloseTo(Math.PI / 2, 2);
+  await page.evaluate(() => window.__gm.vr().simStrike(5));
+  await expect.poll(async () => (await vr()).checked).toContain(5);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('roll-'); });
+  expect(+(await page.evaluate(() => localStorage.getItem('poumtchak.vr.roulis')))).toBeCloseTo((75 * Math.PI) / 180, 2);
+  await page.evaluate(() => window.__gm.vr().simRoll(0));
 
   // remettre les réglages
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('sound:synth'); v.menuPress('style:pads'); v.menuPress('lay:standard'); v.menuPress('decor:chapelle'); });

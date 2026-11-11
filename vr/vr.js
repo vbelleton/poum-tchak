@@ -221,11 +221,19 @@ function setPitch(v,save=true){
   if(save)try{localStorage.setItem(PITCH_KEY,S.pitch.toFixed(3));}catch(e){}
   pose();
 }
+const ROLL_KEY='poumtchak.vr.roulis';
+function loadRoll(){try{const v=+localStorage.getItem(ROLL_KEY);if(Math.abs(v)<=PITCH_MAX)return v;}catch(e){}return 0;}
+/* Rotation sur le côté : la scène pivote autour de l'axe avant-arrière, comme si on jouait couché sur le flanc. */
+function setRoll(v,save=true){
+  S.roll=Math.max(-PITCH_MAX,Math.min(PITCH_MAX,v));
+  if(save)try{localStorage.setItem(ROLL_KEY,S.roll.toFixed(3));}catch(e){}
+  pose();
+}
 function pose(){
   const b=S.base,k=S.kit;if(!b)return;
-  k.rotation.set(S.pitch,b.yaw,0,'YXZ');
+  k.rotation.set(S.pitch,b.yaw,S.roll,'YXZ');
   k.position.set(b.x,b.y,b.z);
-  if(S.pitch&&S.head){
+  if((S.pitch||S.roll)&&S.head){
     /* le pivot : la tête ; elle garde sa place dans la batterie quand on incline */
     const H=S.head,l=new THREE.Vector3(H.x-b.x,H.y-b.y,H.z-b.z).applyAxisAngle(new THREE.Vector3(0,1,0),-b.yaw);
     k.position.copy(H).sub(l.applyQuaternion(k.quaternion));
@@ -319,7 +327,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
@@ -619,10 +627,12 @@ function buttons(t){
     if(st.hand==='left'){
       const dt=Math.min(0.05,Math.max(0,(t-(st.moveT||t))/1000));st.moveT=t;
       const dz=Math.abs(ay)>0.2?-ay:0,dx=Math.abs(ax)>0.2?ax:0;
-      /* poignée gauche serrée : le stick gauche incline la scène (vers le haut : pour jouer couché) */
-      if(now[1]){if(dz){setPitch(S.pitch+dz*0.9*dt,false);st.pitched=true;}}
-      else{
-        if(st.pitched){st.pitched=false;setPitch(S.pitch);}
+      /* poignée gauche serrée : le stick gauche incline la scène, vers l'avant (haut/bas) ou sur le côté (gauche/droite) */
+      if(now[1]){
+        if(dz){setPitch(S.pitch+dz*0.9*dt,false);st.pitched=true;}
+        if(dx){setRoll(S.roll+dx*0.9*dt,false);st.pitched=true;}
+      }else{
+        if(st.pitched){st.pitched=false;setPitch(S.pitch);setRoll(S.roll);}
         if(dx||dz)moveBy(dx*MOVE_SPEED*dt,dz*MOVE_SPEED*dt);
       }
       continue_buttons(st,down,mode);if(!S)return;
@@ -847,7 +857,9 @@ function menuItems(mode){
     row(52,'Hauteur, recul');
     pm(52,30,(MW-37)/2,'haut',(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
     pm(52,32+(MW-37)/2,(MW-37)/2,'dist',(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
-    row(60,'Inclinaison');pm(60,30,MW-35,'pitch',S.pitch<0.01?'à plat (assis, debout)':Math.round(S.pitch*180/Math.PI)+'° (pour jouer couché)');
+    row(60,'Incliner');
+    pm(60,30,(MW-37)/2,'pitch','avant '+Math.round(S.pitch*180/Math.PI)+'°');
+    pm(60,32+(MW-37)/2,(MW-37)/2,'roll','côté '+(S.roll>0.005?'+':'')+Math.round(S.roll*180/Math.PI)+'°');
     row(68,'Décor');seg(68,'decor',DECORS,S.decor);
     it.push({id:'back',x:30,y:77,w:MW-60,h:10,txt:'‹ Retour',big:true});
     return it;
@@ -963,6 +975,7 @@ function menuDo(id){
   if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
   else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));
   else if(id==='tilt-'||id==='tilt+'){setTilt(S.tilt+(id==='tilt+'?0.05:-0.05));S.msg='';}
+  else if(id==='roll-'||id==='roll+'){setRoll(Math.round((S.roll+(id==='roll+'?1:-1)*Math.PI/12)/(Math.PI/12))*(Math.PI/12));S.msg='';}
   else if(id==='pitch-'||id==='pitch+'){setPitch(Math.round((S.pitch+(id==='pitch+'?1:-1)*Math.PI/12)/(Math.PI/12))*(Math.PI/12));S.msg='';}
   else if(id==='dist-'||id==='dist+'){setDist(S.dOff+(id==='dist+'?0.1:-0.1));S.msg='';}
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
@@ -1008,6 +1021,7 @@ function rays(){
 }
 /* Tests : un bouton du menu, comme si on l'avait visé. */
 export function simMove(dx,dz){if(S)moveBy(dx,dz);}
+export function simRoll(deg){if(S)setRoll(deg*Math.PI/180);}
 export function simPitch(deg){if(S)setPitch(deg*Math.PI/180);}
 export function simTurn(dir){if(S)turnBy(dir>0?-TURN:TURN);}
 export function menuPress(id){if(S&&S.menu.mesh.visible)menuDo(id);}
@@ -1027,7 +1041,7 @@ export function simStrike(lane){
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
