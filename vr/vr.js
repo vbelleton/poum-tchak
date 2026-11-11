@@ -348,7 +348,7 @@ export async function enter(api,{preview=false}={}){
       const mv={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
       if(mv){e.preventDefault();menuMove(mv[0],mv[1]);}
       else if(e.key==='Enter'||e.key===' '){e.preventDefault();menuDo(S.focus);}
-      else if(e.key==='Escape'){e.preventDefault();if(mode==='pause')pause(false);else if(S.mini)S.mini=false;else if(S.sub){S.sub=false;S.focus='kitmenu';}else exit();}
+      else if(e.key==='Escape'){e.preventDefault();if(mode==='pause')pause(false);else if(S.mini)S.mini=false;else if(S.sub)subBack();else exit();}
     };
     document.addEventListener('keydown',S.keyH);
     S.ptrH=e=>{ /* un clic sur un pad : une frappe */
@@ -682,7 +682,7 @@ function continue_buttons(st,down,mode){
   if(!down(5))return;
   if(S.api.gm.on)pause(!S.paused);
   else if(S.mini)S.mini=false;
-  else if(S.sub){S.sub=false;S.focus='kitmenu';}
+  else if(S.sub)subBack();
   else exit();
 }
 
@@ -715,10 +715,10 @@ function headKick(t,frame){
   }
   h.y=_h.y;h.t=t;
 }
-async function start(){
+async function start(mains){
   if(S.busy||S.api.gm.on)return;
-  S.busy=true;S.msg='Chargement…';S.result=null;
-  try{S.msg=await S.api.launch()||'';}catch(e){S.msg='Impossible de lancer la partie.';}
+  S.busy=true;S.msg='Chargement…';S.result=null;S.kind=mains||false;
+  try{S.msg=await (mains==='exo'?S.api.launchExo():mains?S.api.launchMains():S.api.launch())||'';}catch(e){S.msg='Impossible de lancer la partie.';}
   if(!S)return;
   S.busy=false;
   if(S.api.gm.on){
@@ -762,7 +762,7 @@ function finished(){
   const gm=S.api.gm,sc=gm.sc;
   if(!sc)return;
   const p=S.api.pct(),fell=gm.gauge<=0;
-  S.result={p,stars:fell?0:S.api.stars(p),pts:sc.pts,fell,best:sc.best,n:sc.perfect+sc.good+sc.approx,miss:sc.miss,extra:sc.extra,quit:!fell&&!gm.ended};
+  S.result={hands:S.api.hands?S.api.hands():null,p,stars:fell?0:S.api.stars(p),pts:sc.pts,fell,best:sc.best,n:sc.perfect+sc.good+sc.approx,miss:sc.miss,extra:sc.extra,quit:!fell&&!gm.ended};
   for(const n of S.notes.values()){n.visible=false;S.pool.push(n);}S.notes.clear();
 }
 
@@ -837,6 +837,10 @@ function draw(t){
     const sc=gm.sc,mult=Math.min(4,1+Math.floor(sc.streak/8));
     const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:sc.streak>1?'Série de '+sc.streak:(S.preview?'P : pause':'B/Y : pause'),size:3.6,color:'#97A1B2'}];
     if(now<gm.firstT-0.2)lines[1]={t:'Prépare-toi…',size:3.6,color:'#F2BB4A'};
+    const duo=api.mainsNow&&api.mainsNow();
+    if(duo)lines.splice(1,0,{t:'Gauche '+duo.l+'  ·  Droite '+duo.r,size:4.4,color:'#7BE3A6',weight:800});
+    const say=api.exoNow&&api.exoNow();
+    if(say)lines.splice(1,0,{t:say,size:4.4,color:'#F2BB4A',weight:800});
     drawPanel(S.hud,lines,{bar:gm.loop||api.noFail()?null:gm.gauge});
   }
   /* menu : hors partie, ou en pause */
@@ -859,7 +863,8 @@ function draw(t){
 const MW=124,MH=108;
 const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
 const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
-function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub?'kit':'main';}
+function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub||'main';}
+function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':'kitmenu';S.sub=false;}
 function menuItems(mode){
   const {api}=S,it=[];
   if(mode==='mini'){it.push({id:'open',x:MW/2-16,y:MH-14,w:32,h:10,txt:'☰ Menu',big:true});return it;}
@@ -875,6 +880,34 @@ function menuItems(mode){
   const row=(y,lab)=>it.push({t:'lab',x:5,y,w:24,h:H,txt:lab});
   const seg=(y,key,opts,val)=>{const ks=Object.keys(opts),w=(MW-35)/ks.length;ks.forEach((k,j)=>it.push({id:key+':'+k,x:30+j*w,y,w:w-1.5,h:H,txt:opts[k],on:k===val}));};
   const pm=(y,x,w,key,val)=>{it.push({id:key+'-',x,y,w:9,h:H,txt:'−'});it.push({t:'val',x:x+9.5,y,w:w-19,h:H,txt:val});it.push({id:key+'+',x:x+w-9,y,w:9,h:H,txt:'+'});};
+  if(mode==='mains'){
+    const m=api.mainsOpts(),N={1:'1',2:'2',3:'3',4:'4'};
+    row(20,'Main gauche');seg(20,'ml',N,String(m.l));
+    row(28,'Main droite');seg(28,'mr',N,String(m.r));
+    row(36,'Tempo');pm(36,30,MW-35,'bpm',o.bpm+' BPM');
+    row(44,'Enchaîner');
+    it.push({id:'mchain',x:30,y:44,w:MW-35,h:H,txt:m.chain?'Oui : les 16 duos, de 1 contre 1 à 4 contre 4':'Non : un seul duo, 8 mesures',on:m.chain});
+    it.push({t:'val',x:5,y:53,w:MW-10,h:H,txt:m.chain?'Deux mesures par duo · le duo en cours s\'affiche au-dessus de la batterie':'Gauche : '+m.l+' coup'+(m.l>1?'s':'')+' par temps (pad de gauche) · Droite : '+m.r+' coup'+(m.r>1?'s':'')+' par temps (pad de droite)'});
+    it.push({id:'mplay',x:30,y:63,w:MW-60,h:10,txt:S.busy?'Chargement…':'Jouer les mains',big:true});
+    it.push({id:'back',x:MW-28,y:63,w:23,h:10,txt:'‹ Retour'});
+    return it;
+  }
+  if(mode==='exo'){
+    const e=api.exoOpts();
+    row(20,'Exercice');
+    it.push({id:'ex-',x:30,y:20,w:8,h:H,txt:'◀'});
+    it.push({t:'val',x:39.5,y:20,w:MW-56,h:H,txt:e.label+'  ('+(e.i+1)+'/'+e.n+')'});
+    it.push({id:'ex+',x:MW-14,y:20,w:8,h:H,txt:'▶'});
+    /* la consigne, en mots : une ligne par mesure (trois au plus) */
+    e.lines.slice(0,3).forEach((l,j)=>it.push({t:'say',x:5,y:28+j*6,w:MW-10,h:5.5,txt:(e.lines.length>1?(j+1)+'.  ':'')+l}));
+    if(e.lines.length>3)it.push({t:'val',x:5,y:46,w:MW-10,h:4,txt:'… et '+(e.lines.length-3)+' mesure(s) de plus'});
+    row(51,'Tempo');pm(51,30,(MW-37)/2,'bpm',o.bpm+' BPM');
+    {const R={2:'2 fois',4:'4 fois',8:'8 fois'},x0=32+(MW-37)/2,w=((MW-37)/2)/3;Object.keys(R).forEach((k,j)=>it.push({id:'rep:'+k,x:x0+j*w,y:51,w:w-1,h:H,txt:R[k],on:k===String(e.rep)}));}
+    if(e.rand)it.push({id:'exnew',x:5,y:63,w:23,h:10,txt:'Autre'});
+    it.push({id:'explay',x:30,y:63,w:MW-60,h:10,txt:S.busy?'Chargement…':'Jouer l\'exercice',big:true});
+    it.push({id:'back',x:MW-28,y:63,w:23,h:10,txt:'‹ Retour'});
+    return it;
+  }
   if(mode==='kit'){
     row(20,'Sons');seg(20,'sound',o.sounds,o.sound);
     row(28,'Style');seg(28,'style',STYLES,S.style);
@@ -902,15 +935,17 @@ function menuItems(mode){
   row(51,'Grosse caisse');seg(51,'kick',KICKS,o.kick);
   row(59,'Ralentir');
   it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
-  row(67,'Batterie');
-  it.push({id:'kitmenu',x:30,y:67,w:55,h:H,txt:'Sons, style, décor ›'});
-  it.push({id:'import',x:87,y:67,w:MW-92,h:H,txt:'+ Mes chants'});
+  row(67,'Aller à');
+  it.push({id:'kitmenu',x:30,y:67,w:22,h:H,txt:'Batterie ›'});
+  it.push({id:'exomenu',x:53.5,y:67,w:24,h:H,txt:'Exercices ›'});
+  it.push({id:'mainsmenu',x:79,y:67,w:18,h:H,txt:'Mains ›'});
+  it.push({id:'import',x:98.5,y:67,w:MW-103.5,h:H,txt:'+ Chants'});
   it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
   it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back'};
+const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay'};
 function drawMenu(mode){
   const {api}=S,p=S.menu;
   S.items=menuItems(mode);
@@ -919,10 +954,15 @@ function drawMenu(mode){
   const R=S.result,nc=S.checked.size;
   let title='Poum Tchak · VR',status=null,foot=[];
   if(mode==='pause'){title='Pause';status={t:api.title(),c:'#97A1B2'};foot=[{t:'B/Y ou A/X : reprendre · vise un bouton, gâchette pour choisir',c:'#C9D1DC'}];}
-  else if(mode==='main'||mode==='kit'){
+  else if(mode==='main'||mode==='kit'||mode==='mains'||mode==='exo'){
     if(mode==='kit')title='Ma batterie';
-    if(mode==='kit')status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Frappe un pad pour entendre le son choisi',c:'#97A1B2'};
-    else if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best,c:'#F2BB4A'};
+    if(mode==='mains')title='Mains : une main contre l\'autre';
+    if(mode==='exo')title='Exercices : suis les mots';
+    const H2=R&&R.hands?'  ·  Gauche '+R.hands.l+' %, droite '+R.hands.r+' %':'';
+    if(mode==='mains')status=R&&!R.quit?{t:(R.fell?'Boum ! ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' %'+H2,c:'#F2BB4A'}:{t:'Pad de gauche : main gauche · pad de droite : main droite',c:'#97A1B2'};
+    else if(mode==='exo')status=R&&!R.quit?{t:(R.fell?'Boum ! ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points',c:'#F2BB4A'}:S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Un mot par coup, « . » = silence · tes exercices : rubrique Mots, sur la page',c:'#97A1B2'};
+    else if(mode==='kit')status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Frappe un pad pour entendre le son choisi',c:'#97A1B2'};
+    else if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best+H2,c:'#F2BB4A'};
     else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
     else status={t:KICK_HINT[api.opts().kick],c:'#97A1B2'};
     foot=[
@@ -948,6 +988,7 @@ function drawMenu(mode){
     const cxm=(b.x+b.w/2),cym=b.y+b.h/2;
     if(b.t==='lab'){cx.textAlign='left';text(b.txt,b.x,cym,3.2,'#97A1B2',700,b.w);cx.textAlign='center';continue;}
     if(b.t==='val'){text(b.txt,cxm,cym,3.2,'#E8ECF2',700,b.w-1);continue;}
+    if(b.t==='say'){cx.fillStyle='#161B24';box(b.x,b.y,b.w,b.h,1.4);cx.fill();text(b.txt,cxm,cym+0.2,3.6,'#F2BB4A',800,b.w-2);continue;}
     const h=hov.includes(b.id),f=S.focus===b.id;
     cx.fillStyle=b.big?(h||f?'#9BF0BF':'#7BE3A6'):b.on?'#2F4BD0':h?'#39414F':'#1D232E';
     box(b.x,b.y,b.w,b.h,1.6);cx.fill();
@@ -988,15 +1029,24 @@ function menuDo(id){
   if(!id||S.busy)return;
   S.focus=id;
   if(id==='resume'){pause(false);return;}
-  if(id==='restart'){pause(false);api.stop();S.result=null;start();return;}
+  if(id==='restart'){pause(false);api.stop();S.result=null;start(S.kind);return;}
   if(id==='menu'){pause(false);api.stop();return;}
   if(id==='open'){S.mini=false;return;}
   S.result=null;S.msg='';
   if(id==='play'){start();return;}
   if(id==='mini'){S.mini=true;return;}
   if(id==='import'){S.afterExit=()=>s_importPrompt(api);exit();return;}
-  if(id==='kitmenu'){S.sub=true;S.focus='back';return;}
-  if(id==='back'){S.sub=false;S.focus='kitmenu';return;}
+  if(id==='kitmenu'){S.sub='kit';S.focus='back';return;}
+  if(id==='mainsmenu'){S.sub='mains';S.focus='mplay';return;}
+  if(id==='exomenu'){S.sub='exo';S.focus='explay';return;}
+  if(id==='explay'){start('exo');return;}
+  if(id==='ex-'||id==='ex+'){api.setExo('step',id==='ex+'?1:-1);return;}
+  if(id==='exnew'){api.setExo('new');return;}
+  if(/^rep:/.test(id)){api.setExo('rep',+id.slice(4));return;}
+  if(id==='back'){subBack();return;}
+  if(id==='mplay'){start(true);return;}
+  if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
+  if(/^m[lr]:/.test(id)){api.setMains(id[1],+id.slice(3));return;}
   if(id==='quit'){exit();return;}
   if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
   else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));

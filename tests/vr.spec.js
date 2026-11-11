@@ -260,3 +260,83 @@ test('aperçu VR : « Mes chants » ramène à la page, sur le bouton d\'import'
   await expect(page.locator('#gmImp')).toHaveClass(/flash/);
   await expect(page.locator('#gmImp')).toBeInViewport();
 });
+
+test('aperçu VR : mode Mains, une main contre l\'autre', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('index.html?vr=apercu');
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await page.evaluate(() => window.__gm.vr()?.state()))?.mode).toBe('main');
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('decor:nuit'); v.menuPress('back'); v.menuPress('mainsmenu'); v.menuPress('ml:2'); v.menuPress('mr:3'); });
+  expect((await page.evaluate(() => window.__gm.vr().state())).mode).toBe('mains');
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('poumtchak.vr.mains')))).toMatchObject({ l: 2, r: 3 });
+
+  await page.evaluate(() => window.__gm.vr().menuPress('mplay'));
+  await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(true);
+  expect(await page.evaluate(() => window.__gm.vrApi.title())).toBe('Mains : gauche 2, droite 3');
+  // main gauche sur le pad de gauche (caisse claire), main droite sur celui de droite (tom basse) ; 8 mesures
+  const n = await page.evaluate(() => { const ns = window.__gm.notes(); return { lanes: [...new Set(ns.map((x) => x.lane))].sort(), g: ns.filter((x) => x.lane === 1).length, d: ns.filter((x) => x.lane === 4).length }; });
+  expect(n).toEqual({ lanes: [1, 4], g: 8 * 4 * 2, d: 8 * 4 * 3 });
+  expect(await page.evaluate(() => window.__gm.vrApi.mainsNow())).toMatchObject({ l: 2, r: 3 });
+
+  // la gauche seule joue juste : la droite n'est pas frappée
+  await page.evaluate(async () => {
+    const g = window.__gm, v = g.vr();
+    for (const note of g.notes()) {
+      if (note.t > 3) break;
+      if (note.lane !== 1) continue;
+      while (g.on() && g.now() < note.t - 0.008) await new Promise((f) => setTimeout(f, 2));
+      v.simStrike(1);
+    }
+    while (g.on() && g.now() < 3.5) await new Promise((f) => setTimeout(f, 5));
+  });
+  const h = await page.evaluate(() => window.__gm.vrApi.hands());
+  expect(h.l).toBeGreaterThan(50);
+  expect(h.r).toBe(0);
+  // Recommencer garde le mode Mains
+  await page.keyboard.press('p');
+  await page.evaluate(() => window.__gm.vr().menuPress('restart'));
+  await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(true);
+  expect(await page.evaluate(() => window.__gm.vrApi.title())).toContain('Mains');
+});
+
+test('exercices d\'onomatopées : garder une consigne dans Mots, la jouer dans le casque', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('index.html?vr=apercu');
+  await rubrique(page, 'Mots');
+  await page.locator('#txtPhrase').fill('poum . tss . tchak . tss . poum . poum . tchak . tss .');
+  await page.locator('#applyPhrase').click();
+  await page.locator('#exoName').fill('Prof, semaine 3');
+  await page.locator('#exoSave').click();
+  await expect(page.locator('#exoList li')).toHaveCount(1);
+  await expect(page.locator('#exoList')).toContainText('poum tss tchak tss poum poum tchak tss');
+
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await page.evaluate(() => window.__gm.vr()?.state()))?.mode).toBe('main');
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('decor:nuit'); v.menuPress('back'); v.menuPress('exomenu'); });
+  const eo = () => page.evaluate(() => window.__gm.vrApi.exoOpts());
+  // les exercices de l'appli, trois consignes au hasard, « Mon rythme » et celui qu'on vient de garder
+  expect((await eo()).label).toBe('Poum et tchak');
+  expect((await eo()).lines).toEqual(['poum . tchak . poum . tchak .']);
+  await page.evaluate(() => window.__gm.vr().menuPress('ex-'));
+  expect((await eo()).label).toBe('Prof, semaine 3');
+  await page.evaluate(() => window.__gm.vr().menuPress('ex-'));
+  expect((await eo()).label).toBe('Mon rythme');
+  await page.evaluate(() => window.__gm.vr().menuPress('ex-'));
+  expect((await eo()).rand).toBe(true);
+  expect((await page.evaluate(() => window.__gm.vr().menuIds()))).toContain('exnew');
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('ex+'); v.menuPress('ex+'); v.menuPress('rep:2'); });
+  expect((await eo()).label).toBe('Prof, semaine 3');
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('poumtchak.vr.exo')))).toMatchObject({ rep: 2 });
+
+  await page.evaluate(() => window.__gm.vr().menuPress('explay'));
+  await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(true);
+  expect(await page.evaluate(() => window.__gm.vrApi.title())).toBe('Exercice : Prof, semaine 3');
+  // toutes les notes de la consigne, deux fois : 3 poum, 2 tchak, 3 tss par mesure
+  const n = await page.evaluate(() => { const c = {}; window.__gm.notes().forEach((x) => { c[x.lane] = (c[x.lane] || 0) + 1; }); return c; });
+  expect(n).toEqual({ 0: 6, 1: 4, 2: 6 }); // grosse caisse, caisse claire, charley
+  // au-dessus de la batterie : la mesure en mots, le mot à jouer entre crochets
+  await expect.poll(() => page.evaluate(() => window.__gm.vrApi.exoNow())).toMatch(/\[(poum|tss|tchak)\]/);
+  expect(await page.evaluate(() => window.__gm.vrApi.exoNow().replace(/[[\]]/g, ''))).toBe('poum tss tchak tss poum poum tchak tss');
+});
