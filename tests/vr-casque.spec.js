@@ -115,6 +115,13 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   await expect.poll(() => page.evaluate(() => +localStorage.getItem('poumtchak.vr.inclinaison'))).toBeGreaterThan(0.1);
   expect((await vr(page)).moved).toBe(parti);
   await page.evaluate(() => window.__gm.vr().simPitch(0));
+  // même geste, stick vers le côté : rotation sur le flanc
+  await page.evaluate(() => { const c = window.__dev.controllers.left; c.updateButtonValue('squeeze', 1); c.updateAxes('thumbstick', 1, 0); });
+  await expect.poll(async () => (await vr(page)).roll).toBeGreaterThan(0.1);
+  await page.evaluate(() => { const c = window.__dev.controllers.left; c.updateAxes('thumbstick', 0, 0); c.updateButtonValue('squeeze', 0); });
+  await expect.poll(() => page.evaluate(() => +localStorage.getItem('poumtchak.vr.roulis'))).toBeGreaterThan(0.1);
+  expect((await vr(page)).moved).toBe(parti);
+  await page.evaluate(() => window.__gm.vr().simRoll(0));
   await page.evaluate(() => window.__gm.vr().menuPress('open'));
   // le focus revient sur Jouer
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('mini'); v.menuPress('open'); });
