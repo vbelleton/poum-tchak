@@ -44,6 +44,195 @@ function setDist(v){
   try{localStorage.setItem(D_KEY,String(S.dOff));}catch(e){}
   if(S.head)place(S.head,S.kit.rotation.y,S.preview);
 }
+/* Dispositions : où sont les pads. Styles : à quoi ressemble la batterie. */
+for(const P of PADS){P.bx=P.x;P.bz=P.z;P.br=P.r;}
+const LAYOUTS={standard:'Standard',gaucher:'Gaucher',compacte:'Compacte',large:'Large'};
+const STYLES={pads:'Pads',noir:'Noir',rouge:'Rouge',bleu:'Bleu',bois:'Bois'};
+const FINISH={noir:0x1B1C21,rouge:0x9A1E26,bleu:0x1F4596,bois:0x8F5D2C};
+const CYMBALS=new Set(['tss','psch']);
+const L_KEY='poumtchak.vr.disposition',ST_KEY='poumtchak.vr.style';
+function loadPick(key,set,def){try{const v=localStorage.getItem(key);if(set[v])return v;}catch(e){}return def;}
+function applyLayout(){
+  const L=S.layout,f=L==='large'?1.2:1;
+  for(const p of S.pads){
+    const P=p.P;let x=P.bx,z=P.bz;
+    if(L==='compacte'){x*=0.8;z*=0.85;}
+    else if(L==='large'){x*=1.18;z*=1.1;}
+    if(L==='gaucher')x=-x;
+    P.x=x;P.z=z;P.r=P.br*f;
+    p.g.scale.setScalar(f);p.lane.scale.x=f;
+  }
+}
+function applyStyle(){
+  const ac=S.style!=='pads',fin=FINISH[S.style]||0;
+  S.shellMat.color.set(fin);
+  for(const p of S.pads){
+    const id=p.P.id,m=p.padMat;
+    if(p.shell)p.shell.visible=ac;
+    if(p.P.kick)m.color.set(ac?fin:0x1D232E);
+    else if(CYMBALS.has(id)){m.color.set(ac?0xC9A23A:0x1D232E);m.metalness=ac?0.8:0;m.roughness=ac?0.3:0.6;}
+    else m.color.set(ac?0xE9E5DA:0x1D232E);
+    m.needsUpdate=true;
+  }
+}
+/* Les décors. Ils changent avec la partie :
+   - Chapelle : les vitraux s'éclairent au fil du chant, une bougie s'allume tous les 4 coups justes de suite,
+     la croix brille quand la série est longue, et des rayons de lumière entrent quand la jauge est pleine.
+   - Colline : la nuit laisse place à l'aube au fil du chant, le soleil se lève derrière les trois croix,
+     les étoiles s'effacent, et des colombes s'envolent pendant les longues séries.
+   - Nuit : la scène sobre du début. */
+const DECORS={chapelle:'Chapelle',colline:'Colline',nuit:'Nuit'};
+const DC_KEY='poumtchak.vr.decor';
+function box(w,h,d,mat,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;}
+function glassTexture(seed){
+  const cv=document.createElement('canvas');cv.width=64;cv.height=160;const cx=cv.getContext('2d');
+  const cols=['#2F5BD0','#C9302C','#F2BB4A','#3E9E5A','#8E44AD','#E8E2C8'];let r=seed*9301+49297;
+  const rnd=()=>{r=(r*9301+49297)%233280;return r/233280;};
+  cx.fillStyle='#14110E';cx.fillRect(0,0,64,160);
+  for(let y=0;y<10;y++)for(let x=0;x<4;x++){cx.fillStyle=cols[Math.floor(rnd()*cols.length)];cx.fillRect(x*16+1.5,y*16+1.5,13,13);}
+  /* une croix claire au milieu du vitrail */
+  cx.fillStyle='#FFF4D0';cx.fillRect(28,30,8,90);cx.fillRect(14,55,36,8);
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function buildDecors(){
+  const D={};S.decors=D;
+  /* --- la chapelle --- */
+  {
+    const g=new THREE.Group();S.kit.add(g);D.chapelle={g};
+    const stone=new THREE.MeshStandardMaterial({color:0x5E554A,roughness:0.95});
+    const wood=new THREE.MeshStandardMaterial({color:0x3B2A1D,roughness:0.85});
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(10,22),wood);floor.rotation.x=-Math.PI/2;floor.position.set(0,0.001,-5);g.add(floor);
+    box(0.4,7,22,stone,-5,3.5,-5,g);box(0.4,7,22,stone,5,3.5,-5,g);box(10.4,7,0.4,stone,0,3.5,-14.5,g);box(10.4,7,0.4,stone,0,3.5,4,g);
+    const ceil=box(10.4,0.3,22,new THREE.MeshStandardMaterial({color:0x2A221B,roughness:1}),0,7,-5,g);
+    for(const x of [-3.8,3.8])for(let z=2;z>-14;z-=4){const c=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.26,7,12),stone);c.position.set(x,3.5,z);g.add(c);}
+    /* les vitraux, de chaque côté */
+    D.chapelle.glass=[];
+    for(const side of [-1,1])for(let i=0;i<4;i++){
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,2.8),new THREE.MeshBasicMaterial({map:glassTexture(i*2+(side>0)),color:0x333333}));
+      m.position.set(side*4.78,3.6,0.5-i*4);m.rotation.y=-side*Math.PI/2;g.add(m);D.chapelle.glass.push(m);
+    }
+    /* l'autel, la croix et les bougies, au fond */
+    box(3,1,0.8,new THREE.MeshStandardMaterial({color:0xE8E2D2,roughness:0.7}),0,0.5,-13.6,g);
+    const gold=new THREE.MeshStandardMaterial({color:0xC9A23A,emissive:0xF2BB4A,emissiveIntensity:0.1,metalness:0.6,roughness:0.35});
+    box(0.22,3.2,0.12,gold,0,3.9,-14.2,g);box(1.6,0.22,0.12,gold,0,4.6,-14.2,g);D.chapelle.cross=gold;
+    D.chapelle.flames=[];
+    const wax=new THREE.MeshStandardMaterial({color:0xF4EEDC}),flameM=new THREE.MeshBasicMaterial({color:0xFFC861});
+    for(let i=0;i<12;i++){
+      const x=-1.35+i*(2.7/11);
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.28,8),wax);c.position.set(x,1.14,-13.45);g.add(c);
+      const f=new THREE.Mesh(new THREE.SphereGeometry(0.03,8,6),flameM);f.scale.y=1.8;f.position.set(x,1.33,-13.45);f.visible=false;g.add(f);
+      D.chapelle.flames.push(f);
+    }
+    /* les rayons de lumière qui entrent par les vitraux */
+    D.chapelle.beams=[];
+    const beamM=new THREE.MeshBasicMaterial({color:0xFFF1C8,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+    for(const side of [-1,1])for(let i=0;i<4;i++){
+      const b=new THREE.Mesh(new THREE.CylinderGeometry(0.5,1.1,6,12,1,true),beamM);
+      b.position.set(side*2.6,2.2,0.5-i*4);b.rotation.z=side*0.95;g.add(b);D.chapelle.beams.push(b);
+    }
+    D.chapelle.beamM=beamM;D.chapelle.bg=0x120D0A;
+  }
+  /* --- la colline à l'aube --- */
+  {
+    const g=new THREE.Group();S.kit.add(g);D.colline={g};
+    const grass=new THREE.MeshStandardMaterial({color:0x22301C,roughness:1});
+    const ground=new THREE.Mesh(new THREE.CircleGeometry(40,48),grass);ground.rotation.x=-Math.PI/2;ground.position.y=0.001;g.add(ground);
+    const hill=new THREE.Mesh(new THREE.SphereGeometry(9,32,16,0,Math.PI*2,0,Math.PI/2),grass);hill.scale.y=0.45;hill.position.set(0,0,-26);g.add(hill);
+    const dark=new THREE.MeshBasicMaterial({color:0x0E0B0A});
+    for(const [x,h] of [[-2.6,2.6],[0,3.4],[2.6,2.6]]){box(0.22,h,0.22,dark,x,4+h/2-0.3,-26,g);box(h*0.5,0.2,0.22,dark,x,4+h*0.72,-26,g);}
+    const sun=new THREE.Mesh(new THREE.SphereGeometry(2.2,24,16),new THREE.MeshBasicMaterial({color:0xFFD27A,fog:false}));sun.position.set(0,-1,-36);g.add(sun);D.colline.sun=sun;
+    const sp=[];for(let i=0;i<300;i++){const a=Math.random()*Math.PI*2,e=0.15+Math.random()*1.2,r=30;sp.push(Math.cos(a)*Math.cos(e)*r,Math.sin(e)*r,Math.sin(a)*Math.cos(e)*r);}
+    const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+    const starM=new THREE.PointsMaterial({color:0xffffff,size:0.12,transparent:true,fog:false});
+    g.add(new THREE.Points(sg,starM));D.colline.starM=starM;
+    /* les colombes : de petites ailes blanches qui tournent au-dessus */
+    D.colline.doves=[];
+    const wingG=new THREE.BufferGeometry();wingG.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0.12,-0.3,0.04,-0.05,0,0,-0.12, 0,0,0.12,0.3,0.04,-0.05,0,0,-0.12],3));
+    const doveM=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
+    for(let i=0;i<5;i++){const d=new THREE.Mesh(wingG,doveM);d.visible=false;g.add(d);D.colline.doves.push(d);}
+    D.colline.night=new THREE.Color(0x0A0D1A);D.colline.dawn=new THREE.Color(0xE8A066);
+  }
+  S.decorK={prog:0.3,gauge:1,streak:0};
+}
+function applyDecor(){
+  for(const k of Object.keys(S.decors))S.decors[k].g.visible=k===S.decor;
+  S.grid.visible=S.decor==='nuit';S.stage.visible=S.decor==='nuit';
+  if(S.decor==='nuit'){S.scene.background.set(BG);S.scene.fog.color.set(BG);S.scene.fog.near=3.5;S.scene.fog.far=9;}
+  else{S.scene.fog.near=8;S.scene.fog.far=S.decor==='colline'?60:30;}
+  S.renderer.setClearColor(S.scene.background,1);
+}
+function setDecor(v){
+  if(!DECORS[v])return;
+  S.decor=v;try{localStorage.setItem(DC_KEY,v);}catch(e){}
+  applyDecor();
+}
+/* À chaque image : les indicateurs du jeu (avancée du chant, jauge, série) font vivre le décor. */
+function updateDecor(t){
+  if(S.decor==='nuit')return;
+  const gm=S.api.gm,K=S.decorK,R=S.result;
+  const dur=gm.on&&gm.chart?gm.chart.dur:0;
+  const prog=gm.on&&dur?Math.max(0,Math.min(1,S.api.now()/dur)):R&&!R.quit&&!R.fell?1:0.3;
+  const gauge=gm.on?Math.max(0,Math.min(1,gm.gauge==null?1:gm.gauge)):R&&R.fell?0.2:1;
+  const streak=gm.on&&gm.sc?gm.sc.streak:0;
+  K.prog+=(prog-K.prog)*0.03;K.gauge+=(gauge-K.gauge)*0.05;K.streak=streak;
+  if(S.decor==='chapelle'){
+    const D=S.decors.chapelle,lit=0.2+0.8*K.prog*(0.4+0.6*K.gauge);
+    for(const m of D.glass)m.material.color.setScalar(lit);
+    const n=Math.min(12,Math.floor(K.streak/4))+(gm.on?0:4);
+    D.flames.forEach((f,i)=>{f.visible=i<n;if(f.visible)f.scale.y=1.6+0.3*Math.sin(t/90+i*1.7);});
+    D.cross.emissiveIntensity=0.1+Math.min(1,K.streak/32)*1.2;
+    D.beamM.opacity=Math.max(0,(K.gauge-0.6)/0.4)*K.prog*0.16;
+    const c=new THREE.Color(D.bg).lerp(new THREE.Color(0x3A2C20),K.prog*K.gauge);
+    S.scene.background.copy(c);S.scene.fog.color.copy(c);
+  }else if(S.decor==='colline'){
+    const D=S.decors.colline,a=K.prog*(0.5+0.5*K.gauge);
+    const c=D.night.clone().lerp(D.dawn,a);
+    S.scene.background.copy(c);S.scene.fog.color.copy(c);
+    D.sun.position.y=-2.5+a*9;D.starM.opacity=Math.max(0,1-a*1.6);
+    const fly=K.streak>=12,nd=Math.min(D.doves.length,Math.floor(K.streak/8));
+    D.doves.forEach((d,i)=>{
+      d.visible=fly&&i<nd;if(!d.visible)return;
+      const w=t/1000*0.5+i*1.26,r=4+i*0.7;
+      d.position.set(Math.cos(w)*r,4.5+i*0.4+0.2*Math.sin(t/300+i),-8+Math.sin(w)*r);
+      d.rotation.set(0,-w,0.5*Math.sin(t/120+i));
+    });
+  }
+  S.renderer.setClearColor(S.scene.background,1);
+}
+function setLayout(v){
+  if(!LAYOUTS[v])return;
+  S.layout=v;try{localStorage.setItem(L_KEY,v);}catch(e){}
+  applyLayout();if(S.head)place(S.head,S.kit.rotation.y,S.preview);
+}
+function setStyle(v){
+  if(!STYLES[v])return;
+  S.style=v;try{localStorage.setItem(ST_KEY,v);}catch(e){}
+  applyStyle();
+}
+/* Se déplacer : le stick gauche fait glisser le joueur (en vrai, c'est le monde qui glisse), le stick droit le fait
+   tourner par crans quand le menu n'est pas là. S.head est l'ancre de la batterie : elle bouge avec le monde. */
+const MOVE_SPEED=1.2,TURN=Math.PI/6;
+function moveBy(dx,dz){
+  const yaw=S.kit.rotation.y,cam=new THREE.Vector3();
+  /* avant = où regarde la tête, à plat */
+  let fx=-Math.sin(yaw),fz=-Math.cos(yaw);
+  if(S.renderer.xr.isPresenting){
+    const q=new THREE.Quaternion();S.renderer.xr.getCamera().getWorldQuaternion(q);
+    const f=new THREE.Vector3(0,0,-1).applyQuaternion(q);f.y=0;
+    if(f.lengthSq()>1e-4){f.normalize();fx=f.x;fz=f.z;}
+  }
+  const wx=fx*dz-fz*dx,wz=fz*dz+fx*dx; /* dz : vers l'avant, dx : vers la droite */
+  S.kit.position.x-=wx;S.kit.position.z-=wz;
+  if(S.head){S.head.x-=wx;S.head.z-=wz;}
+  S.moved=(S.moved||0)+Math.hypot(wx,wz);
+}
+function turnBy(a){
+  const c=new THREE.Vector3();
+  if(S.renderer.xr.isPresenting)S.renderer.xr.getCamera().getWorldPosition(c);else c.copy(S.camera.position);
+  const rot=v=>{const x=v.x-c.x,z=v.z-c.z,co=Math.cos(a),si=Math.sin(a);v.x=c.x+x*co+z*si;v.z=c.z-x*si+z*co;};
+  rot(S.kit.position);if(S.head)rot(S.head);
+  S.kit.rotation.y+=a;S.turns=(S.turns||0)+1;
+}
 function setTilt(v){
   S.tilt=Math.max(0.2,Math.min(1.3,v));
   for(const st of S.sticks)if(st.holder)st.holder.rotation.x=-S.tilt;
@@ -110,9 +299,9 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
-  buildWorld();
+  buildWorld();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
     const cv=renderer.domElement;cv.id='vrPreview';
     Object.assign(cv.style,{position:'fixed',inset:'0',width:'100vw',height:'100vh',zIndex:'60',background:'#0B0E14',touchAction:'none'});
@@ -128,7 +317,7 @@ export async function enter(api,{preview=false}={}){
       const mv={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];
       if(mv){e.preventDefault();menuMove(mv[0],mv[1]);}
       else if(e.key==='Enter'||e.key===' '){e.preventDefault();menuDo(S.focus);}
-      else if(e.key==='Escape'){e.preventDefault();if(mode==='pause')pause(false);else if(S.mini)S.mini=false;else exit();}
+      else if(e.key==='Escape'){e.preventDefault();if(mode==='pause')pause(false);else if(S.mini)S.mini=false;else if(S.sub){S.sub=false;S.focus='kitmenu';}else exit();}
     };
     document.addEventListener('keydown',S.keyH);
     S.ptrH=e=>{ /* un clic sur un pad : une frappe */
@@ -182,11 +371,12 @@ function buildWorld(){
   scene.add(new THREE.HemisphereLight(0xBFD0FF,0x202430,1.6));
   const sun=new THREE.DirectionalLight(0xffffff,1.6);sun.position.set(1,3,1.5);scene.add(sun);
   /* le sol : une grille discrète, et une scène ronde sous la batterie */
-  const grid=new THREE.GridHelper(30,60,0x262D39,0x1A1F29);kit.add(grid);
+  const grid=new THREE.GridHelper(30,60,0x262D39,0x1A1F29);kit.add(grid);S.grid=grid;
   const stage=new THREE.Mesh(new THREE.CircleGeometry(1.25,64),new THREE.MeshStandardMaterial({color:0x151A24,roughness:0.9}));
-  stage.rotation.x=-Math.PI/2;stage.position.y=0.002;kit.add(stage);
+  stage.rotation.x=-Math.PI/2;stage.position.y=0.002;kit.add(stage);S.stage=stage;
   const gem=new THREE.CylinderGeometry(0.07,0.07,0.028,28);
   const kickGem=new THREE.BoxGeometry(0.42,0.05,0.07);
+  S.shellMat=new THREE.MeshStandardMaterial({color:0x1B1C21,roughness:0.35,metalness:0.2,side:THREE.DoubleSide});
   S.mats={};S.missMat=new THREE.MeshStandardMaterial({color:0x6F7A8C,transparent:true,opacity:0.35});
   for(const P of PADS){
     const c=new THREE.Color(COL[P.id]);
@@ -205,6 +395,11 @@ function buildWorld(){
       rimMat=new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:0.6,transparent:true});
       const rim=new THREE.Mesh(new THREE.TorusGeometry(P.r,0.012,8,48),rimMat);
       rim.rotation.x=Math.PI/2;rim.position.y=0.018;g.add(rim);
+      if(!CYMBALS.has(P.id)){ /* le fût, visible dans les styles « acoustiques » */
+        const depth=P.id==='tchak'?0.13:P.id==='doum'?0.2:0.28;
+        const shell=new THREE.Mesh(new THREE.CylinderGeometry(P.r,P.r,depth,40,1,true),S.shellMat);
+        shell.position.y=-depth/2-0.017;g.add(shell);P._shell=shell;
+      }
       const stand=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,1,8),new THREE.MeshStandardMaterial({color:0x39414F}));
       g.add(stand);P.stand=stand;
     }
@@ -218,7 +413,7 @@ function buildWorld(){
     /* le couloir : une bande qui part du pad vers le lointain */
     const lane=new THREE.Mesh(new THREE.PlaneGeometry(P.kick?0.5:P.r*1.4,FAR),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.1,depthWrite:false,side:THREE.DoubleSide}));
     kit.add(lane);
-    S.pads.push({P,g,mesh,padMat,rimMat,lab,lane,base:new THREE.Vector3(),dir:new THREE.Vector3(),color:c});
+    S.pads.push({P,g,mesh,padMat,rimMat,lab,lane,shell:P._shell||null,base:new THREE.Vector3(),dir:new THREE.Vector3(),color:c});
   }
   S.gem=gem;S.kickGem=kickGem;
   /* repères des temps sur les couloirs */
@@ -247,7 +442,7 @@ function place(head,yaw,fixedFloor){
     else{
       p.g.position.set(P.x,S.padH+P.y,P.z);p.base.copy(p.g.position);
       p.dir.set(P.x*0.9,0.28,-1).normalize();
-      const h=S.padH+P.y;P.stand.scale.y=h;P.stand.position.y=-h/2;
+      const h=S.padH+P.y,f=p.g.scale.y;P.stand.scale.y=h/f;P.stand.position.y=-h/2/f;
     }
     /* la bande du couloir, à plat le long de la direction des notes */
     const mid=p.base.clone().addScaledVector(p.dir,FAR/2);
@@ -398,18 +593,35 @@ function buttons(t){
     else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
     if(down(4)){if(mode){menuDo(S.focus);if(!S)return;}}
-    /* le stick déplace le bouton choisi dans le menu */
     const ax=gp.axes&&gp.axes.length>2?gp.axes[2]:0,ay=gp.axes&&gp.axes.length>3?gp.axes[3]:0;
-    if(mode&&(Math.abs(ax)>0.6||Math.abs(ay)>0.6)){
+    /* stick gauche : se déplacer, à la vitesse de la marche */
+    if(st.hand==='left'){
+      const dt=Math.min(0.05,Math.max(0,(t-(st.moveT||t))/1000));st.moveT=t;
+      const dz=Math.abs(ay)>0.2?-ay:0,dx=Math.abs(ax)>0.2?ax:0;
+      if(dx||dz)moveBy(dx*MOVE_SPEED*dt,dz*MOVE_SPEED*dt);
+      continue_buttons(st,down,mode);if(!S)return;
+      continue;
+    }
+    /* stick droit, sans menu à l'écran : tourner par crans */
+    if(!mode||mode==='mini'){
+      if(Math.abs(ax)>0.7&&!st.turned){st.turned=true;turnBy(ax>0?-TURN:TURN);}
+      else if(Math.abs(ax)<0.3)st.turned=false;
+    }
+    /* le stick droit déplace le bouton choisi dans le menu */
+    if(mode&&mode!=='mini'&&(Math.abs(ax)>0.6||Math.abs(ay)>0.6)){
       /* un pas tout de suite, puis d'autres si on garde le stick poussé */
       if(!st.navT||t-st.navT>(st.navN?170:400)){st.navN=st.navT?(st.navN||0)+1:0;st.navT=t;if(Math.abs(ay)>Math.abs(ax))menuMove(0,ay>0?1:-1);else menuMove(ax>0?1:-1,0);}
     }else if(Math.abs(ax)<0.3&&Math.abs(ay)<0.3){st.navT=0;st.navN=0;}
-    if(down(5)){
-      if(S.api.gm.on)pause(!S.paused);
-      else if(S.mini)S.mini=false;
-      else{exit();return;}
-    }
+    continue_buttons(st,down,mode);if(!S)return;
   }
+}
+/* B/Y : pause en partie, rouvrir le menu masqué, revenir du sous-menu, sinon quitter */
+function continue_buttons(st,down,mode){
+  if(!down(5))return;
+  if(S.api.gm.on)pause(!S.paused);
+  else if(S.mini)S.mini=false;
+  else if(S.sub){S.sub=false;S.focus='kitmenu';}
+  else exit();
 }
 
 /* « Hoche la tête » : la grosse caisse part quand la tête, qui descendait vite, remonte
@@ -472,6 +684,7 @@ function loop(t,frame){
     const cam=renderer.xr.getCamera(),v=new THREE.Vector3();cam.getWorldPosition(v);
     if(v.lengthSq()>0.01)placeFromHead();
   }
+  updateDecor(t);
   if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   /* casque retiré ou menu du système ouvert : pause */
   if(S&&S.session&&gm.on&&!S.paused&&S.session.visibilityState&&S.session.visibilityState!=='visible')pause(true);
@@ -584,7 +797,7 @@ function draw(t){
 const MW=124,MH=108;
 const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
 const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
-function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':'main';}
+function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub?'kit':'main';}
 function menuItems(mode){
   const {api}=S,it=[];
   if(mode==='mini'){it.push({id:'open',x:MW/2-16,y:MH-14,w:32,h:10,txt:'☰ Menu',big:true});return it;}
@@ -600,6 +813,17 @@ function menuItems(mode){
   const row=(y,lab)=>it.push({t:'lab',x:5,y,w:24,h:H,txt:lab});
   const seg=(y,key,opts,val)=>{const ks=Object.keys(opts),w=(MW-35)/ks.length;ks.forEach((k,j)=>it.push({id:key+':'+k,x:30+j*w,y,w:w-1.5,h:H,txt:opts[k],on:k===val}));};
   const pm=(y,x,w,key,val)=>{it.push({id:key+'-',x,y,w:9,h:H,txt:'−'});it.push({t:'val',x:x+9.5,y,w:w-19,h:H,txt:val});it.push({id:key+'+',x:x+w-9,y,w:9,h:H,txt:'+'});};
+  if(mode==='kit'){
+    row(20,'Sons');seg(20,'sound',o.sounds,o.sound);
+    row(28,'Style');seg(28,'style',STYLES,S.style);
+    row(36,'Disposition');seg(36,'lay',LAYOUTS,S.layout);
+    row(44,'Baguettes');pm(44,30,MW-35,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
+    row(52,'Hauteur');pm(52,30,MW-35,'haut',(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
+    row(60,'Recul');pm(60,30,MW-35,'dist',(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
+    row(68,'Décor');seg(68,'decor',DECORS,S.decor);
+    it.push({id:'back',x:30,y:77,w:MW-60,h:10,txt:'‹ Retour',big:true});
+    return it;
+  }
   row(19,'Chant');
   it.push({id:'src-',x:30,y:19,w:8,h:H,txt:'◀'});
   it.push({t:'val',x:39.5,y:19,w:MW-56,h:H,txt:cur.label+'  ('+(i+1)+'/'+src.length+')'});
@@ -612,17 +836,14 @@ function menuItems(mode){
   row(51,'Grosse caisse');seg(51,'kick',KICKS,o.kick);
   row(59,'Ralentir');
   it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
-  row(67,'Baguettes');
-  pm(67,30,MW-35,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
-  row(75,'Batterie');
-  pm(75,30,(MW-37)/2,'haut','hauteur '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
-  pm(75,32+(MW-37)/2,(MW-37)/2,'dist','recul '+(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
-  it.push({id:'play',x:30,y:84,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
-  it.push({id:'mini',x:MW-49,y:84,w:21,h:10,txt:'Masquer'});
-  it.push({id:'quit',x:MW-27,y:84,w:21,h:10,txt:'Quitter'});
+  row(67,'Batterie');
+  it.push({id:'kitmenu',x:30,y:67,w:MW-35,h:H,txt:'Sons, style, décor, réglages ›'});
+  it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
+  it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-const FOCUS0={main:'play',pause:'resume',mini:'open'};
+const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back'};
 function drawMenu(mode){
   const {api}=S,p=S.menu;
   S.items=menuItems(mode);
@@ -631,14 +852,16 @@ function drawMenu(mode){
   const R=S.result,nc=S.checked.size;
   let title='Poum Tchak · VR',status=null,foot=[];
   if(mode==='pause'){title='Pause';status={t:api.title(),c:'#97A1B2'};foot=[{t:'B/Y ou A/X : reprendre · vise un bouton, gâchette pour choisir',c:'#C9D1DC'}];}
-  else if(mode==='main'){
-    if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best,c:'#F2BB4A'};
+  else if(mode==='main'||mode==='kit'){
+    if(mode==='kit')title='Ma batterie';
+    if(mode==='kit')status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Frappe un pad pour entendre le son choisi',c:'#97A1B2'};
+    else if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best,c:'#F2BB4A'};
     else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
     else status={t:KICK_HINT[api.opts().kick],c:'#97A1B2'};
     foot=[
       nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
       S.preview?{t:'Souris, ou flèches + Entrée · Échap : quitter · P : pause · B F D J K L : frapper',c:'#C9D1DC'}:
-        {t:'Vise + gâchette, ou stick + A/X · B/Y : quitter (en partie : pause) · stick enfoncé : replacer la batterie',c:'#C9D1DC'},
+        {t:'Vise + gâchette, ou stick droit + A · stick gauche : se déplacer · B/Y : quitter (en partie : pause)',c:'#C9D1DC'},
       {t:api.midiText(),c:'#7BE3A6'}
     ];
   }
@@ -704,6 +927,8 @@ function menuDo(id){
   S.result=null;S.msg='';
   if(id==='play'){start();return;}
   if(id==='mini'){S.mini=true;return;}
+  if(id==='kitmenu'){S.sub=true;S.focus='back';return;}
+  if(id==='back'){S.sub=false;S.focus='kitmenu';return;}
   if(id==='quit'){exit();return;}
   if(id==='src-'||id==='src+'){const L=api.sources();let i=L.findIndex(x=>x.id===o.rh);i=(i+(id==='src+'?1:L.length-1))%L.length;api.set('rh',L[i<0?0:i].id);}
   else if(id==='bpm-'||id==='bpm+')api.set('bpm',o.bpm+(id==='bpm+'?5:-5));
@@ -711,7 +936,13 @@ function menuDo(id){
   else if(id==='dist-'||id==='dist+'){setDist(S.dOff+(id==='dist+'?0.1:-0.1));S.msg='';}
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
-  else{const [k,v]=id.split(':');api.set(k,v);}
+  else{
+    const [k,v]=id.split(':');
+    if(k==='style')setStyle(v);
+    else if(k==='decor')setDecor(v);
+    else if(k==='lay')setLayout(v);
+    else{api.set(k,v);if(k==='sound')api.play('tchak',1);}
+  }
 }
 /* Pause : le son s'arrête et la partie se fige (l'horloge du son ne bouge plus). */
 function pause(on){
@@ -743,6 +974,8 @@ function rays(){
   }
 }
 /* Tests : un bouton du menu, comme si on l'avait visé. */
+export function simMove(dx,dz){if(S)moveBy(dx,dz);}
+export function simTurn(dir){if(S)turnBy(dir>0?-TURN:TURN);}
 export function menuPress(id){if(S&&S.menu.mesh.visible)menuDo(id);}
 export function menuIds(){return S?S.items.filter(b=>b.id).map(b=>b.id):[];}
 
@@ -763,7 +996,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+S.kit.rotation.y.toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id)};
+    checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}

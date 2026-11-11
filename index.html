@@ -916,6 +916,9 @@ body.gm-live{overflow:hidden}
       <div class="seg" id="soundSeg" role="group" aria-label="Sons">
         <button type="button" data-v="synth">Synthé</button>
         <button type="button" data-v="kit">Batterie</button>
+        <button type="button" data-v="rock">Rock</button>
+        <button type="button" data-v="jazz">Jazz</button>
+        <button type="button" data-v="electro">Électro</button>
       </div>
     </div>
     <p class="msg" id="soundMsg" role="status"></p>
@@ -2019,7 +2022,7 @@ function loadStore(){
   if(s.solf==='kodaly'||s.solf==='takadimi'||s.solf==='konnakol')state.solf=s.solf;
   state.pattern=PATTERNS.some(p=>p.id===s.pattern)?s.pattern:null;
   if([1,2,3].includes(s.brush))state.brush=s.brush;
-  if(s.sound==='kit'||s.sound==='synth')state.sound=s.sound;
+  if(SOUNDS[s.sound])state.sound=s.sound;
   if(TAB_NAMES.includes(s.tab))state.tab=s.tab;
   if(s.kvl&&typeof s.kvl==='object'){
     if(['kit','chute','utiles'].includes(s.kvl.layout))state.kvl.layout=s.kvl.layout;
@@ -2177,9 +2180,39 @@ function voice(id,t,vel){
   }
   synthVoice(id,t,k);
 }
+/* Les kits de sons : la batterie enregistrée, et des batteries de synthèse de styles différents. */
+const SOUNDS={synth:'Synthé',kit:'Batterie',rock:'Rock',jazz:'Jazz',electro:'Électro'};
 function synthVoice(id,t,k){
   const T=(f0,f1,dur,peak,type)=>tone(t,f0,f1,dur,peak*k,type);
   const N=(dur,peak,opt)=>noise(t,dur,peak*k,opt);
+  const st=state.sound;
+  if(st==='rock')switch(id){ /* grosse caisse ronde, caisse claire qui claque, toms graves, cymbales longues */
+    case 'poum':  T(120,40,0.55,1.15);N(0.02,0.4,{bp:3500,q:0.9});return;
+    case 'toum':  T(100,55,0.75,0.95);N(0.035,0.2,{bp:600,q:0.8});return;
+    case 'doum':  T(165,90,0.55,0.9);N(0.035,0.2,{bp:1000,q:0.8});return;
+    case 'tchak': N(0.28,0.85,{bp:1800,q:0.5});N(0.12,0.45,{hp:4000});T(200,150,0.15,0.6,'triangle');return;
+    case 'tss':   N(0.07,0.5,{hp:7000});return;
+    case 'tchaa': N(0.6,0.42,{hp:6000});return;
+    case 'psch':  N(1.8,0.5,{hp:3500});N(0.5,0.3,{bp:7000,q:0.5});return;
+  }
+  if(st==='jazz')switch(id){ /* petite grosse caisse, caisse claire aux balais, toms accordés haut, cymbales douces */
+    case 'poum':  T(95,58,0.35,0.7);return;
+    case 'toum':  T(170,120,0.8,0.7);N(0.03,0.08,{bp:900,q:0.8});return;
+    case 'doum':  T(255,185,0.7,0.7);N(0.03,0.08,{bp:1400,q:0.8});return;
+    case 'tchak': N(0.16,0.5,{bp:3200,q:0.4});T(260,220,0.08,0.22,'triangle');return;
+    case 'tss':   N(0.05,0.3,{hp:9000});T(5200,5200,0.05,0.04);return;
+    case 'tchaa': N(0.9,0.26,{bp:6200,q:2});T(4300,4300,0.6,0.03);return;
+    case 'psch':  N(2.2,0.32,{hp:3000});return;
+  }
+  if(st==='electro')switch(id){ /* boîte à rythmes : grosse caisse qui descend, caisse claire et charley secs */
+    case 'poum':  T(160,42,0.9,1.15);return;
+    case 'toum':  T(150,90,0.45,0.85);return;
+    case 'doum':  T(230,140,0.4,0.85);return;
+    case 'tchak': N(0.18,0.75,{hp:1500});T(330,180,0.1,0.5,'triangle');return;
+    case 'tss':   N(0.03,0.5,{hp:9500});return;
+    case 'tchaa': N(0.3,0.42,{hp:8500});return;
+    case 'psch':  N(1.0,0.4,{hp:5000});return;
+  }
   switch(id){
     case 'poum':  T(150,46,0.5,1.0);N(0.025,0.3,{bp:2800,q:0.8});break;
     case 'toum':  T(118,60,0.6,0.9);N(0.03,0.15,{bp:700,q:0.8});break;
@@ -4081,8 +4114,9 @@ $('#swingSeg').addEventListener('click',e=>{
 });
 function smsg(t,err){const e=$('#soundMsg');e.textContent=(err?'Erreur : ':'')+t;e.className='msg'+(err?' err':'');}
 function setSound(v,quiet){
-  state.sound=v;updateControls();
-  if(v!=='kit'){if(!quiet)smsg('Sons de synthèse.');return;}
+  if(!SOUNDS[v])return;
+  state.sound=v;updateControls();save();
+  if(v!=='kit'){if(!quiet)smsg(v==='synth'?'Sons de synthèse.':'Batterie de synthèse : '+SOUNDS[v]+'.');return;}
   if(kitBufs){if(!quiet)smsg('Sons de la batterie enregistrée.');return;}
   if(kitState==='fail'){state.sound='synth';updateControls();smsg('Les sons de batterie n\'ont pas pu être chargés, retour à la synthèse.',true);return;}
   smsg('Chargement des sons de batterie…');
@@ -5737,7 +5771,7 @@ const vrApi={
     gm.paused=!!on;
     if(on)ctx.suspend().catch(()=>{});else ctx.resume().catch(()=>{});
   },
-  opts(){const s=gmCurSong();return {kick:vrKick,rh:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  opts(){const s=gmCurSong();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,rh:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
   set(k,v){
     if(gm.on)return;
     if(k==='rh'&&typeof v==='string')gm.rh=v;
@@ -5745,6 +5779,7 @@ const vrApi={
     else if(k==='tol'&&GM_TOL[v])gm.tol=v;
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
     else if(k==='slow')gm.slow=!!v;
+    else if(k==='sound'&&SOUNDS[v])setSound(v,true);
     else if(k==='kick'&&['gachette','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
     gmSave();
   },

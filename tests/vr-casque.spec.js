@@ -7,6 +7,9 @@ const { test, expect, rubrique } = require('./outils/base');
 const IWER = fs.readFileSync(path.join(__dirname, '..', 'node_modules', 'iwer', 'build', 'iwer.min.js'), 'utf8');
 
 test.beforeEach(async ({ page }) => {
+  // décor sobre : sans carte graphique, les décors ralentissent tant le simulateur que les coups simulés,
+  // une position par image, deviendraient trop lents pour compter (ce test vérifie la détection des coups)
+  await page.addInitScript(() => localStorage.setItem('poumtchak.vr.decor', 'nuit'));
   await page.addInitScript(IWER + ';window.__dev=new IWER.XRDevice(IWER.metaQuest2);window.__dev.installRuntime();');
   await page.reload();
   await page.locator('#grid .cell').first().waitFor();
@@ -26,7 +29,8 @@ async function coup(page, pad) {
     const d = window.__gm.vr().debug(), c = window.__dev.controllers.right.position;
     const tip = d.tips.find((x) => x.hand === 'right').pos, P = d.padsWorld[i];
     const off = [tip[0] - c.x, tip[1] - c.y, tip[2] - c.z];
-    for (const dy of [0.1, 0.06, 0.02, -0.02, -0.04, 0.12]) {
+    // des pas assez grands pour rester un vrai coup (plus de 0,35 m/s) même quand le simulateur ne fait que 5 images par seconde
+    for (const dy of [0.12, 0.06, 0.025, -0.05, 0.12]) {
       window.__dev.controllers.right.position.set(P[0] - off[0], P[1] + dy - off[1], P[2] - off[2]);
       const f0 = window.__gm.vr().frames();
       while (window.__gm.vr().frames() < f0 + 1) await new Promise((f) => setTimeout(f, 2));
@@ -77,7 +81,7 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
     await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 0, 0));
     await page.waitForTimeout(90);
   };
-  for (let i = 0; i < 7; i++) await stick(0, -1); // remonter jusqu'à la ligne « Notes »
+  for (let i = 0; i < 6; i++) await stick(0, -1); // remonter jusqu'à la ligne « Notes »
   expect((await etat()).focus).toMatch(/^lvl:/);
   await page.evaluate(() => window.__gm.vr().menuPress('lvl:facile'));
   await stick(1, 0);
@@ -90,6 +94,20 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   await page.evaluate(() => window.__gm.vr().menuPress('tilt+'));
   expect((await vr(page)).tilt).toBeGreaterThan(angle);
   expect(+(await page.evaluate(() => localStorage.getItem('poumtchak.vr.angle')))).toBeGreaterThan(angle);
+  // stick gauche : se déplacer ; stick droit, menu masqué : tourner par crans
+  const avant = await vr(page), focus = (await etat()).focus;
+  await page.evaluate(() => window.__dev.controllers.left.updateAxes('thumbstick', 0, -1));
+  await expect.poll(async () => (await vr(page)).moved).toBeGreaterThan(0.1);
+  await page.evaluate(() => window.__dev.controllers.left.updateAxes('thumbstick', 0, 0));
+  expect((await vr(page)).kitPos).not.toEqual(avant.kitPos);
+  expect((await etat()).focus).toBe(focus); // le stick gauche ne touche pas au menu
+  await page.evaluate(() => window.__gm.vr().menuPress('mini'));
+  await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 1, 0));
+  await expect.poll(async () => (await vr(page)).turns).toBe(1);
+  await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 0, 0));
+  await page.waitForTimeout(100);
+  expect((await vr(page)).turns).toBe(1);
+  await page.evaluate(() => window.__gm.vr().menuPress('open'));
   // le focus revient sur Jouer
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('mini'); v.menuPress('open'); });
   await expect.poll(async () => (await etat()).focus).toBe('play');

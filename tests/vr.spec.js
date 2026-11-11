@@ -27,7 +27,7 @@ test('aperçu VR : vérifier les pads, jouer aux baguettes, revenir', async ({ p
 
   // le menu du casque : changer le rythme, le nombre de notes et la tolérance, sans retirer le casque
   const ids = await page.evaluate(() => window.__gm.vr().menuIds());
-  expect(ids).toEqual(expect.arrayContaining(['src-', 'src+', 'lvl:moyen', 'tol:indulgent', 'bpm+', 'kick:auto', 'kick:tete', 'slow', 'tilt+', 'haut-', 'play', 'mini', 'quit']));
+  expect(ids).toEqual(expect.arrayContaining(['src-', 'src+', 'lvl:moyen', 'tol:indulgent', 'bpm+', 'kick:auto', 'kick:tete', 'slow', 'kitmenu', 'play', 'mini', 'quit']));
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('lvl:moyen'); v.menuPress('tol:indulgent'); v.menuPress('bpm-'); });
   let o = await page.evaluate(() => window.__gm.vrApi.opts());
   expect([o.lvl, o.tol, o.bpm]).toEqual(['moyen', 'indulgent', 210]);
@@ -90,7 +90,7 @@ test('aperçu VR : pause, grosse caisse automatique, menu masqué, navigation au
 
   // flèches et Entrée : du bouton Jouer, on remonte sur « Grosse caisse » et on choisit « Automatique »
   expect((await etat()).focus).toBe('play');
-  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowUp');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
   expect((await etat()).focus).toMatch(/^kick:/);
   await page.evaluate(() => window.__gm.vr().menuPress('kick:gachette'));
   await page.keyboard.press('ArrowRight');
@@ -147,4 +147,66 @@ test('aperçu VR : pause, grosse caisse automatique, menu masqué, navigation au
   await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(false);
   expect((await etat()).mode).toBe('main');
   await page.evaluate(() => window.__gm.vr().menuPress('kick:gachette'));
+});
+
+test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('index.html?vr=apercu');
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  const vr = () => page.evaluate(() => window.__gm.vr().debug());
+  const etat = () => page.evaluate(() => window.__gm.vr()?.state());
+  await expect.poll(async () => (await etat())?.mode).toBe('main');
+
+  // « Ma batterie » : un sous-menu, Échap revient au menu
+  await page.evaluate(() => window.__gm.vr().menuPress('kitmenu'));
+  expect((await etat()).mode).toBe('kit');
+  expect(await page.evaluate(() => window.__gm.vr().menuIds())).toEqual(expect.arrayContaining(['sound:rock', 'sound:jazz', 'sound:electro', 'style:bois', 'lay:gaucher', 'lay:large', 'tilt+', 'haut-', 'dist+', 'back']));
+
+  // le son : gardé pour toute l'appli
+  await page.evaluate(() => window.__gm.vr().menuPress('sound:jazz'));
+  expect((await page.evaluate(() => window.__gm.vrApi.opts())).sound).toBe('jazz');
+
+  // le style : des fûts sous les peaux
+  expect((await vr()).shells).toBe(0);
+  await page.evaluate(() => window.__gm.vr().menuPress('style:bois'));
+  expect((await vr()).shells).toBe(3);
+  expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.style'))).toBe('bois');
+
+  // gaucher : le charley passe à droite ; large : des pads plus grands
+  const x0 = (await vr()).padsWorld[2][0];
+  expect(x0).toBeLessThan(0);
+  await page.evaluate(() => window.__gm.vr().menuPress('lay:gaucher'));
+  expect((await vr()).padsWorld[2][0]).toBeCloseTo(-x0, 2);
+  const r0 = (await vr()).padR[1];
+  await page.evaluate(() => window.__gm.vr().menuPress('lay:large'));
+  expect((await vr()).padR[1]).toBeGreaterThan(r0 * 1.1);
+  // un coup de baguette compte toujours sur le pad agrandi
+  await page.evaluate(() => window.__gm.vr().simStrike(3));
+  await expect.poll(async () => (await vr()).checked).toContain(3);
+
+  // le décor : la chapelle par défaut (bougies allumées au repos), la colline, ou la nuit sobre
+  expect((await vr()).decor).toBe('chapelle');
+  await expect.poll(async () => (await vr()).flames).toBe(4);
+  await page.evaluate(() => window.__gm.vr().menuPress('decor:nuit'));
+  expect((await vr()).bg).toBe('0b0e14');
+  await page.evaluate(() => window.__gm.vr().menuPress('decor:colline'));
+  expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.decor'))).toBe('colline');
+  await expect.poll(async () => (await vr()).bg).not.toBe('0b0e14');
+
+  await page.keyboard.press('Escape');
+  expect((await etat()).mode).toBe('main');
+  // le mode où on ne peut pas perdre est dans le menu
+  expect(await page.evaluate(() => window.__gm.vr().menuIds())).toContain('tol:sansechec');
+
+  // se déplacer : un pas en avant rapproche la batterie, tourner la fait pivoter autour de soi
+  const z0 = (await vr()).padsWorld[1][2];
+  await page.evaluate(() => window.__gm.vr().simMove(0, 0.5));
+  expect((await vr()).padsWorld[1][2] - z0).toBeCloseTo(0.5, 2);
+  const yaw = (await vr()).yaw;
+  await page.evaluate(() => window.__gm.vr().simTurn(1));
+  expect(Math.abs((await vr()).yaw - yaw)).toBeCloseTo(Math.PI / 6, 2);
+
+  // remettre les réglages
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('sound:synth'); v.menuPress('style:pads'); v.menuPress('lay:standard'); v.menuPress('decor:chapelle'); });
 });
