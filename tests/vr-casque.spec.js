@@ -77,7 +77,7 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
     await page.evaluate(() => window.__dev.controllers.right.updateAxes('thumbstick', 0, 0));
     await page.waitForTimeout(90);
   };
-  for (let i = 0; i < 6; i++) await stick(0, -1); // remonter jusqu'à la ligne « Notes »
+  for (let i = 0; i < 7; i++) await stick(0, -1); // remonter jusqu'à la ligne « Notes »
   expect((await etat()).focus).toMatch(/^lvl:/);
   await page.evaluate(() => window.__gm.vr().menuPress('lvl:facile'));
   await stick(1, 0);
