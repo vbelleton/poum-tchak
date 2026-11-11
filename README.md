@@ -95,7 +95,15 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   s'arrêtent), puis Reprendre, Recommencer ou Arrêter ; casque retiré : pause automatique.
   **Grosse caisse sans batterie** : à la gâchette, automatique (elle se joue toute seule, on
   fait les mains) ou « Hoche la tête » (un petit coup de tête vers le bas). Stick enfoncé :
-  replacer la batterie devant soi ; hors partie, B ou Y quitte la VR. Les
+  replacer la batterie devant soi ; hors partie, B ou Y quitte la VR. **Mains › (dans le casque)** :
+  le tableau à deux colonnes de la rubrique Mains, joué sur deux pads : main gauche sur la caisse
+  claire, main droite sur le tom basse, 1 à 4 coups par temps chacune (8 mesures), ou « Enchaîner »
+  les 16 duos (2 mesures chacun) ; le duo en cours s'affiche au-dessus de la batterie, et le bilan
+  donne la justesse de chaque main. **Exercices ›** : des consignes en onomatopées à rejouer en
+  boucle (2, 4 ou 8 fois), la mesure écrite au-dessus de la batterie avec le mot à jouer entre
+  crochets : huit exercices de l'appli, trois consignes au hasard (comme dans Mots), « Mon rythme »
+  et ceux du prof : dans Mots, écrire la consigne (en mots ou en solfège), « Mettre dans la
+  grille », puis « Garder pour le casque » (gardés sur l'appareil). Les
   records VR sont à part. Peu : grosse caisse et caisse claire ; Moyen : + charley ; Beaucoup :
   tout. Sans casque : `?vr=apercu` à la fin de l'adresse montre la scène sur l'écran (touches
   B F D J K L ou clic, flèches et Entrée dans le menu, P ou Échap : pause) ; `?vr=simulateur` simule un Meta Quest 2 complet (IWER, de Meta, chargé

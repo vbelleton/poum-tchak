@@ -200,6 +200,9 @@ label.f{display:block;font:600 11px var(--f-mono);letter-spacing:.06em;text-tran
 textarea,input[type=text],select{width:100%;font:500 16px/1.4 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--edge);border-radius:9px;padding:9px 10px}
 textarea{resize:vertical;min-height:64px}
 .row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.exo-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.exo-list li{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--edge);border-radius:10px;padding:6px 10px}
+.exo-list small{display:block;color:var(--mute,#97A1B2);font-family:ui-monospace,monospace;overflow-wrap:anywhere}
 .row>*{min-width:0}
 .btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--ink-inv);border-radius:9px;padding:9px 14px;min-height:42px;font-weight:600;font-size:14px;cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--edge)}
@@ -1155,6 +1158,11 @@ body.gm-live{overflow:hidden}
     <select id="solfDrum"></select>
     <div class="row" style="margin-top:8px"><button type="button" class="btn" id="applySolf">Mettre dans la grille</button></div>
     <p class="msg" id="msg" role="status"></p>
+    <h3>Exercices pour le casque VR</h3>
+    <p class="hint">Les consignes de ton prof, à rejouer en boucle dans le casque (Jeux › Jouer en VR › Exercices) avec les mots affichés au-dessus de la batterie. Écris-les ci-dessus en mots ou en solfège, puis garde la grille ici.</p>
+    <label class="f" for="exoName">Nom de l'exercice</label>
+    <div class="row"><input type="text" id="exoName" maxlength="40" placeholder="Nom de l'exercice, par exemple « Prof, semaine 3 »" autocomplete="off" style="flex:1;min-width:12em"><button type="button" class="btn ghost" id="exoSave">Garder pour le casque</button></div>
+    <ul class="exo-list" id="exoList"></ul>
 
     <h3>Dictionnaire</h3>
     <p class="hint">Chaque fût peut avoir plusieurs mots. Ouvre un fût pour les voir :</p>
@@ -4731,6 +4739,8 @@ $('#gmGo').addEventListener('click',()=>gmLaunch(null));
 $('#gmResume').addEventListener('click',()=>gmLaunch(gmCkGet(gmCkKey())));
 /* La partition du jeu choisi, sur le chant ou le rythme en cours. */
 function gmBuild(song){
+  if(gm.game==='vr'&&vrMains)return vrMainsChart(vrMains);
+  if(gm.game==='vr'&&vrExo)return vrExoChart(vrExo);
   if(gm.game==='orbite'){
     if(song){
       const bars=gmSongBars(song),first=song.notes[0][0],last=song.notes[song.notes.length-1][0];
@@ -5738,6 +5748,98 @@ function vrAutoKick(c,song){
   /* un chant a déjà sa grosse caisse dans le son ; un rythme la joue avec l'accompagnement */
   if(!song)c.backing=c.backing.concat(k.map(n=>({t:n.t,id:n.id,vel:n.vel}))).sort((a,b)=>a.t-b.t);
 }
+/* Mains, dans le casque : la feuille du prof, deux colonnes, 1, 2, 3 ou 4 coups par temps pour chaque main.
+   La main gauche joue le pad de gauche (caisse claire), la droite le pad de droite (tom basse). */
+let vrMains=null;
+const VR_MAINS_KEY='poumtchak.vr.mains';
+let vrMainsCfg={l:1,r:2,chain:false};
+try{const v=JSON.parse(localStorage.getItem(VR_MAINS_KEY)||'null');if(v&&v.l>=1&&v.l<=4&&v.r>=1&&v.r<=4)vrMainsCfg={l:v.l,r:v.r,chain:!!v.chain};}catch(e){}
+function vrMainsChart(cfg){
+  const beat=60/gm.bpm,barDur=4*beat,notes=[],beats=[],segs=[];
+  const duos=[];
+  if(cfg.chain){for(let l=1;l<=4;l++)for(let r=1;r<=4;r++)duos.push([l,r]);}else duos.push([cfg.l,cfg.r]);
+  const per=cfg.chain?2:8; /* mesures par duo */
+  let b=0;
+  for(const [l,r] of duos){
+    segs.push({t:b*barDur,l,r});
+    for(let k=0;k<per;k++,b++)for(let i=0;i<4;i++){
+      const tb=b*barDur+i*beat;
+      beats.push({t:tb,accent:i===0});
+      for(let j=0;j<l;j++)notes.push({t:tb+j*beat/l,lane:1,id:'tchak',vel:j===0?3:2});
+      for(let j=0;j<r;j++)notes.push({t:tb+j*beat/r,lane:4,id:'toum',vel:j===0?3:2});
+    }
+  }
+  notes.sort((a,c)=>a.t-c.t||a.lane-c.lane);
+  const bars=[];for(let i=0;i<=b;i++)bars.push(i*barDur);
+  return {notes,backing:[],beats,barDur,dur:b*barDur,nLanes:GM_LANES.vr.length,bars,mains:segs};
+}
+/* Exercices d'onomatopées pour le casque : une ou deux mesures écrites en mots, comme les consignes
+   du prof, qu'on rejoue en boucle. Ceux de l'appli, une consigne au hasard (comme dans Mots), « Mon rythme »,
+   et ceux gardés depuis la rubrique Mots (« Garder pour le casque »). */
+let vrExo=null,vrExoRand={};
+const VR_EXO_KEY='poumtchak.vr.exo',EXOS_KEY='poumtchak.exos';
+let vrExoCfg={id:'b1',rep:4};
+try{const v=JSON.parse(localStorage.getItem(VR_EXO_KEY)||'null');if(v&&typeof v.id==='string')vrExoCfg={id:v.id,rep:[2,4,8].includes(v.rep)?v.rep:4};}catch(e){}
+const X44=spec=>mk(METERS['44'],spec);
+const ROCK={poum:[0,8],tchak:[4,12],tss:EVEN16};
+const VR_EXOS=[
+  {id:'b1',label:'Poum et tchak',bars:[X44({poum:[0,8],tchak:[4,12]})]},
+  {id:'b2',label:'Croches au charley',bars:[X44({tss:EVEN16})]},
+  {id:'b3',label:'Le rythme de base',bars:[X44(ROCK)]},
+  {id:'b4',label:'Deux poum',bars:[X44({poum:[0,8,10],tchak:[4,12],tss:EVEN16})]},
+  {id:'b5',label:'Charley à contretemps',bars:[X44({poum:[0,4,8,12],tss:[2,6,10,14]})]},
+  {id:'b6',label:'Les toms descendent',bars:[X44({tchak:[0,2],doum:[4,6],toum:[8,10],poum:[12]})]},
+  {id:'b7',label:'Rythme puis roulement',bars:[X44(ROCK),X44({poum:[0],tss:[0,2],tchak:[4,6],doum:[8,10],toum:[12,14]})]},
+  {id:'b8',label:'Crash, puis le rythme',bars:[X44({psch:[0],poum:[0,8],tchak:[4,12],tss:[2,4,6,8,10,12,14]}),X44(ROCK)]},
+  {id:'r1',label:'Au hasard · facile',rand:1},
+  {id:'r2',label:'Au hasard · moyen',rand:2},
+  {id:'r3',label:'Au hasard · difficile',rand:3}
+].map(e=>({meter:'44',swing:false,...e}));
+function exoSaved(){
+  try{
+    const L=JSON.parse(localStorage.getItem(EXOS_KEY)||'[]');
+    return Array.isArray(L)?L.filter(e=>e&&typeof e.name==='string'&&METERS[e.meter]&&Array.isArray(e.bars)&&e.bars.length&&
+      e.bars.every(g=>g&&IDS.every(id=>Array.isArray(g[id])&&g[id].length===METERS[e.meter].steps))):[];
+  }catch(e){return [];}
+}
+function exoList(){
+  const L=VR_EXOS.slice();
+  if(gmMyGroove())L.push({id:'mine',label:'Mon rythme',mine:true});
+  exoSaved().forEach((e,i)=>L.push({id:'u'+i+':'+e.name,label:e.name,meter:e.meter,swing:!!e.swing,bars:e.bars}));
+  return L;
+}
+/* une consigne au hasard : la même fabrique que dans Mots (8 croches), mise sur la grille de 16 cases */
+function exoRandBars(lvl){
+  const g8=trMake(lvl),g=emptyGrid(METERS['44']);
+  IDS.forEach(id=>g8[id].forEach((v,i)=>{if(v)g[id][2*i]=2;}));
+  return [g];
+}
+function exoFind(id){
+  const e=exoList().find(x=>x.id===id);if(!e)return null;
+  if(e.mine)return {...e,meter:state.meter,swing:state.swing,bars:state.bars.map(g=>({...g}))};
+  if(e.rand){if(!vrExoRand[e.id])vrExoRand[e.id]=exoRandBars(e.rand);return {...e,bars:vrExoRand[e.id]};}
+  return e;
+}
+/* les mots de chaque mesure : un par croche si l'exercice n'a pas de double croche, sinon un par case */
+function exoTokens(e){
+  e=e.bars?e:exoFind(e.id);if(!e)return [];
+  const m=METERS[e.meter],half=m.perBeat===4&&e.bars.every(g=>IDS.every(id=>g[id].every((v,s)=>!v||s%2===0)));
+  return e.bars.map(g=>{
+    const out=[];
+    for(let s=0;s<m.steps;s+=half?2:1){
+      const ids=IDS.filter(id=>g[id][s]);
+      out.push({s,w:ids.length?showLevel(comboWord(dict,ids),levelOf(g,ids,s)):'.'});
+    }
+    return out;
+  });
+}
+function vrExoChart(e){
+  const m=METERS[e.meter],n=e.bars.length*e.rep;
+  const c=gmChart(e.bars,e.meter,gm.bpm,e.swing,'vr','difficile',n);
+  const tk=exoTokens(e),exo=[];
+  for(let b=0;b<n;b++)tk[b%tk.length].forEach(x=>exo.push({t:c.bars[b]+stepOffset(x.s,m,gm.bpm,e.swing),w:x.w,bar:b}));
+  return {...c,exo};
+}
 let vrMod=null;
 const vrPreview=/[?&]vr=apercu\b/.test(location.search);
 const vrApi={
@@ -5751,11 +5853,47 @@ const vrApi={
   play:(id,v)=>{if(ensureAudio())voice(id,ctx.currentTime,v||1);},
   step:()=>gmVrStep(),
   stop:()=>gmHalt(),
-  launch:()=>vrLaunch(),
+  launch:()=>{vrMains=null;vrExo=null;return vrLaunch();},
+  launchMains:()=>{vrExo=null;vrMains={...vrMainsCfg};return vrLaunch();},
+  launchExo(){vrMains=null;const e=exoFind(vrExoCfg.id);if(!e)return Promise.resolve('Choisis un exercice.');vrExo={...e,rep:vrExoCfg.rep};return vrLaunch();},
+  exoOpts(){const L=exoList(),i=Math.max(0,L.findIndex(x=>x.id===vrExoCfg.id)),e=L[i]||null;
+    return {id:e?e.id:'',rep:vrExoCfg.rep,label:e?e.label:'—',i,n:L.length,rand:!!(e&&e.rand),
+      lines:e?exoTokens(e).map(b=>b.map(x=>x.w).join(' ')):[]};},
+  setExo(k,v){
+    if(gm.on)return;
+    const L=exoList();
+    if(k==='step'){let i=L.findIndex(x=>x.id===vrExoCfg.id);i=(i+v+L.length)%L.length;vrExoCfg.id=L[i<0?0:i].id;}
+    else if(k==='rep'&&[2,4,8].includes(+v))vrExoCfg.rep=+v;
+    else if(k==='new')vrExoRand={};
+    try{localStorage.setItem(VR_EXO_KEY,JSON.stringify(vrExoCfg));}catch(e){}
+  },
+  /* la consigne en cours, au-dessus de la batterie : la mesure en mots, le mot à jouer entre crochets */
+  exoNow(){
+    if(!vrExo||!gm.on||!gm.chart||!gm.chart.exo)return null;
+    const t=gmNow(),T=gm.chart.exo;let k=-1;
+    for(let i=0;i<T.length;i++){if(T[i].t<=t+0.06)k=i;else break;}
+    const bar=k<0?0:T[k].bar;
+    return T.filter(x=>x.bar===bar).map(x=>x===T[k]?'['+x.w+']':x.w).join(' ');
+  },
+  mainsOpts:()=>({...vrMainsCfg}),
+  setMains(k,v){
+    if(gm.on)return;
+    if((k==='l'||k==='r')&&+v>=1&&+v<=4)vrMainsCfg[k]=+v;
+    else if(k==='chain')vrMainsCfg.chain=!!v;
+    try{localStorage.setItem(VR_MAINS_KEY,JSON.stringify(vrMainsCfg));}catch(e){}
+  },
+  /* le duo en cours (enchaîné, il change toutes les deux mesures) */
+  mainsNow(){if(!vrMains||!gm.on||!gm.chart.mains)return null;const t=gmNow();let d=gm.chart.mains[0];for(const x of gm.chart.mains)if(x.t<=t+0.05)d=x;return d;},
+  /* chaque main : la part de ses coups joués à temps */
+  hands(){
+    if(!vrMains||!gm.chart||!gm.chart.mains)return null;
+    const pc=lane=>{const ns=gm.chart.notes.filter(n=>n.lane===lane&&n.done&&n.res!=='old');return ns.length?Math.round(100*ns.filter(n=>n.res!=='miss').length/ns.length):0;};
+    return {l:pc(1),r:pc(4)};
+  },
   pct:()=>gmPct(gm.sc),
   stars:p=>gmStars(p),
   noFail:()=>gmNoFail(),
-  title(){const s=gmCurSong(),p=PATTERNS.find(x=>x.id===gm.rh);return [s?s.title:gm.rh==='mine'?'Mon rythme':p?p.label:'',GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');},
+  title(){if(vrExo)return 'Exercice : '+vrExo.label;if(vrMains)return vrMains.chain?'Mains : les 16 duos':'Mains : gauche '+vrMains.l+', droite '+vrMains.r;const s=gmCurSong(),p=PATTERNS.find(x=>x.id===gm.rh);return [s?s.title:gm.rh==='mine'?'Mon rythme':p?p.label:'',GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');},
   midiText(){
     if(!gm.midi)return 'Batterie MIDI : coupée (à allumer dans Jeux, avant d\'entrer)';
     const ins=midiInputs();return ins.length?'Batterie MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓':'Batterie MIDI : allumée, aucune batterie branchée';
@@ -5804,8 +5942,8 @@ async function vrLaunch(){
   sheetClose();
   if(!ensureAudio())return 'Le son n\'est pas disponible.';
   gm.game='vr';
-  const song=gmCurSong();
-  if(!song&&gm.rh==='mine'&&!gmMyGroove())return 'Écris d\'abord un rythme dans la rubrique Rythme.';
+  const song=vrMains||vrExo?null:gmCurSong();
+  if(!vrMains&&!vrExo&&!song&&gm.rh==='mine'&&!gmMyGroove())return 'Écris d\'abord un rythme dans la rubrique Rythme.';
   $('#gmMsg').textContent='';
   if(song){
     gm.busy=true;
@@ -6263,6 +6401,28 @@ $('#applyPhrase').addEventListener('click',()=>{
   state.bars[state.bar]=r.grid;state.pattern=null;renderAll();
   msg(r.extra?'Mis dans la grille. '+r.extra+' mot(s) en trop ignoré(s) : la mesure compte '+m.steps+' cases.':'Mis dans la grille : '+m.steps+' cases.');
 });
+function exoRender(){
+  const host=$('#exoList');if(!host)return;host.textContent='';
+  exoSaved().forEach((e,i)=>{
+    const li=document.createElement('li'),d=document.createElement('div');
+    const b=el('b',null,e.name),sm=el('small',null,exoTokens(e).map(x=>x.map(y=>y.w).join(' ')).join('  |  '));
+    d.appendChild(b);d.appendChild(sm);li.appendChild(d);
+    const x=el('button','btn ghost','Retirer');x.type='button';x.setAttribute('aria-label','Retirer l\'exercice '+e.name);
+    x.addEventListener('click',()=>{const L=exoSaved();L.splice(i,1);try{localStorage.setItem(EXOS_KEY,JSON.stringify(L));}catch(err){}exoRender();});
+    li.appendChild(x);host.appendChild(li);
+  });
+}
+$('#exoSave').addEventListener('click',()=>{
+  if(!gmMyGroove()){msg('La grille est vide : écris d\'abord la consigne ci-dessus.',true);return;}
+  const L=exoSaved(),name=($('#exoName').value.trim()||'Exercice '+(L.length+1)).slice(0,40);
+  const j=L.findIndex(e=>e.name===name),e={name,meter:state.meter,swing:state.swing,bars:state.bars.map(g=>{const c={};IDS.forEach(id=>{c[id]=g[id].slice();});return c;})};
+  if(j>=0)L[j]=e;else L.push(e);
+  if(L.length>40)L.shift();
+  try{localStorage.setItem(EXOS_KEY,JSON.stringify(L));}catch(err){msg('Impossible de garder l\'exercice sur cet appareil.',true);return;}
+  $('#exoName').value='';exoRender();
+  msg('« '+name+' » est gardé : tu le trouves dans le casque, menu Exercices.');
+});
+exoRender();
 $('#applySolf').addEventListener('click',()=>{
   const m=M();const r=parseSolfege($('#txtSolf').value,m);
   if(r.bad.length){msg('Solfège inconnu : « '+r.bad.join(' », « ')+' ». Rien n\'a été changé.',true);return;}
