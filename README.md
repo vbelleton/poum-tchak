@@ -79,9 +79,18 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   coup), la gâchette fait la grosse caisse. Avec **Batterie MIDI** allumé avant d'entrer, la
   vraie batterie compte aussi, pédale comprise (si le navigateur du casque gère le MIDI). Avant
   de jouer, on **vérifie ses pads** : chaque pad frappé reçoit sa coche. Un **menu dans le
-  casque** (on vise avec la manette et gâchette, ou stick pour se déplacer et A/X pour valider)
+  casque** (on vise avec la manette et gâchette, ou stick droit pour choisir et A/X pour valider)
   règle le chant ou le rythme, le nombre de notes, la tolérance, le tempo, la grosse caisse, le
-  ralentissement, l'angle des baguettes et la hauteur de la batterie, tous gardés. « Masquer »
+  ralentissement, tous gardés. **Ma batterie** (sous-menu) : les sons (Synthé, Batterie
+  enregistrée, Rock, Jazz, Électro, aussi dans Réglages sur le téléphone), le style (pads
+  lumineux, ou fûts noir, rouge, bleu, bois), la disposition (standard, gaucher, compacte,
+  large), le décor, l'angle des baguettes, la hauteur et le recul de la batterie. **Décors** :
+  une chapelle (les vitraux s'éclairent au fil du chant, une bougie s'allume tous les 4 coups
+  justes de suite, la croix brille pendant les longues séries, des rayons entrent quand la jauge
+  est pleine), une colline à l'aube (le soleil se lève derrière les trois croix au fil du chant,
+  les étoiles s'effacent, des colombes volent pendant les séries) ou la nuit sobre. **Se
+  déplacer** : stick gauche pour avancer ou glisser, stick droit (menu masqué ou en partie) pour
+  tourner par crans. Pour ne jamais perdre : tolérance « Sans échec ». « Masquer »
   le réduit à un bouton pour jouer librement. **Pause** : B ou Y en partie (le son et les notes
   s'arrêtent), puis Reprendre, Recommencer ou Arrêter ; casque retiré : pause automatique.
   **Grosse caisse sans batterie** : à la gâchette, automatique (elle se joue toute seule, on
