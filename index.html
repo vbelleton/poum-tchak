@@ -93,6 +93,8 @@ body[data-tab="rythme"] .stage,body[data-tab="pratique"] .stage,body[data-tab="e
 @keyframes gm-fall{to{transform:translateY(110vh) rotate(var(--r,180deg))}}
 @media (prefers-reduced-motion:reduce){.gm-confetti{display:none}}
 .tempo-read{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
+@keyframes flash{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 6px var(--ok,#7BE3A6)}}
+.flash{animation:flash .8s 4}
 .kit{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
 .ic{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
 .ico{width:100%;max-width:34px;height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -5782,6 +5784,14 @@ const vrApi={
     else if(k==='sound'&&SOUNDS[v])setSound(v,true);
     else if(k==='kick'&&['gachette','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
     gmSave();
+  },
+  /* « + Mes chants » dans le casque : on sort de la VR et la page montre où ajouter les chants */
+  importPrompt(){
+    const b=$('#gmImp');if(!b)return;
+    b.scrollIntoView({block:'center'});
+    $('#gmMsg').textContent='Ajoute tes chants avec « Importer des chants » (le zip chants-poumtchak.zip ou des fichiers audio), puis appuie sur « Jouer en VR » pour revenir dans le casque.';
+    b.classList.remove('flash');void b.offsetWidth;b.classList.add('flash');
+    setTimeout(()=>b.classList.remove('flash'),4000);
   },
   setVR(on){
     if(on){if(!gm.vr){gm.vrPrev=gm.game;gm.vr=true;}gm.game='vr';}

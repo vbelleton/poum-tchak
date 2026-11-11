@@ -27,7 +27,7 @@ test('aperçu VR : vérifier les pads, jouer aux baguettes, revenir', async ({ p
 
   // le menu du casque : changer le rythme, le nombre de notes et la tolérance, sans retirer le casque
   const ids = await page.evaluate(() => window.__gm.vr().menuIds());
-  expect(ids).toEqual(expect.arrayContaining(['src-', 'src+', 'lvl:moyen', 'tol:indulgent', 'bpm+', 'kick:auto', 'kick:tete', 'slow', 'kitmenu', 'play', 'mini', 'quit']));
+  expect(ids).toEqual(expect.arrayContaining(['src-', 'src+', 'lvl:moyen', 'tol:indulgent', 'bpm+', 'kick:auto', 'kick:tete', 'slow', 'kitmenu', 'import', 'play', 'mini', 'quit']));
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('lvl:moyen'); v.menuPress('tol:indulgent'); v.menuPress('bpm-'); });
   let o = await page.evaluate(() => window.__gm.vrApi.opts());
   expect([o.lvl, o.tol, o.bpm]).toEqual(['moyen', 'indulgent', 210]);
@@ -209,4 +209,18 @@ test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', asyn
 
   // remettre les réglages
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('sound:synth'); v.menuPress('style:pads'); v.menuPress('lay:standard'); v.menuPress('decor:chapelle'); });
+});
+
+test('aperçu VR : « Mes chants » ramène à la page, sur le bouton d\'import', async ({ page }) => {
+  test.setTimeout(40_000);
+  await page.goto('index.html?vr=apercu');
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect(page.locator('#vrPreview')).toBeVisible();
+  await expect.poll(async () => (await page.evaluate(() => window.__gm.vr()?.state()))?.mode).toBe('main');
+  await page.evaluate(() => window.__gm.vr().menuPress('import'));
+  await expect(page.locator('#vrPreview')).toHaveCount(0);
+  await expect(page.locator('#gmMsg')).toContainText('Importer des chants');
+  await expect(page.locator('#gmImp')).toHaveClass(/flash/);
+  await expect(page.locator('#gmImp')).toBeInViewport();
 });
