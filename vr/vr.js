@@ -16,14 +16,15 @@ const FONT='"Bricolage Grotesque",system-ui,sans-serif';
    x, z : position devant le joueur ; y : hauteur au-dessus de la caisse claire ; r : rayon.
    La grosse caisse (couloir 0) se joue à la gâchette ou à la pédale MIDI : c'est un fût debout. */
 const PADS=[
-  {lane:0,id:'poum',kick:true,x:0.0,y:0,z:-0.95,r:0.27},
+  {lane:0,id:'poum',kick:true,x:0.0,y:0,z:-1.9,r:0.32},
   {lane:1,id:'tchak',x:-0.16,y:0,z:-0.40,r:0.15},
   {lane:2,id:'tss',x:-0.46,y:0.10,z:-0.36,r:0.15},
   {lane:3,id:'doum',x:-0.02,y:0.13,z:-0.60,r:0.12},
   {lane:4,id:'toum',x:0.32,y:-0.04,z:-0.42,r:0.15},
   {lane:5,id:'psch',x:0.42,y:0.30,z:-0.62,r:0.18}
 ];
-const FAR=4.6;            /* distance d'où partent les notes, en mètres */
+const FAR=4.6;
+const KICK_W=0.95;        /* largeur du couloir de la grosse caisse : une grande barre bien visible, loin devant, hors de la vue cachée par les pads */            /* distance d'où partent les notes, en mètres */
 const STICK=0.40;         /* longueur de la baguette */
 const MIN_VY=-0.35;       /* vitesse verticale minimale d'un coup (m/s) */
 
@@ -406,7 +407,7 @@ function buildWorld(){
   const stage=new THREE.Mesh(new THREE.CircleGeometry(1.25,64),new THREE.MeshStandardMaterial({color:0x151A24,roughness:0.9}));
   stage.rotation.x=-Math.PI/2;stage.position.y=0.002;kit.add(stage);S.stage=stage;
   const gem=new THREE.CylinderGeometry(0.07,0.07,0.028,28);
-  const kickGem=new THREE.BoxGeometry(0.42,0.05,0.07);
+  const kickGem=new THREE.BoxGeometry(0.8,0.1,0.13);
   S.shellMat=new THREE.MeshStandardMaterial({color:0x1B1C21,roughness:0.35,metalness:0.2,side:THREE.DoubleSide});
   S.mats={};S.missMat=new THREE.MeshStandardMaterial({color:0x6F7A8C,transparent:true,opacity:0.35});
   for(const P of PADS){
@@ -442,9 +443,11 @@ function buildWorld(){
     if(!P.kick)lab.mesh.rotation.x=-0.5;
     g.add(lab.mesh);
     /* le couloir : une bande qui part du pad vers le lointain */
-    const lane=new THREE.Mesh(new THREE.PlaneGeometry(P.kick?0.5:P.r*1.4,FAR),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.1,depthWrite:false,side:THREE.DoubleSide}));
+    const lane=new THREE.Mesh(new THREE.PlaneGeometry(P.kick?KICK_W:P.r*1.4,FAR),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:P.kick?0.24:0.1,depthWrite:false,side:THREE.DoubleSide}));
     kit.add(lane);
-    S.pads.push({P,g,mesh,padMat,rimMat,lab,lane,shell:P._shell||null,base:new THREE.Vector3(),dir:new THREE.Vector3(),color:c});
+    /* la ligne où il faut frapper la grosse caisse : une barre lumineuse en travers de son couloir */
+    let line=null;if(P.kick){line=new THREE.Mesh(new THREE.BoxGeometry(KICK_W,0.012,0.05),new THREE.MeshBasicMaterial({color:c}));kit.add(line);}
+    S.pads.push({P,g,mesh,padMat,rimMat,lab,lane,line,shell:P._shell||null,base:new THREE.Vector3(),dir:new THREE.Vector3(),color:c});
   }
   S.gem=gem;S.kickGem=kickGem;
   /* repères des temps sur les couloirs */
@@ -469,7 +472,7 @@ function place(head,yaw,fixedFloor){
   S.base={x:head.x-Math.sin(yaw)*S.dOff,y:S.floorY,z:head.z-Math.cos(yaw)*S.dOff,yaw}; /* dOff : on recule la batterie, pour la voir plus petite */pose();
   for(const p of S.pads){
     const P=p.P;
-    if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0,-1);}
+    if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0,-1);if(p.line){p.line.position.set(P.x,0.04,P.z+0.3);p.line.scale.x=p.g.scale.x;}}
     else{
       p.g.position.set(P.x,S.padH+P.y,P.z);p.base.copy(p.g.position);
       p.dir.set(P.x*0.9,0.28,-1).normalize();
@@ -804,7 +807,7 @@ function draw(t){
         const m=S.ticks[k++];m.visible=true;
         m.position.copy(p.base).addScaledVector(p.dir,dt/lead*FAR);
         if(p.P.kick)m.position.y=0.01;
-        m.scale.set(p.P.kick?0.5:p.P.r*1.4,b.accent?2.5:1,1);
+        m.scale.set(p.P.kick?KICK_W:p.P.r*1.4,b.accent?2.5:1,1);
         m.quaternion.copy(p.lane.quaternion);
       }
     }
