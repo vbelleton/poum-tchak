@@ -196,3 +196,93 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   await expect.poll(() => vr(page)).toBeNull();
   await expect(page.locator('#gmGames [data-v="couloirs"]')).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('casque Quest 2 simulé : le stick enfoncé cale la batterie sous les baguettes', async ({ page }) => {
+  test.setTimeout(60_000);
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await vr(page))?.placed).toBe(true);
+  expect((await vr(page)).cal).toBe('mains');
+  // le point entre les deux pads des mains (tchak, toum), et le milieu des deux pointes de baguette
+  const ecart = async () => {
+    const d = await vr(page), a = d.padsWorld[1], b = d.padsWorld[4];
+    const t = d.tips.filter(Boolean).map((x) => x.pos);
+    const m = (i) => (a[i] + b[i]) / 2, tm = (i) => (t[0][i] + t[1][i]) / 2;
+    return { dx: m(0) - tm(0), dy: m(1) - tm(1), dz: m(2) - tm(2), fit: d.fit, msg: d.msg, n: d.recenters };
+  };
+  const mains = (lx, ly, lz, rx, ry, rz) => page.evaluate(async ([p]) => {
+    const c = window.__dev.controllers;
+    // poignets un peu baissés : les baguettes pointent devant, vers le bas
+    c.left.position.set(p[0], p[1], p[2]); c.right.position.set(p[3], p[4], p[5]);
+    c.left.quaternion.set(0, 0, 0, 1); c.right.quaternion.set(0, 0, 0, 1);
+    const f0 = window.__gm.vr().frames();
+    while (window.__gm.vr().frames() < f0 + 2) await new Promise((f) => setTimeout(f, 5));
+  }, [[lx, ly, lz, rx, ry, rz]]);
+  const enfonce = async () => {
+    const n = (await vr(page)).recenters;
+    await bouton(page, 'right', 'thumbstick');
+    await expect.poll(async () => (await vr(page)).recenters).toBe(n + 1);
+  };
+
+  // mains devant, un peu à droite : les pads viennent juste sous les pointes (3 cm), à 2 cm près
+  await mains(-0.1, 1.15, -0.25, 0.2, 1.15, -0.25);
+  await enfonce();
+  let e = await ecart();
+  expect(e.fit).toBe(true);
+  expect(Math.abs(e.dx)).toBeLessThan(0.02);
+  expect(Math.abs(e.dz)).toBeLessThan(0.02);
+  expect(Math.abs(e.dy + 0.03)).toBeLessThan(0.01);
+  const h1 = (await vr(page)).padH;
+
+  // mains plus basses et plus à gauche : la batterie suit
+  await mains(-0.35, 1.0, -0.3, -0.05, 1.0, -0.3);
+  await enfonce();
+  e = await ecart();
+  expect(Math.abs(e.dx)).toBeLessThan(0.02);
+  expect(Math.abs(e.dz)).toBeLessThan(0.02);
+  expect((await vr(page)).padH).toBeLessThan(h1 - 0.1);
+
+  // la hauteur réglée dans « Ma batterie » s'ajoute au calage
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('haut+'); v.menuPress('haut+'); });
+  e = await ecart();
+  expect(Math.abs(e.dy - 0.01)).toBeLessThan(0.01);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('haut-'); v.menuPress('haut-'); });
+
+  // l'inclinaison (jouer allongé) : le calage tient aussi, la batterie inclinée
+  await page.evaluate(() => window.__gm.vr().simPitch(45));
+  await mains(-0.1, 1.35, -0.35, 0.2, 1.35, -0.35);
+  await enfonce();
+  e = await ecart();
+  expect(Math.hypot(e.dx, e.dz)).toBeLessThan(0.04);
+  expect(Math.abs(e.dy)).toBeLessThan(0.05);
+  await page.evaluate(() => window.__gm.vr().simPitch(0));
+
+  // mains au-dessus de la tête : pas une position de jeu, l'ancien calage est gardé et suit la tête
+  await mains(-0.1, 1.15, -0.25, 0.2, 1.15, -0.25);
+  await enfonce();
+  await mains(-0.1, 1.9, -0.1, 0.2, 1.9, -0.1);
+  await enfonce();
+  e = await ecart();
+  expect(e.fit).toBe(true);
+  expect(e.msg).toContain('Mains pas en position');
+
+  // recentrage du casque (bouton Meta maintenu) : le repère bouge, la batterie se recale
+  await mains(-0.1, 1.15, -0.25, 0.2, 1.15, -0.25);
+  const n = (await vr(page)).recenters;
+  await page.evaluate(() => { const d = window.__dev; d.position.set(0.5, 1.6, 0.3); d.recenter(); });
+  await expect.poll(async () => (await vr(page)).recenters).toBe(n + 1);
+  e = await ecart();
+  expect(Math.abs(e.dx)).toBeLessThan(0.02);
+  expect(Math.abs(e.dz)).toBeLessThan(0.02);
+
+  // réglage « Caler sur : ma tête » : la batterie revient sous la tête, sans regarder les manettes
+  await page.evaluate(() => window.__gm.vr().menuPress('cal:tete'));
+  expect((await vr(page)).fit).toBe(false);
+  expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.calage'))).toBe('tete');
+  await enfonce();
+  expect((await vr(page)).fit).toBe(false);
+  // « Mes mains » : trois secondes pour poser les baguettes, puis le calage
+  await page.evaluate(() => window.__gm.vr().menuPress('cal:mains'));
+  await expect.poll(async () => (await vr(page)).msg).toContain('Baguettes au-dessus des pads');
+  await expect.poll(async () => (await vr(page)).fit, { timeout: 6000 }).toBe(true);
+});
