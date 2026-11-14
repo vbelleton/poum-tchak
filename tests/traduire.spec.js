@@ -56,7 +56,7 @@ test.describe("S'entraîner à traduire", () => {
     await page.locator('#trLvl').getByRole('button', { name: 'Moyen' }).click();
     await expect(page.locator('#trGrid .tr-c')).toHaveCount(24);
     await page.locator('#trLvl').getByRole('button', { name: 'Difficile' }).click();
-    await expect(page.locator('#trGrid .tr-c')).toHaveCount(48);
+    await expect(page.locator('#trGrid .tr-c')).toHaveCount(56);
     await page.reload();
     await rubrique(page, 'Mots');
     await expect(page.locator('#trLvl').getByRole('button', { name: 'Difficile' })).toHaveAttribute('aria-pressed', 'true');

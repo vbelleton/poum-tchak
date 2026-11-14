@@ -8,7 +8,7 @@ test.describe('Hors ligne', () => {
     expect(enCache).toEqual(expect.arrayContaining(['index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-maskable-512.png']));
     await context.setOffline(true);
     await page.reload();
-    await expect(page.locator('#grid .cell')).toHaveCount(7 * 16);
+    await expect(page.locator('#grid .cell')).toHaveCount(8 * 16);
     await page.locator('#soundSeg').getByRole('button', { name: 'Batterie' }).click();
     await expect(page.locator('#soundMsg')).toHaveText('Sons de la batterie enregistrée.');
     await context.setOffline(false);

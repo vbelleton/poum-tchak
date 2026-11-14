@@ -66,9 +66,9 @@ test.describe('Grille', () => {
 
   test('les mesures changent la grille et le solfège', async ({ page }) => {
     await page.locator('#meterSeg').getByRole('button', { name: '3/4' }).click();
-    await expect(page.locator('#grid .cell')).toHaveCount(7 * 12);
+    await expect(page.locator('#grid .cell')).toHaveCount(8 * 12);
     await page.locator('#meterSeg').getByRole('button', { name: '6/8' }).click();
-    await expect(page.locator('#grid .cell')).toHaveCount(7 * 6);
+    await expect(page.locator('#grid .cell')).toHaveCount(8 * 6);
     await expect(page.locator('#swingSeg button').first()).toBeDisabled();
     await page.locator('#patterns').getByRole('button', { name: 'Shuffle' }).click();
     await expect(page.locator('#swingSeg [data-v="1"]')).toHaveAttribute('aria-pressed', 'true');
