@@ -18,11 +18,12 @@ test('aperçu VR : vérifier les pads, jouer aux baguettes, revenir', async ({ p
   await expect(page.locator('#vrPreview')).toBeVisible();
   const vr = () => page.evaluate(() => window.__gm.vr().debug());
   await expect.poll(async () => (await vr()).placed).toBe(true);
-  expect((await vr()).pads).toEqual(['poum', 'tchak', 'tss', 'doum', 'toum', 'psch']);
+  // les trois toms : tom aigu (tim, couloir 6, ajouté à la fin), tom médium (doum), tom basse (toum)
+  expect((await vr()).pads).toEqual(['poum', 'tchak', 'tss', 'doum', 'toum', 'psch', 'tim']);
 
   // vérification des pads : chaque coup de baguette coche son pad, sans lancer la partie
-  await page.evaluate(() => [0, 1, 2, 3, 4, 5].forEach((l) => window.__gm.vr().simStrike(l)));
-  await expect.poll(async () => (await vr()).checked.length).toBe(6);
+  await page.evaluate(() => [0, 1, 2, 3, 4, 5, 6].forEach((l) => window.__gm.vr().simStrike(l)));
+  await expect.poll(async () => (await vr()).checked.length).toBe(7);
   expect(await page.evaluate(() => window.__gm.on())).toBe(false);
 
   // le menu du casque : changer le rythme, le nombre de notes et la tolérance, sans retirer le casque
@@ -170,7 +171,7 @@ test('aperçu VR : ma batterie (sons, style, disposition) et se déplacer', asyn
   // le style : des fûts sous les peaux
   expect((await vr()).shells).toBe(0);
   await page.evaluate(() => window.__gm.vr().menuPress('style:bois'));
-  expect((await vr()).shells).toBe(3);
+  expect((await vr()).shells).toBe(4); // caisse claire et trois toms
   expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.style'))).toBe('bois');
 
   // gaucher : le charley passe à droite ; large : des pads plus grands

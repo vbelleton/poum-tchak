@@ -39,15 +39,15 @@ test.describe("Jouer sur l'écran", () => {
     await expect(page.locator('.pad:visible')).toHaveCount(3);
     await page.locator('#kvLayout').getByRole('button', { name: 'Batterie' }).click();
     await expect(page.locator('#kvFall')).toBeHidden();
-    await expect(page.locator('.pad:visible')).toHaveCount(7);
+    await expect(page.locator('.pad:visible')).toHaveCount(8);
     await page.locator('#play').click();
     await expect(page.locator('#kvStaff .ks-c.now')).toHaveCount(1);
   });
 
   test('la batterie occupe l\'écran, avec des pads assez grands', async ({ page }) => {
     await ouvrirBatterie(page);
-    await expect(page.locator('.pad')).toHaveCount(7);
-    for (const id of ['poum', 'tchak', 'doum', 'toum', 'tss', 'tchaa', 'psch']) {
+    await expect(page.locator('.pad')).toHaveCount(8);
+    for (const id of ['poum', 'tchak', 'tim', 'doum', 'toum', 'tss', 'tchaa', 'psch']) {
       const b = await page.locator(`.pad[data-id="${id}"]`).boundingBox();
       expect(b.width, id).toBeGreaterThanOrEqual(44);
       expect(b.height, id).toBeGreaterThanOrEqual(44);
@@ -103,7 +103,7 @@ test.describe("Jouer sur l'écran", () => {
   test('une frappe en retard est signalée, une frappe sans note est en trop', async ({ page }) => {
     await ouvrirBatterie(page);
     await page.locator('#play').click();
-    await frapperEnRythme(page, 'tchak', 1, 110);
+    await frapperEnRythme(page, 'tchak', 1, 100); // entre « Bien » (85 ms) et la fenêtre (135 ms à 100 BPM)
     await expect(page.locator('#kvScore')).toContainText('1 tôt ou tard');
     await frapperPad(page, 'psch');
     await expect(page.locator('#kvVerdict')).toHaveText('En trop');
@@ -296,11 +296,11 @@ test.describe('Cascade', () => {
     }
   });
 
-  test('la batterie dessinée : sept disques assez grands, sans se recouvrir trop', async ({ page }) => {
+  test('la batterie dessinée : huit disques assez grands, sans se recouvrir trop', async ({ page }) => {
     await rubrique(page, 'Pratique');
     await page.getByRole('button', { name: "Jouer sur l'écran" }).first().click();
     const boxes = [];
-    for (const id of ['poum', 'tchak', 'doum', 'toum', 'tss', 'tchaa', 'psch']) {
+    for (const id of ['poum', 'tchak', 'tim', 'doum', 'toum', 'tss', 'tchaa', 'psch']) {
       const b = await page.locator(`.pad[data-id="${id}"]`).boundingBox();
       expect(b.width, id).toBeGreaterThanOrEqual(44);
       boxes.push({ id, ...b });

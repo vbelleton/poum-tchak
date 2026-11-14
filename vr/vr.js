@@ -8,20 +8,24 @@
    y vers le haut. Tout ce qui bouge (pads, notes, panneaux) est dans ce repère. */
 import * as THREE from './three.module.min.js';
 
-const COL={poum:'#8D9CFF',tchak:'#FF8A70',doum:'#46D2AB',toum:'#CA9CF5',tss:'#F2BB4A',tchaa:'#BCD64A',psch:'#FF84B8'};
+const COL={poum:'#8D9CFF',tchak:'#FF8A70',tim:'#5CC8F2',doum:'#46D2AB',toum:'#CA9CF5',tss:'#F2BB4A',tchaa:'#BCD64A',psch:'#FF84B8'};
 const POP={ok:'#7BE3A6',warn:'#F2BB4A',bad:'#FF8A70'};
 const BG=0x0B0E14;
 const FONT='"Bricolage Grotesque",system-ui,sans-serif';
 /* Les pads, un par couloir du jeu « vr » de la page (même ordre que GM_LANES.vr).
    x, z : position devant le joueur ; y : hauteur au-dessus de la caisse claire ; r : rayon.
-   La grosse caisse (couloir 0) se joue à la gâchette ou à la pédale MIDI : c'est un fût debout. */
+   La grosse caisse (couloir 0) se joue à la gâchette ou à la pédale MIDI : c'est un fût debout.
+   Les trois toms comme sur une vraie batterie : tom aigu (tim) à gauche au-dessus de la grosse caisse,
+   tom médium (doum) à droite, tom basse (toum) plus bas à droite. Le tom aigu est venu après :
+   couloir 6, à la fin de la liste, pour que les numéros des autres couloirs ne changent pas. */
 const PADS=[
   {lane:0,id:'poum',kick:true,x:0.0,y:0,z:-1.9,r:0.32},
   {lane:1,id:'tchak',x:-0.16,y:0,z:-0.40,r:0.15},
   {lane:2,id:'tss',x:-0.46,y:0.10,z:-0.36,r:0.15},
-  {lane:3,id:'doum',x:-0.02,y:0.13,z:-0.60,r:0.12},
+  {lane:3,id:'doum',x:0.11,y:0.13,z:-0.64,r:0.115},
   {lane:4,id:'toum',x:0.32,y:-0.04,z:-0.42,r:0.15},
-  {lane:5,id:'psch',x:0.42,y:0.30,z:-0.62,r:0.18}
+  {lane:5,id:'psch',x:0.42,y:0.30,z:-0.62,r:0.18},
+  {lane:6,id:'tim',x:-0.14,y:0.15,z:-0.67,r:0.105}
 ];
 const FAR=4.6;
 const KICK_W=0.95;        /* largeur du couloir de la grosse caisse : une grande barre bien visible, loin devant, hors de la vue cachée par les pads */            /* distance d'où partent les notes, en mètres */
@@ -428,7 +432,7 @@ function buildWorld(){
       const rim=new THREE.Mesh(new THREE.TorusGeometry(P.r,0.012,8,48),rimMat);
       rim.rotation.x=Math.PI/2;rim.position.y=0.018;g.add(rim);
       if(!CYMBALS.has(P.id)){ /* le fût, visible dans les styles « acoustiques » */
-        const depth=P.id==='tchak'?0.13:P.id==='doum'?0.2:0.28;
+        const depth=P.id==='tchak'?0.13:P.id==='tim'?0.16:P.id==='doum'?0.2:0.28;
         const shell=new THREE.Mesh(new THREE.CylinderGeometry(P.r,P.r,depth,40,1,true),S.shellMat);
         shell.position.y=-depth/2-0.017;g.add(shell);P._shell=shell;
       }
