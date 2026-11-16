@@ -7,8 +7,6 @@ import * as THREE from './three.module.min.js';
 
 const STICK=0.40;            /* longueur de la baguette virtuelle (m), comme dans vr.js */
 const HOLD_EXIT_MS=2000;     /* les deux pinces tenues ce temps = retour à la batterie */
-const JOINT_R=0.007;         /* rayon d'une articulation dessinée (m) */
-const MAX_JOINTS=50;         /* 25 articulations par main */
 const UP=new THREE.Vector3(0,1,0);
 
 /* Thumb Around : seuils, à calibrer sur le casque */
@@ -83,12 +81,25 @@ export class ThumbAroundDetector{
   stickDir(s,out){return out.copy(s.middle).sub(s.thumb);}
 }
 
+/* La main, dessinée en os (des segments entre les articulations) avec les bouts des doigts en boules :
+   plus lisible que les points d'une articulation chacune. Les chaînes suivent la structure WebXR. */
+const CHAINS=[
+  ['thumb-metacarpal','thumb-phalanx-proximal','thumb-phalanx-distal','thumb-tip'],
+  ['index-finger-metacarpal','index-finger-phalanx-proximal','index-finger-phalanx-intermediate','index-finger-phalanx-distal','index-finger-tip'],
+  ['middle-finger-metacarpal','middle-finger-phalanx-proximal','middle-finger-phalanx-intermediate','middle-finger-phalanx-distal','middle-finger-tip'],
+  ['ring-finger-metacarpal','ring-finger-phalanx-proximal','ring-finger-phalanx-intermediate','ring-finger-phalanx-distal','ring-finger-tip'],
+  ['pinky-finger-metacarpal','pinky-finger-phalanx-proximal','pinky-finger-phalanx-intermediate','pinky-finger-phalanx-distal','pinky-finger-tip']
+];
+const TIPS=CHAINS.map(c=>c[c.length-1]);
+const MAX_BONES=2*30,MAX_TIPS=2*5;
+const BONE_R=0.0075,TIP_R=0.011;
+
 /* renderer, scene, session : la session WebXR en cours. panel, drawPanel : les panneaux de vr.js.
    play(id, force) : le son de vr.js. trick : null (libre) ou 'thumb' (Thumb Around). */
 export function create({renderer,scene,session,panel,drawPanel,play,trick=null,store=null}){
   const hands=[0,1].map(i=>{
     const g=renderer.xr.getHand(i);scene.add(g);
-    return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false};
+    return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector()};
   });
 
   /* une baguette par main, cachée tant que la pince ne la tient pas */
@@ -96,10 +107,11 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   const stickGeo=new THREE.CylinderGeometry(0.006,0.009,STICK,10);
   for(const h of hands){h.stick=new THREE.Mesh(stickGeo,wood);h.stick.visible=false;scene.add(h.stick);}
 
-  /* les articulations des mains, en une seule passe de dessin (InstancedMesh) */
-  const jointMat=new THREE.MeshStandardMaterial({color:0xD7C7A6,roughness:0.6});
-  const joints=new THREE.InstancedMesh(new THREE.SphereGeometry(JOINT_R,8,6),jointMat,MAX_JOINTS*2);
-  joints.count=0;joints.frustumCulled=false;scene.add(joints);
+  /* la main : os (cylindres) et bouts des doigts (boules), chacun en une seule passe de dessin */
+  const skin=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65,transparent:true,opacity:0.8});
+  const boneGeo=new THREE.CylinderGeometry(BONE_R,BONE_R,1,10);
+  const bones=new THREE.InstancedMesh(boneGeo,skin,MAX_BONES);bones.count=0;bones.frustumCulled=false;scene.add(bones);
+  const tips=new THREE.InstancedMesh(new THREE.SphereGeometry(TIP_R,12,8),skin,MAX_TIPS);tips.count=0;tips.frustumCulled=false;scene.add(tips);
 
   /* le panneau d'aide, devant soi au lancement, puis fixe */
   const cam=renderer.xr.getCamera(),cp=new THREE.Vector3(),cq=new THREE.Quaternion(),fwd=new THREE.Vector3();
@@ -112,13 +124,8 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   const prevBtn=new Map();   /* bouton B/Y de chaque manette, pour ne lire qu'un appui */
   let bothSince=0;
-
-  /* Thumb Around : le détecteur, les essais, le message du coach */
-  const det=new ThumbAroundDetector();
   const stats=(store&&store.get&&store.get())||{tries:0,ok:0};
   let coach='';let coachT=0;
-  const tipPos=new THREE.Vector3();
-  const trickDir=new THREE.Vector3();
 
   function say(msg,t){coach=msg;coachT=t;}
 
@@ -143,7 +150,33 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     drawPanel(pnl,lines);
   }
 
-  /* À chaque image : lire les mains, tenir les baguettes, dessiner les articulations.
+  const _s=new THREE.Vector3(),_e=new THREE.Vector3(),_d=new THREE.Vector3(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(),_mt=new THREE.Matrix4(),_one=new THREE.Vector3(1,1,1);
+
+  /* dessine les os d'une main : un segment par paire d'articulations qui se suivent */
+  function drawHand(hj,nb,nt){
+    const seg=(a,b)=>{
+      if(nb>=MAX_BONES)return nb;
+      _s.copy(a);_e.copy(b);_d.copy(_e).sub(_s);const len=_d.length();
+      if(len<1e-5)return nb;
+      _q.setFromUnitVectors(UP,_d.multiplyScalar(1/len));
+      _sc.set(1,len,1);_mt.compose(_p.copy(_s).add(_e).multiplyScalar(0.5),_q,_sc);
+      bones.setMatrixAt(nb,_mt);return nb+1;
+    };
+    const w=hj['wrist'];
+    const pos=new Map();
+    for(const c of CHAINS)for(const name of c){const j=hj[name];if(j&&j.visible){const v=new THREE.Vector3();j.getWorldPosition(v);pos.set(name,v);}}
+    if(w&&w.visible){const v=new THREE.Vector3();w.getWorldPosition(v);pos.set('wrist',v);}
+    if(pos.has('wrist')){
+      for(const c of CHAINS){
+        let prev=pos.get('wrist');
+        for(const name of c){const p=pos.get(name);if(p){nb=seg(prev,p);prev=p;}else break;}
+      }
+    }
+    for(const name of TIPS){const p=pos.get(name);if(p&&nt<MAX_TIPS){tips.setMatrixAt(nt++,_mt.makeTranslation(p.x,p.y,p.z));}}
+    return [nb,nt];
+  }
+
+  /* À chaque image : lire les mains, tenir les baguettes, dessiner la main.
      Retourne true quand il faut revenir à la batterie. */
   function update(t){
     let exit=false;
@@ -156,9 +189,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       prevBtn.set(src,down);
     }
 
-    let n=0;
-    /* la main qui fait le trick : la première suivie */
-    let trickHand=null;
+    let nb=0,nt=0;
     for(const h of hands){
       const hj=h.g.joints||{};
       const th=hj['thumb-tip'],ix=hj['index-finger-tip'],md=hj['middle-finger-tip'];
@@ -168,25 +199,20 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         th.getWorldPosition(_a);ix.getWorldPosition(_b);md.getWorldPosition(_c);
         const pinch=!!(h.g.inputState&&h.g.inputState.pinching);
         if(trick==='thumb'){
-          if(!trickHand){
-            trickHand=h;
-            /* on dessine la baguette du tour : du pouce vers le majeur */
-            const tip=tipPos.copy(_a);
-            trickDir.copy(_c).sub(_a);
-            if(trickDir.lengthSq()>1e-6){
-              h.stick.position.copy(tip).addScaledVector(trickDir,0.5);
-              h.stick.quaternion.setFromUnitVectors(UP,trickDir.clone().normalize());
-              h.stick.visible=true;
-            }
-            const r=det.step({t,pinch,thumb:_a.clone(),index:_b.clone(),middle:_c.clone()});
-            if(r){
-              if(r.ok){stats.ok++;stats.tries++;play('tchak',0.9);}
-              else{stats.tries++;play('tss',0.4);}
-              say(r.msg,t);
-              if(store&&store.set)store.set(stats);
-            }
+          /* chaque main a son détecteur : les deux mains peuvent faire le trick */
+          const r=h.det.step({t,pinch,thumb:_a.clone(),index:_b.clone(),middle:_c.clone()});
+          _d.copy(_c).sub(_a);
+          if(_d.lengthSq()>1e-6){
+            h.stick.position.copy(_a).addScaledVector(_d,0.5);
+            h.stick.quaternion.setFromUnitVectors(UP,_d.clone().normalize());
+            h.stick.visible=true;
           }
-          /* les autres mains restent libres */
+          if(r){
+            if(r.ok){stats.ok++;stats.tries++;play('tchak',0.9);}
+            else{stats.tries++;play('tss',0.4);}
+            say(r.msg,t);
+            if(store&&store.set)store.set(stats);
+          }
         }else{
           if(pinch&&!h.held){h.held=true;play('tss',0.35);}
           else if(!pinch&&h.held){h.held=false;h.stick.visible=false;}
@@ -200,17 +226,14 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
             h.stick.visible=true;
           }
         }
+      }else{
+        h.stick.visible=false;
+        if(trick==='thumb')h.det.reset();
       }
-      /* articulations de cette main */
-      for(const k in hj){
-        const j=hj[k];
-        if(!j||!j.visible||n>=MAX_JOINTS*2)continue;
-        j.getWorldPosition(_p);
-        _m.makeTranslation(_p.x,_p.y,_p.z);
-        joints.setMatrixAt(n++,_m);
-      }
+      [nb,nt]=drawHand(hj,nb,nt);
     }
-    joints.count=n;joints.instanceMatrix.needsUpdate=true;
+    bones.count=nb;bones.instanceMatrix.needsUpdate=true;
+    tips.count=nt;tips.instanceMatrix.needsUpdate=true;
 
     /* les deux pinces tenues longtemps : retour (mode libre) */
     if(trick!=='thumb'){
@@ -218,7 +241,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         if(!bothSince)bothSince=t;
         else if(t-bothSince>HOLD_EXIT_MS)exit=true;
       }else bothSince=0;
-    }else if(!trickHand)det.reset();
+    }
 
     draw(t);
     return exit;
@@ -226,12 +249,13 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   function dispose(){
     for(const h of hands){scene.remove(h.g);scene.remove(h.stick);}
-    stickGeo.dispose();wood.dispose();
-    scene.remove(joints);joints.geometry.dispose();jointMat.dispose();
+    stickGeo.dispose();wood.dispose();boneGeo.dispose();skin.dispose();
+    scene.remove(bones);bones.dispose();
+    scene.remove(tips);tips.dispose();
     scene.remove(pnl.mesh);pnl.mesh.geometry.dispose();pnl.mesh.material.map.dispose();pnl.mesh.material.dispose();
   }
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),joints:joints.count,trick,phase:det.phase,coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
 }
