@@ -194,6 +194,14 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
 - Sur l'écran d'un téléphone, il reste 30 à 50 ms entre le doigt et le son :
   c'est bon pour lire et mémoriser un rythme, pas pour travailler un toucher.
 
+## Licence
+
+Tous droits réservés (voir `LICENSE`). Tu peux jouer à Poum Tchak et t'en
+servir librement pour t'entraîner ou enseigner, sans le revendre. Le copier,
+le republier, le modifier pour le diffuser ou le vendre demande mon accord.
+Les Chants libres (`chants/`, Creative Commons BY ou BY-SA 3.0), three.js
+(MIT) et les sons de batterie (Apache 2.0) gardent leur propre licence.
+
 ## Crédits
 
 Les sons de batterie viennent de

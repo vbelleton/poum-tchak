@@ -1,0 +1,47 @@
+Poum Tchak
+Copyright (c) 2026 Victor (vbelleton). Tous droits réservés.
+
+1. Ce qui est autorisé
+
+Tout le monde peut, gratuitement :
+- jouer à Poum Tchak, en ligne ou installé sur son appareil ;
+- s'en servir pour s'entraîner, pour soi ou pour enseigner, en cours,
+  en groupe de musique ou en église, tant que ce n'est pas pour le revendre ;
+- lire le code source pour apprendre.
+
+2. Ce qui demande l'accord écrit de l'auteur
+
+Sauf exceptions de la partie 3, le code, l'interface, les textes, les
+exercices, le parcours et les icônes de Poum Tchak ne peuvent pas, sans
+accord écrit :
+- être copiés, republiés ou hébergés ailleurs, en tout ou en partie ;
+- être modifiés pour en diffuser une autre version ;
+- être vendus, ou intégrés dans un produit ou un service payant.
+
+3. Éléments sous d'autres licences
+
+Ces éléments restent sous leur propre licence, que cette page ne change pas :
+- vr/three.module.min.js : three.js, licence MIT (voir vr/three-LICENSE.txt).
+- Les sons de batterie intégrés à index.html (window.__KIT) : Web Audio
+  Samples, équipe Chrome Web Audio, licence Apache 2.0
+  (https://www.apache.org/licenses/LICENSE-2.0). Le charleston ouvert et le
+  tom aigu sont fabriqués à partir des sons d'origine.
+- Le dossier chants/ (« Chants libres ») : extraits d'une minute du jeu de
+  données STAR Drums (Weber et al., 2025), d'après des titres publiés sur
+  Jamendo, chacun sous sa licence Creative Commons BY 3.0 ou BY-SA 3.0,
+  avec les auteurs listés dans les crédits de l'appli et du README.
+  Modification : la batterie d'origine est remplacée par une batterie de
+  synthèse jouée d'après une transcription automatique. Ces versions
+  modifiées restent sous la même licence que l'original.
+
+4. Chants importés
+
+Les chants que chacun importe dans l'appli restent sur son appareil et ne
+font pas partie de Poum Tchak. Chacun est responsable des droits sur ce
+qu'il importe.
+
+5. Sans garantie
+
+Poum Tchak est fourni tel quel, sans garantie d'aucune sorte.
+
+Contact pour toute autre demande : https://github.com/vbelleton
