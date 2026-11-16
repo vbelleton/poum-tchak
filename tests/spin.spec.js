@@ -39,11 +39,20 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
   expect(pendant.xr).toBe(true);
   expect(await page.evaluate(() => window.__gm.vr().spinDebug())).toEqual(expect.objectContaining({ seen: expect.any(Array), held: expect.any(Array) }));
 
+  expect(pendant.spinInfo.trick).toBe(null);
+
   // B revient à la batterie, avec le menu
   await bouton(page, 'right', 'b-button');
   await expect.poll(async () => (await vr(page))?.spin).toBe(false);
   await expect.poll(async () => (await vr(page))?.menu).toBe(true);
   expect(await page.evaluate(() => window.__gm.vr().state().mode)).toBe('main');
+
+  // Thumb Around : même chemin, mode trick
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spinthumb'); });
+  await expect.poll(async () => (await vr(page))?.spinInfo?.trick).toBe('thumb');
+  await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await vr(page))?.spin).toBe(false);
+  await expect.poll(async () => (await vr(page))?.menu).toBe(true);
 
   // le casque se quitte avec B encore
   await bouton(page, 'right', 'b-button');

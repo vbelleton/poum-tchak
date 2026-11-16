@@ -753,7 +753,12 @@ function loop(t,frame){
     if(v.lengthSq()>0.01)placeFromHead();
   }
   updateDecor(t);
-  if(S.spin){if(S.spin.update(t))stopSpin();}
+  if(S.spin){
+    /* pendant le mode, les boutons se lisent là : on tient à jour leur état pour qu'un B encore enfoncé
+       au retour à la batterie ne quitte pas le casque */
+    for(const st of S.sticks){const gp=st.src&&st.src.gamepad;if(gp)S.btnPrev.set(st,gp.buttons.map(b=>b.pressed));}
+    if(S.spin.update(t))stopSpin();
+  }
   else if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   /* casque retiré ou menu du système ouvert : pause */
   if(S&&S.session&&gm.on&&!S.paused&&S.session.visibilityState&&S.session.visibilityState!=='visible')pause(true);
@@ -916,7 +921,8 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinstart',x:30,y:44,w:MW-60,h:12,txt:'Commencer',big:true});
+    it.push({id:'spinstart',x:30,y:34,w:MW-60,h:11,txt:'Pratique libre',big:true});
+    it.push({id:'spinthumb',x:30,y:49,w:MW-60,h:11,txt:'Thumb Around (MVP)',big:true});
     it.push({id:'back',x:30,y:63,w:MW-60,h:10,txt:'‹ Retour'});
     return it;
   }
@@ -970,7 +976,7 @@ function drawMenu(mode){
   else if(mode==='spin'){
     title='Drumstick Spin';
     status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Mets tes mains devant le casque, mains suivies activées',c:'#97A1B2'};
-    foot=[{t:'Prototype : pince le pouce et l\'index pour tenir une baguette',c:'#C9D1DC'}];
+    foot=[{t:'Thumb Around : le pouce pivote, lâche la pince, puis rattrape',c:'#C9D1DC'}];
   }
   else if(mode==='main'||mode==='kit'||mode==='mains'||mode==='exo'){
     if(mode==='kit')title='Ma batterie';
@@ -1062,7 +1068,8 @@ function menuDo(id){
   if(id==='exnew'){api.setExo('new');return;}
   if(/^rep:/.test(id)){api.setExo('rep',+id.slice(4));return;}
   if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
-  if(id==='spinstart'){startSpin();return;}
+  if(id==='spinstart'){startSpin(null);return;}
+  if(id==='spinthumb'){startSpin('thumb');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
@@ -1085,11 +1092,16 @@ function menuDo(id){
   }
 }
 /* Drumstick Spin : les mains suivies remplacent la batterie. Il faut un casque (pas l'aperçu). */
-function startSpin(){
+const SPIN_THUMB_KEY='poumtchak.spin.thumb';
+const spinStore={
+  get(){try{return JSON.parse(localStorage.getItem(SPIN_THUMB_KEY))||null;}catch(e){return null;}},
+  set(v){try{localStorage.setItem(SPIN_THUMB_KEY,JSON.stringify(v));}catch(e){}}
+};
+function startSpin(trick){
   if(S.spin)return;
   if(!S.session){S.msg='Drumstick Spin a besoin d\'un casque : l\'aperçu n\'a pas de mains.';S.sub='spin';return;}
   S.sub=false;
-  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v)});
+  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
   S.kit.visible=false;S.menu.mesh.visible=false;
 }
 function stopSpin(){
@@ -1150,7 +1162,7 @@ export function simStrike(lane){
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
