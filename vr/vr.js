@@ -1194,6 +1194,8 @@ function startSpin(trick){
   S.sub=false;
   S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
   S.kit.visible=false;S.menu.mesh.visible=false;
+  /* les rayons du menu ne servent pas pendant le mode */
+  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
 }
 function stopSpin(){
   if(!S.spin)return;

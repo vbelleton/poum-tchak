@@ -50,6 +50,15 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
   // Thumb Around : même chemin, mode trick
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spinthumb'); });
   await expect.poll(async () => (await vr(page))?.spinInfo?.trick).toBe('thumb');
+  // les deux mains (mode mains du simulateur) : chacune est suivie, dessinée en os, et tient sa baguette du tour
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'hand'; });
+  await expect.poll(async () => (await vr(page))?.spinInfo?.seen).toEqual([true, true]);
+  const mains = (await vr(page)).spinInfo;
+  expect(mains.bones).toBeGreaterThan(40);
+  expect(mains.tips).toBe(10);
+  expect(mains.phase).toEqual(['idle', 'idle']);
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'controller'; });
+  await page.waitForTimeout(200);
   await bouton(page, 'right', 'b-button');
   await expect.poll(async () => (await vr(page))?.spin).toBe(false);
   await expect.poll(async () => (await vr(page))?.menu).toBe(true);
