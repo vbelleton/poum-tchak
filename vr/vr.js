@@ -834,7 +834,6 @@ function loop(t,frame){
     if(r<=0){S.recalAt=0;recenter();}
     else S.msg='Baguettes au-dessus des pads, comme pour jouer… '+Math.ceil(r/1000);
   }
-  if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   if(S.spin){
     /* pendant le mode, les boutons se lisent là : on tient à jour leur état pour qu'un B encore enfoncé
        au retour à la batterie ne quitte pas le casque */
@@ -1200,6 +1199,8 @@ function startSpin(trick){
 function stopSpin(){
   if(!S.spin)return;
   S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';
+  /* un bouton encore enfoncé au retour ne compte pas : il faut le relâcher d'abord */
+  for(const st of S.sticks)S.btnPrev.set(st,new Array(16).fill(true));
 }
 /* Choisir un fichier est impossible dans le casque : on revient à la page, sur le bouton d'import. */
 function s_importPrompt(api){if(api.importPrompt)api.importPrompt();}

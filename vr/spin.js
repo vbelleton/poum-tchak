@@ -125,6 +125,58 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   const prevBtn=new Map();   /* bouton B/Y de chaque manette, pour ne lire qu'un appui */
   let bothSince=0;
   const stats=(store&&store.get&&store.get())||{tries:0,ok:0};
+
+  /* Tutoriel guidé de Thumb Around : cinq étapes courtes, qui avancent toutes seules.
+     Aux étapes 3 et 4, la baguette tourne toute seule autour du pouce (assistance) :
+     il suffit d'ouvrir l'index, puis de refermer la pince quand elle devient verte. */
+  const TUTO=[
+    'Étape 1/5 · Pince le pouce et l\'index : tu tiens la baguette',
+    'Étape 2/5 · Ne bouge plus le pouce : c\'est le pivot',
+    'Étape 3/5 · Ouvre l\'index : la baguette tourne toute seule',
+    'Étape 4/5 · Referme la pince quand la baguette devient verte',
+    'Étape 5/5 · À toi : lâche, laisse tourner, rattrape'
+  ];
+  const TURN_S=0.5;                         /* tours par seconde de la baguette assistée */
+  const tuto={step:0,t0:0,lastT:0,a:0,th0:new THREE.Vector3(),u:new THREE.Vector3(),v:new THREE.Vector3(),prev:false};
+  const green=new THREE.MeshStandardMaterial({color:0x7BE3A6,emissive:0x2E8A57,roughness:0.5});
+  function nextStep(t,msg){tuto.step++;tuto.t0=t;play('tchak',0.8);say(msg||'Bien !',t);}
+  /* une étape du tuto pour la main h (positions du pouce, de l'index et du majeur dans _a, _b, _c) */
+  function tutoStep(h,t,pinch){
+    const dt=tuto.lastT?Math.min(0.05,(t-tuto.lastT)/1000):0;tuto.lastT=t;
+    const rise=pinch&&!tuto.prev;tuto.prev=pinch;
+    h.stick.material=wood;
+    if(tuto.step<=2){
+      /* la baguette tenue dans la pince, comme en pratique libre */
+      if(pinch){
+        h.mid.copy(_a).add(_b).multiplyScalar(0.5);
+        _d.copy(_c).sub(h.mid);if(_d.lengthSq()>1e-6)h.dir.copy(_d.normalize());
+        h.stick.position.copy(h.mid);h.stick.quaternion.setFromUnitVectors(UP,h.dir);h.stick.visible=true;
+      }else h.stick.visible=false;
+      if(tuto.step===0){if(!pinch)tuto.t0=t;else if(t-tuto.t0>800){nextStep(t);tuto.th0.copy(_a);}}
+      else if(tuto.step===1){
+        if(!pinch||_a.distanceTo(tuto.th0)>0.012){tuto.th0.copy(_a);tuto.t0=t;}
+        else if(t-tuto.t0>1000)nextStep(t);
+      }else if(!pinch){
+        /* l'index s'ouvre : la baguette part en tournant autour du pouce */
+        tuto.u.copy(_b).sub(_a);if(tuto.u.lengthSq()<1e-8)tuto.u.set(1,0,0);tuto.u.normalize();
+        tuto.v.copy(h.dir).addScaledVector(tuto.u,-h.dir.dot(tuto.u));
+        if(tuto.v.lengthSq()<1e-6)tuto.v.set(0,1,0);tuto.v.normalize();
+        tuto.a=0;nextStep(t,'Regarde-la tourner…');
+      }
+      return;
+    }
+    /* étapes 3 et 4 : la baguette tourne toute seule, centrée sur le pouce */
+    tuto.a+=dt*2*Math.PI*TURN_S;
+    const m=tuto.a%(2*Math.PI),win=tuto.a>Math.PI&&(m>=Math.PI*5/3||m<=Math.PI/3);
+    _d.copy(tuto.v).applyAxisAngle(tuto.u,tuto.a);
+    h.stick.position.copy(_a);h.stick.quaternion.setFromUnitVectors(UP,_d);h.stick.visible=true;
+    if(tuto.step===4)h.stick.material=win?green:wood;
+    if(tuto.step===3&&t-tuto.t0>1500)nextStep(t,'À toi !');
+    else if(tuto.step===4&&rise){
+      if(win){tuto.step=5;tuto.t0=t;h.det.reset();play('tchak',1);say(COACH.ok,t);h.stick.material=wood;}
+      else{play('tss',0.4);say('Attends qu\'elle soit verte, puis pince.',t);}
+    }
+  }
   let coach='';let coachT=0;
 
   function say(msg,t){coach=msg;coachT=t;}
@@ -138,8 +190,12 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
 
   function draw(t){
-    const lines=[{t:trick==='thumb'?'Thumb Around · MVP':'Drumstick Spin · prototype',size:5,weight:800}];
-    if(trick==='thumb'){
+    const lines=[{t:trick==='thumb'?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
+    if(trick==='thumb'&&tuto.step<5){
+      lines.push({t:TUTO[Math.min(tuto.step,4)===3?2:Math.min(tuto.step,4)===4?3:Math.min(tuto.step,4)],size:3.8,color:'#E8ECF2',weight:800});
+      lines.push({t:coach&&t-coachT<1500?coach:'Une étape à la fois : elle avance toute seule',size:3.4,color:coach?'#7BE3A6':'#97A1B2',weight:700});
+    }else if(trick==='thumb'){
+      lines.push({t:TUTO[4],size:3.6,color:'#E8ECF2',weight:800});
       lines.push({t:'Essais : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2'});
       lines.push({t:coach&&t-coachT<2500?coach:'Pivot : le pouce. Lâche, laisse tourner, rattrape.',size:3.6,color:coach===COACH.ok?'#7BE3A6':'#F2BB4A',weight:700});
     }else{
@@ -189,7 +245,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       prevBtn.set(src,down);
     }
 
-    let nb=0,nt=0;
+    let nb=0,nt=0,tutoHand=null;
     for(const h of hands){
       const hj=h.g.joints||{};
       const th=hj['thumb-tip'],ix=hj['index-finger-tip'],md=hj['middle-finger-tip'];
@@ -198,7 +254,10 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       if(h.seen){
         th.getWorldPosition(_a);ix.getWorldPosition(_b);md.getWorldPosition(_c);
         const pinch=!!(h.g.inputState&&h.g.inputState.pinching);
-        if(trick==='thumb'){
+        if(trick==='thumb'&&tuto.step<5){
+          /* tuto guidé : une seule main (la première suivie), l'autre attend */
+          if(!tutoHand){tutoHand=h;tutoStep(h,t,pinch);}else h.stick.visible=false;
+        }else if(trick==='thumb'){
           /* chaque main a son détecteur : les deux mains peuvent faire le trick */
           const r=h.det.step({t,pinch,thumb:_a.clone(),index:_b.clone(),middle:_c.clone()});
           _d.copy(_c).sub(_a);
@@ -249,7 +308,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   function dispose(){
     for(const h of hands){scene.remove(h.g);scene.remove(h.stick);}
-    stickGeo.dispose();wood.dispose();boneGeo.dispose();skin.dispose();
+    stickGeo.dispose();wood.dispose();green.dispose();boneGeo.dispose();skin.dispose();
     scene.remove(bones);bones.dispose();
     scene.remove(tips);tips.dispose();
     scene.remove(pnl.mesh);pnl.mesh.geometry.dispose();pnl.mesh.material.map.dispose();pnl.mesh.material.dispose();
@@ -257,5 +316,5 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,tuto:tuto.step,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
 }
