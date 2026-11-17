@@ -335,7 +335,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
@@ -379,6 +379,9 @@ export async function enter(api,{preview=false}={}){
     await renderer.xr.setSession(session);
     for(let i=0;i<2;i++)addController(i);
     session.addEventListener('end',()=>cleanup());
+    /* recentrage du casque (bouton Meta maintenu) : le repère du monde a bougé, on recale la batterie */
+    const rs=renderer.xr.getReferenceSpace();
+    if(rs&&rs.addEventListener)rs.addEventListener('reset',()=>{if(S)S.resetAsk=true;});
   }
   api.setVR(true);
   renderer.setAnimationLoop(loop);
@@ -474,8 +477,21 @@ function place(head,yaw,fixedFloor){
   const local=!fixedFloor&&S.renderer.xr.isPresenting&&head.y<0.5; /* repère sans sol : on suppose 1,60 m */
   S.floorY=local?head.y-1.6:0;
   S.head=head.clone();
-  S.padH=Math.max(0.4,Math.min(1.3,head.y-S.floorY-0.62+S.hOff));
-  S.base={x:head.x-Math.sin(yaw)*S.dOff,y:S.floorY,z:head.z-Math.cos(yaw)*S.dOff,yaw}; /* dOff : on recule la batterie, pour la voir plus petite */pose();
+  const fx=-Math.sin(yaw),fz=-Math.cos(yaw);
+  if(S.fit){
+    /* calée sur les mains : S.fit.D est la pointe des baguettes vue de la tête, dans le repère de la batterie
+       (inclinaison comprise). On cherche la hauteur des pads et la place de la tête dans la batterie
+       pour que le point entre les deux pads des mains tombe juste sous les baguettes. */
+    const A=handsAnchor(),D=S.fit.D,ly=head.y-S.floorY;
+    S.padH=Math.max(0.3,Math.min(1.5,D.y+ly-A.y-0.02-TIP_GAP+S.hOff));
+    const lx=A.x-D.x,lz=A.z-D.z,c=Math.cos(yaw),si=Math.sin(yaw);
+    S.base={x:head.x-(lx*c+lz*si)+fx*S.dOff,y:S.floorY,z:head.z-(-lx*si+lz*c)+fz*S.dOff,yaw};
+  }else{
+    S.padH=Math.max(0.4,Math.min(1.3,head.y-S.floorY-0.62+S.hOff));
+    S.base={x:head.x+fx*S.dOff,y:S.floorY,z:head.z+fz*S.dOff,yaw};
+  }
+  /* dOff : on recule la batterie, pour la voir plus petite */
+  pose();
   for(const p of S.pads){
     const P=p.P;
     if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0,-1);if(p.line){p.line.position.set(P.x,0.04,P.z+0.3);p.line.scale.x=p.g.scale.x;}}
@@ -524,6 +540,63 @@ function placeFromHead(){
   /* la batterie recule un peu : la tête est au-dessus du tabouret, pas au-dessus des pads */
   S.menuMoved=false;
   place(pos,Math.atan2(-f.x,-f.z));
+}
+/* Caler la batterie sur les mains. Le point visé, entre les deux pads des mains (tchak et toum),
+   se pose juste sous la pointe des deux baguettes ; la batterie regarde là où pointent les baguettes.
+   Réglage « Caler sur : mes mains / ma tête » (Ma batterie). */
+const CAL_KEY='poumtchak.vr.calage',CALS={mains:'Mes mains',tete:'Ma tête'};
+const TIP_GAP=0.03; /* les baguettes au repos flottent à 3 cm au-dessus des pads */
+function handsAnchor(){
+  const a=S.pads[1].P,b=S.pads[4].P;
+  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2};
+}
+/* La pose des deux baguettes, si les deux manettes sont suivies et tenues comme pour jouer ; sinon null. */
+function handsPose(head,headYaw){
+  const L=S.sticks.filter(s=>!s.sim&&s.src&&s.grip&&s.grip.visible);
+  if(L.length<2)return {why:'Manettes non suivies'};
+  const T=new THREE.Vector3(),dir=new THREE.Vector3(),a=new THREE.Vector3(),b=new THREE.Vector3();
+  for(const st of L.slice(0,2)){
+    st.tip.getWorldPosition(a);st.grip.getWorldPosition(b);
+    T.addScaledVector(a,0.5);dir.add(a.sub(b).setY(0));
+  }
+  const d=T.clone().sub(head),hf=new THREE.Vector3(-Math.sin(headYaw),0,-Math.cos(headYaw));
+  const tilted=Math.abs(S.pitch)>0.3||Math.abs(S.roll)>0.3;
+  /* mains trop loin, derrière soi, ou au-dessus de la tête (debout, sans inclinaison) : pas une position de jeu */
+  if(d.length()>1.3||(!tilted&&(d.y>-0.1||d.dot(hf)<0.05)))return {why:'Mains pas en position'};
+  let yaw=headYaw;
+  if(dir.lengthSq()>0.01){
+    const y=Math.atan2(-dir.x,-dir.z);let dy=y-headYaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+    if(Math.abs(dy)<Math.PI/3)yaw=y; /* les baguettes pointent à peu près devant soi : on suit leur direction */
+  }
+  return {T,yaw};
+}
+/* Recaler la batterie (stick enfoncé, recentrage du casque, « Recaler » du menu). */
+function recenter(){
+  if(S.preview){S.fit=null;place(S.head,S.base?S.base.yaw:0,true);return;}
+  const cam=S.renderer.xr.getCamera(),pos=new THREE.Vector3(),q=new THREE.Quaternion();
+  cam.getWorldPosition(pos);cam.getWorldQuaternion(q);
+  const f=new THREE.Vector3(0,0,-1).applyQuaternion(q);f.y=0;
+  if(f.lengthSq()<1e-4)f.set(0,0,-1);
+  let yaw=Math.atan2(-f.x,-f.z);
+  S.menuMoved=false;S.recenters=(S.recenters||0)+1;
+  if(S.cal==='mains'){
+    const h=handsPose(pos,yaw);
+    if(h.T){
+      yaw=h.yaw;
+      const R=new THREE.Quaternion().setFromEuler(new THREE.Euler(S.pitch,yaw,S.roll,'YXZ'));
+      S.fit={D:h.T.clone().sub(pos).applyQuaternion(R.invert())};
+      S.msg='Batterie calée sous tes baguettes';
+    }else S.msg=h.why+(S.fit?' : batterie replacée comme avant, devant toi':' : batterie calée sur ta tête');
+  }else{S.fit=null;S.msg='';}
+  /* sans nouvelle mesure, l'ancien calage (S.fit) suit la tête : utile après un recentrage du casque */
+  place(pos,yaw);
+  for(const st of S.sticks)st.prev=null; /* pas de faux coup : les pads ont bougé sous les baguettes */
+}
+function setCal(v){
+  if(!CALS[v])return;
+  S.cal=v;try{localStorage.setItem(CAL_KEY,v);}catch(e){}
+  if(v==='tete'){S.fit=null;if(S.head)place(S.head,S.base?S.base.yaw:0,S.preview);}
+  else S.recalAt=performance.now()+3000; /* le temps de poser les baguettes au-dessus des pads */
 }
 
 /* Les manettes : une baguette dans chaque main, la gâchette pour la grosse caisse. */
@@ -639,7 +712,7 @@ function sticksAt(st,t){
 }
 
 /* Les boutons : gâchette = grosse caisse ; A/X = jouer ; B/Y = arrêter, ou quitter la VR ;
-   stick enfoncé = replacer la batterie devant soi. */
+   stick enfoncé = recaler la batterie sous les baguettes (ou devant soi, réglage « Caler sur »). */
 function buttons(t){
   for(const st of S.sticks){
     const gp=st.src&&st.src.gamepad;if(!gp)continue;
@@ -651,6 +724,8 @@ function buttons(t){
     /* un bouton est lu une fois par image : on date le coup de maintenant, pas de l'instant
        d'affichage prévu de l'image (qui peut être un peu dans le futur) */
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
+    else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
+    if(down(3))recenter();
     else if(down(0)){const p=S.api.opts().kick==='charley'&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
     if(st.hand==='right')menuGrab(st);
@@ -754,6 +829,13 @@ function loop(t,frame){
     if(v.lengthSq()>0.01)placeFromHead();
   }
   updateDecor(t);
+  if(S.placed&&frame&&S.resetAsk){S.resetAsk=false;recenter();}
+  if(S.placed&&S.recalAt){
+    const r=S.recalAt-performance.now();
+    if(r<=0){S.recalAt=0;recenter();}
+    else S.msg='Baguettes au-dessus des pads, comme pour jouer… '+Math.ceil(r/1000);
+  }
+  if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   if(S.spin){
     /* pendant le mode, les boutons se lisent là : on tient à jour leur état pour qu'un B encore enfoncé
        au retour à la batterie ne quitte pas le casque */
@@ -930,18 +1012,21 @@ function menuItems(mode){
     return it;
   }
   if(mode==='kit'){
-    row(20,'Sons');seg(20,'sound',o.sounds,o.sound);
-    row(28,'Style');seg(28,'style',STYLES,S.style);
-    row(36,'Disposition');seg(36,'lay',LAYOUTS,S.layout);
-    row(44,'Baguettes');pm(44,30,MW-35,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
-    row(52,'Hauteur, recul');
-    pm(52,30,(MW-37)/2,'haut',(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
-    pm(52,32+(MW-37)/2,(MW-37)/2,'dist',(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
-    row(60,'Incliner');
-    pm(60,30,(MW-37)/2,'pitch','avant '+Math.round(S.pitch*180/Math.PI)+'°');
-    pm(60,32+(MW-37)/2,(MW-37)/2,'roll','côté '+(S.roll>0.005?'+':'')+Math.round(S.roll*180/Math.PI)+'°');
-    row(68,'Décor');seg(68,'decor',DECORS,S.decor);
-    it.push({id:'back',x:30,y:77,w:MW-60,h:10,txt:'‹ Retour',big:true});
+    row(19,'Sons');seg(19,'sound',o.sounds,o.sound);
+    row(26.5,'Style');seg(26.5,'style',STYLES,S.style);
+    row(34,'Disposition');seg(34,'lay',LAYOUTS,S.layout);
+    row(41.5,'Baguettes');pm(41.5,30,MW-35,'tilt','angle '+Math.round(S.tilt*180/Math.PI)+'°');
+    row(49,'Hauteur, recul');
+    pm(49,30,(MW-37)/2,'haut',(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm');
+    pm(49,32+(MW-37)/2,(MW-37)/2,'dist',(S.dOff>0?'+':'')+Math.round(S.dOff*100)+' cm');
+    row(56.5,'Incliner');
+    pm(56.5,30,(MW-37)/2,'pitch','avant '+Math.round(S.pitch*180/Math.PI)+'°');
+    pm(56.5,32+(MW-37)/2,(MW-37)/2,'roll','côté '+(S.roll>0.005?'+':'')+Math.round(S.roll*180/Math.PI)+'°');
+    row(64,'Décor');seg(64,'decor',DECORS,S.decor);
+    row(71.5,'Caler sur');
+    {const w=(MW-35)/3;Object.keys(CALS).forEach((k,j)=>it.push({id:'cal:'+k,x:30+j*w,y:71.5,w:w-1.5,h:H,txt:CALS[k],on:k===S.cal}));
+     it.push({id:'recal',x:30+2*w,y:71.5,w:w-1.5,h:H,txt:'Recaler'});}
+    it.push({id:'back',x:30,y:79.5,w:MW-60,h:9,txt:'‹ Retour',big:true});
     return it;
   }
   row(19,'Chant');
@@ -989,14 +1074,14 @@ function drawMenu(mode){
     const H2=R&&R.hands?'  ·  Gauche '+R.hands.l+' %, droite '+R.hands.r+' %':'';
     if(mode==='mains')status=R&&!R.quit?{t:(R.fell?'Boum ! ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' %'+H2,c:'#F2BB4A'}:{t:'Pad de gauche : main gauche · pad de droite : main droite',c:'#97A1B2'};
     else if(mode==='exo')status=R&&!R.quit?{t:(R.fell?'Boum ! ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points',c:'#F2BB4A'}:S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Un mot par coup, « . » = silence · tes exercices : rubrique Mots, sur la page',c:'#97A1B2'};
-    else if(mode==='kit')status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Frappe un pad pour entendre le son choisi',c:'#97A1B2'};
+    else if(mode==='kit')status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:S.cal==='mains'?'Stick enfoncé : la batterie se cale sous tes baguettes':'Frappe un pad pour entendre le son choisi',c:'#97A1B2'};
     else if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best+H2,c:'#F2BB4A'};
     else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
     else status={t:KICK_HINT[api.opts().kick],c:'#97A1B2'};
     foot=[
       nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
       S.preview?{t:'Souris, ou flèches + Entrée · Échap : quitter · P : pause · B F D J K L : frapper',c:'#C9D1DC'}:
-        {t:'Vise + gâchette, ou stick droit + A · stick gauche : se déplacer (poignée serrée : incliner) · B/Y : quitter',c:'#C9D1DC'},
+        {t:'Vise + gâchette, ou stick droit + A · stick gauche : se déplacer (poignée : incliner) · stick enfoncé : recaler · B/Y : quitter',c:'#C9D1DC'},
       {t:api.midiText(),c:'#7BE3A6'}
     ];
   }
@@ -1060,6 +1145,9 @@ function menuDo(id){
   if(id==='restart'){pause(false);api.stop();S.result=null;start(S.kind);return;}
   if(id==='menu'){pause(false);api.stop();return;}
   if(id==='open'){S.mini=false;return;}
+  S.result=null;S.msg='';S.recalAt=0;
+  if(id==='play'){start();return;}
+  if(id==='recal'){S.recalAt=performance.now()+3000;return;}
   S.result=null;S.msg='';
   if(id==='rec'){const was=api.rec(),r=api.recToggle();S.msg=was?(r?'Gardé dans Mes grooves : « '+r+' ». Choisis-le dans Chant pour le rejouer.':'Rien d\'enregistré.'):'Un clic par temps : compte 4, puis joue. « ■ Garder » pour finir.';return;}
   if(id==='play'){if(api.rec())api.recToggle();start();return;}
@@ -1093,6 +1181,7 @@ function menuDo(id){
   else{
     const [k,v]=id.split(':');
     if(k==='style')setStyle(v);
+    else if(k==='cal')setCal(v);
     else if(k==='decor')setDecor(v);
     else if(k==='lay')setLayout(v);
     else{api.set(k,v);if(k==='sound')api.play('tchak',1);}
@@ -1110,6 +1199,8 @@ function startSpin(trick){
   S.sub=false;
   S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
   S.kit.visible=false;S.menu.mesh.visible=false;
+  /* les rayons du menu ne servent pas pendant le mode */
+  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
 }
 function stopSpin(){
   if(!S.spin)return;
@@ -1172,7 +1263,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
