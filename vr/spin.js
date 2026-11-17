@@ -98,7 +98,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   /* mains pleines : chaque doigt est un tube entre ses articulations, la paume une bille */
   const SKIN=new THREE.MeshStandardMaterial({color:0xE0B894,roughness:0.7});
-  const boneGeo=new THREE.CylinderGeometry(1,1,1,8,1),palmGeo=new THREE.SphereGeometry(1,12,8);
+  const boneGeo=new THREE.CylinderGeometry(1,1,1,8,1),palmGeo=new THREE.BoxGeometry(1,1,1);
   for(const h of hands){
     h.bones=[];
     for(let i=0;i<20;i++){const m=new THREE.Mesh(boneGeo,SKIN);m.visible=false;scene.add(m);h.bones.push(m);}
@@ -106,7 +106,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
   const FINGER_CHAIN=['-metacarpal','-phalanx-proximal','-phalanx-intermediate','-phalanx-distal','-tip'];
   const FINGER_NAMES=['thumb','index-finger','middle-finger','ring-finger','pinky-finger'];
-  const _P=new THREE.Vector3(),_Q=new THREE.Vector3();
+  const _P=new THREE.Vector3(),_Q=new THREE.Vector3(),_X=new THREE.Vector3(),_Y=new THREE.Vector3(),_Z=new THREE.Vector3(),_B=new THREE.Matrix4();
   function updateHand(h){
     const hj=h.g.joints||{};
     h.bones.forEach(m=>{m.visible=false;});h.palm.visible=false;
@@ -129,11 +129,27 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         seg(prev,j,0.0085);prev=j;
       }
     }
-    const mid=hj['middle-finger-metacarpal'];
-    if(wrist&&mid&&wrist.visible&&mid.visible){
+    /* les bouts des doigts sont arrondis : une petite bille à chaque pointe */
+    for(const f of FINGER_NAMES){
+      const tip=hj[f+'-tip'];
+      if(tip&&tip.visible&&bi<h.bones.length){
+        tip.getWorldPosition(_P);
+        const m=h.bones[bi++];m.position.copy(_P);m.quaternion.identity();m.scale.setScalar(0.0085);m.visible=true;
+      }
+    }
+    /* la paume : un plat orienté comme la main (poignet vers les doigts, index vers l'auriculaire) */
+    const mid=hj['middle-finger-metacarpal'],ix=hj['index-finger-metacarpal'],pk=hj['pinky-finger-metacarpal'];
+    if(wrist&&mid&&ix&&pk&&wrist.visible&&mid.visible&&ix.visible&&pk.visible){
       wrist.getWorldPosition(_P);mid.getWorldPosition(_Q);
-      h.palm.position.copy(_P).add(_Q).multiplyScalar(0.5);
-      h.palm.scale.setScalar(0.024);h.palm.visible=true;
+      const c=_P.clone().add(_Q).multiplyScalar(0.5);
+      _Y.copy(_Q).sub(_P).normalize();
+      ix.getWorldPosition(_X);pk.getWorldPosition(_Z);
+      _X.sub(_Z).normalize();
+      _Z.crossVectors(_X,_Y).normalize();
+      _X.crossVectors(_Y,_Z).normalize();
+      _B.makeBasis(_X,_Y,_Z);
+      h.palm.position.copy(c);h.palm.quaternion.setFromRotationMatrix(_B);
+      h.palm.scale.set(0.075,0.012,0.07);h.palm.visible=true;
     }
   }
   /* les articulations des mains, en une seule passe de dessin (InstancedMesh) */
