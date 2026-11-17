@@ -25,7 +25,7 @@ const COACH={
   ok:'Bravo, tu as réussi !'
 };
 
-const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_m=new THREE.Matrix4(),_p=new THREE.Vector3();
+const _P0=new THREE.Vector3(),_Q0=new THREE.Vector3(),_a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_m=new THREE.Matrix4(),_p=new THREE.Vector3();
 const _u=new THREE.Vector3(),_v=new THREE.Vector3(),_vp=new THREE.Vector3(),_e1=new THREE.Vector3(),_e2=new THREE.Vector3();
 
 /* Détecteur de Thumb Around, pur (pas de rendu) : on lui donne, à chaque image, la pince, le pouce,
@@ -178,6 +178,49 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   function say(msg,t){coach=msg;coachT=t;}
 
+  /* Rebond : un pad d'entraînement devant soi, à hauteur des genoux assis.
+     Étape 2 : 8 frappes main ouverte (la baguette rebondit seule).
+     Étape 3 : alterner une frappe main ouverte, une frappe en fermant les doigts, 8 fois. */
+  const GOAL=8;
+  const rb={step:2,n:0,want:'open',armed:true,openMax:0};
+  let pad=null;
+  if(trick==='rebond'){
+    pad=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.02,24),new THREE.MeshStandardMaterial({color:0x3A4250,roughness:0.9}));
+    pad.position.set(cp.x+fwd.x*0.45,cp.y-0.55,cp.z+fwd.z*0.45);
+    scene.add(pad);
+  }
+  /* Moulinet : la baguette tenue fait un tour complet en tournant le poignet, en moins de 2,5 s */
+  const ml={n:0,travel:0,t0:0,prev:new THREE.Vector3(),has:false};
+  const _tip=new THREE.Vector3(),_w=new THREE.Vector3();
+  function rebondStep(h,hj,t){
+    const wr=hj['wrist'],md=hj['middle-finger-tip'],rg=hj['ring-finger-tip'];
+    if(!wr||!md||!rg||!wr.visible)return;
+    wr.getWorldPosition(_w);md.getWorldPosition(_P0);rg.getWorldPosition(_Q0);
+    const curl=(_P0.distanceTo(_w)+_Q0.distanceTo(_w))/2;
+    rb.openMax=Math.max(rb.openMax*0.999,curl);
+    _tip.copy(h.mid).addScaledVector(h.dir,STICK/2);
+    const top=pad.position.y+0.01;
+    if(_tip.y>top+0.03)rb.armed=true;
+    const dx=_tip.x-pad.position.x,dz=_tip.z-pad.position.z;
+    if(!rb.armed||_tip.y>top||dx*dx+dz*dz>0.2*0.2)return;
+    rb.armed=false;play('tchak',0.8);
+    const kind=curl<rb.openMax*0.82?'closed':'open';
+    if(rb.step===2){
+      if(kind==='open'){rb.n++;say('Rebond '+rb.n+' sur '+GOAL,t);}
+      else say('Garde les doigts ouverts : laisse la baguette rebondir toute seule.',t);
+      if(rb.n>=GOAL){rb.step=3;rb.n=0;rb.want='open';say('Bravo ! Maintenant, alterne.',t);play('psch',0.6);}
+    }else if(rb.step===3){
+      if(kind===rb.want){rb.n++;rb.want=kind==='open'?'closed':'open';say('Bien ! '+rb.n+' sur '+GOAL,t);}
+      else say(rb.want==='open'?'Celle-ci main ouverte : laisse rebondir.':'Celle-ci en fermant les doigts.',t);
+      if(rb.n>=GOAL*2){rb.step=4;say('Bravo, tu sais faire rebondir la baguette !',t);play('psch',0.8);}
+    }
+  }
+  function moulinetStep(h,t){
+    if(!ml.has||t-ml.t0>2500){ml.has=true;ml.t0=t;ml.travel=0;ml.prev.copy(h.dir);return;}
+    ml.travel+=ml.prev.angleTo(h.dir);ml.prev.copy(h.dir);
+    if(ml.travel>=Math.PI*2){ml.n++;ml.has=false;play('tchak',0.9);say('Moulinet réussi ! ('+ml.n+')',t);}
+  }
+
   function status(){
     return hands.map((h,i)=>{
       const name=i===0?'Main 1':'Main 2';
@@ -187,8 +230,18 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
 
   function draw(t){
-    const lines=[{t:trick==='thumb'?'Thumb Around · MVP':'Drumstick Spin · prototype',size:5,weight:800}];
-    if(trick==='thumb'){
+    const lines=[{t:trick==='thumb'?'Thumb Around · MVP':trick==='rebond'?'Rebond':trick==='moulinet'?'Moulinet':'Drumstick Spin · prototype',size:5,weight:800}];
+    const held0=hands.some(h=>h.held);
+    if(trick==='rebond'||trick==='moulinet'){
+      const g=trick==='rebond'
+        ?(!held0?'Étape 1 sur 3 : pince la baguette entre le pouce et l\'index, main ouverte.'
+          :rb.step===2?'Étape 2 sur 3 : frappe le pad gris et laisse rebondir, doigts ouverts ('+rb.n+'/'+GOAL+').'
+          :rb.step===3?'Étape 3 sur 3 : alterne. '+(rb.want==='open'?'Celle-ci main ouverte.':'Celle-ci en fermant les doigts.')+' ('+rb.n+'/'+GOAL*2+')'
+          :'Terminé ! Continue pour t\'entraîner.')
+        :(!held0?'Étape 1 sur 2 : pince la baguette entre le pouce et l\'index.'
+          :'Étape 2 sur 2 : tourne le poignet, la baguette dessine un cercle complet. Réussis : '+ml.n);
+      lines.push({t:coach&&t-coachT<2000?coach:g,size:3.6,color:'#F2BB4A',weight:700});
+    }else if(trick==='thumb'){
       lines.push({t:'Essais : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2'});
       /* le tuto pas à pas : une seule consigne à la fois, celle de l'étape en cours */
       const held=hands.some(h=>h.held);
@@ -263,6 +316,10 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
             h.stick.position.copy(h.mid);
             h.stick.quaternion.setFromUnitVectors(UP,h.dir);
             h.stick.visible=true;
+            if(!trickHand&&(trick==='rebond'||trick==='moulinet')){
+              trickHand=h;
+              if(trick==='rebond')rebondStep(h,hj,t);else moulinetStep(h,t);
+            }
           }
         }
       }
@@ -278,6 +335,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         else if(t-bothSince>HOLD_EXIT_MS)exit=true;
       }else bothSince=0;
     }else if(!trickHand)det.reset();
+    if(trick==='moulinet'&&!trickHand)ml.has=false;
 
     draw(t);
     return exit;
@@ -287,6 +345,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     for(const h of hands){scene.remove(h.g);scene.remove(h.stick);}
     stickGeo.dispose();wood.dispose();
     scene.remove(joints);joints.geometry.dispose();jointMat.dispose();
+    if(pad){scene.remove(pad);pad.geometry.dispose();pad.material.dispose();}
     scene.remove(pnl.mesh);pnl.mesh.geometry.dispose();pnl.mesh.material.map.dispose();pnl.mesh.material.dispose();
   }
 

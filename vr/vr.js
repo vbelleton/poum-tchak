@@ -922,8 +922,10 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinstart',x:30,y:34,w:MW-60,h:11,txt:'Pratique libre',big:true});
-    it.push({id:'spinthumb',x:30,y:49,w:MW-60,h:11,txt:'Thumb Around (MVP)',big:true});
+    it.push({id:'spinstart',x:30,y:22,w:MW-60,h:9,txt:'Pratique libre',big:true});
+    it.push({id:'spinrebond',x:30,y:32,w:MW-60,h:9,txt:'Rebond (main ouverte, puis doigts)',big:true});
+    it.push({id:'spinthumb',x:30,y:42,w:MW-60,h:9,txt:'Figure : Thumb Around',big:true});
+    it.push({id:'spinmoul',x:30,y:52,w:MW-60,h:9,txt:'Figure : Moulinet',big:true});
     it.push({id:'back',x:30,y:63,w:MW-60,h:10,txt:'‹ Retour'});
     return it;
   }
@@ -1073,6 +1075,8 @@ function menuDo(id){
   if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
+  if(id==='spinrebond'){startSpin('rebond');return;}
+  if(id==='spinmoul'){startSpin('moulinet');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
