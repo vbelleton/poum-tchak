@@ -501,7 +501,8 @@ function place(head,yaw,fixedFloor){
 function menuDefault(){
   if(!S.base||!S.head)return;
   const yaw=S.base.yaw,d=menuMode()==='pause'?0.9:1.25,m=S.menu.mesh;
-  m.position.set(S.head.x-Math.sin(yaw)*d,S.floorY+S.padH+0.72,S.head.z-Math.cos(yaw)*d);
+  /* le menu reste à hauteur des yeux, un peu au-dessus du kit : jamais derrière les pads */
+  m.position.set(S.head.x-Math.sin(yaw)*d,S.head.y-0.25,S.head.z-Math.cos(yaw)*d);
   m.rotation.set(-0.12,yaw,0,'YXZ');
 }
 const _gm=new THREE.Matrix4(),_gr=new THREE.Matrix4(),_gs=new THREE.Vector3();
