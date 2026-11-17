@@ -20,7 +20,8 @@ const COACH={
   pivot:'Garde ton pouce comme pivot.',
   incomplete:'La rotation est incomplète.',
   catch:'Anticipe le rattrapage.',
-  ok:'Bravo, tu as réussi !'
+  ok:'Bravo, tu as réussi !',
+  sens:'Dans l\'autre sens !'
 };
 
 const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_m=new THREE.Matrix4(),_p=new THREE.Vector3();
@@ -31,7 +32,8 @@ const _u=new THREE.Vector3(),_v=new THREE.Vector3(),_vp=new THREE.Vector3(),_e1=
    Déroulé : la pince tient la baguette, la rotation autour du pouce démarre ; la pince s'ouvre
    (la baguette tourne librement) ; la pince se referme (rattrapage) : on compte le tour fait. */
 export class ThumbAroundDetector{
-  constructor(){this.reset();}
+  /* dir : 0 = un sens ou l'autre, 1 = Thumb Around, -1 = Reverse Thumb Around */
+  constructor(dir=0){this.dir=dir;this.reset();}
   reset(){
     this.phase='idle';     /* idle → roll (tourne sans pince) → caught */
     this.total=0;this.prev=null;this.thumb0=null;this.e1=null;this.e2=null;
@@ -69,7 +71,8 @@ export class ThumbAroundDetector{
       if(!res&&!pinch&&this.pinchPrev)this.free=true;       /* la pince s'ouvre : la baguette tourne librement */
       if(!res&&pinch&&!this.pinchPrev&&this.free){            /* rattrapage */
         const turned=Math.abs(this.total);
-        res=turned>=TA.full?{ok:true,msg:COACH.ok}:{ok:false,msg:COACH.incomplete};
+        if(this.dir&&Math.sign(this.total)!==this.dir&&turned>Math.PI/2)res={ok:false,msg:COACH.sens};
+        else res=turned>=TA.full?{ok:true,msg:COACH.ok}:{ok:false,msg:COACH.incomplete};
       }
       if(!res&&t-this.t0>TA.timeout)res={ok:false,msg:COACH.catch};
       if(res)this.reset();
@@ -91,15 +94,16 @@ const CHAINS=[
   ['pinky-finger-metacarpal','pinky-finger-phalanx-proximal','pinky-finger-phalanx-intermediate','pinky-finger-phalanx-distal','pinky-finger-tip']
 ];
 const TIPS=CHAINS.map(c=>c[c.length-1]);
-const MAX_BONES=2*30,MAX_TIPS=2*5;
-const BONE_R=0.0075,TIP_R=0.011;
+const MAX_BONES=2*30,MAX_TIPS=2*5,MAX_KNUCKLES=2*25;
+const BONE_R=0.0085,TIP_R=0.011;
+const PALM=['wrist','thumb-phalanx-proximal','index-finger-phalanx-proximal','middle-finger-phalanx-proximal','ring-finger-phalanx-proximal','pinky-finger-phalanx-proximal'];
 
 /* renderer, scene, session : la session WebXR en cours. panel, drawPanel : les panneaux de vr.js.
    play(id, force) : le son de vr.js. trick : null (libre) ou 'thumb' (Thumb Around). */
 export function create({renderer,scene,session,panel,drawPanel,play,trick=null,store=null}){
   const hands=[0,1].map(i=>{
     const g=renderer.xr.getHand(i);scene.add(g);
-    return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector()};
+    return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector(trick==='reverse'?-1:1)};
   });
 
   /* une baguette par main, cachée tant que la pince ne la tient pas */
@@ -112,6 +116,14 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   const boneGeo=new THREE.CylinderGeometry(BONE_R,BONE_R,1,10);
   const bones=new THREE.InstancedMesh(boneGeo,skin,MAX_BONES);bones.count=0;bones.frustumCulled=false;scene.add(bones);
   const tips=new THREE.InstancedMesh(new THREE.SphereGeometry(TIP_R,12,8),skin,MAX_TIPS);tips.count=0;tips.frustumCulled=false;scene.add(tips);
+  const knuckles=new THREE.InstancedMesh(new THREE.SphereGeometry(BONE_R*1.1,10,6),skin,MAX_KNUCKLES);knuckles.count=0;knuckles.frustumCulled=false;scene.add(knuckles);
+  const palmMat=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.7,transparent:true,opacity:0.8,side:THREE.DoubleSide});
+  for(const h of hands){
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(PALM.length*3),3));
+    g.setIndex([0,1,2, 0,2,3, 0,3,4, 0,4,5]);
+    h.palm=new THREE.Mesh(g,palmMat);h.palm.visible=false;h.palm.frustumCulled=false;scene.add(h.palm);
+  }
 
   /* le panneau d'aide, devant soi au lancement, puis fixe */
   const cam=renderer.xr.getCamera(),cp=new THREE.Vector3(),cq=new THREE.Quaternion(),fwd=new THREE.Vector3();
@@ -168,7 +180,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     /* étapes 3 et 4 : la baguette tourne toute seule, centrée sur le pouce */
     tuto.a+=dt*2*Math.PI*TURN_S;
     const m=tuto.a%(2*Math.PI),win=tuto.a>Math.PI&&(m>=Math.PI*5/3||m<=Math.PI/3);
-    _d.copy(tuto.v).applyAxisAngle(tuto.u,tuto.a);
+    _d.copy(tuto.v).applyAxisAngle(tuto.u,(trick==='reverse'?-1:1)*tuto.a);
     h.stick.position.copy(_a);h.stick.quaternion.setFromUnitVectors(UP,_d);h.stick.visible=true;
     if(tuto.step===4)h.stick.material=win?green:wood;
     if(tuto.step===3&&t-tuto.t0>1500)nextStep(t,'À toi !');
@@ -190,11 +202,11 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
 
   function draw(t){
-    const lines=[{t:trick==='thumb'?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
-    if(trick==='thumb'&&tuto.step<5){
+    const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
+    if(!!trick&&tuto.step<5){
       lines.push({t:TUTO[Math.min(tuto.step,4)===3?2:Math.min(tuto.step,4)===4?3:Math.min(tuto.step,4)],size:3.8,color:'#E8ECF2',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Une étape à la fois : elle avance toute seule',size:3.4,color:coach?'#7BE3A6':'#97A1B2',weight:700});
-    }else if(trick==='thumb'){
+    }else if(!!trick){
       lines.push({t:TUTO[4],size:3.6,color:'#E8ECF2',weight:800});
       lines.push({t:'Essais : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2'});
       lines.push({t:coach&&t-coachT<2500?coach:'Pivot : le pouce. Lâche, laisse tourner, rattrape.',size:3.6,color:coach===COACH.ok?'#7BE3A6':'#F2BB4A',weight:700});
@@ -208,28 +220,36 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   const _s=new THREE.Vector3(),_e=new THREE.Vector3(),_d=new THREE.Vector3(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(),_mt=new THREE.Matrix4(),_one=new THREE.Vector3(1,1,1);
 
-  /* dessine les os d'une main : un segment par paire d'articulations qui se suivent */
-  function drawHand(hj,nb,nt){
-    const seg=(a,b)=>{
-      if(nb>=MAX_BONES)return nb;
-      _s.copy(a);_e.copy(b);_d.copy(_e).sub(_s);const len=_d.length();
-      if(len<1e-5)return nb;
-      _q.setFromUnitVectors(UP,_d.multiplyScalar(1/len));
-      _sc.set(1,len,1);_mt.compose(_p.copy(_s).add(_e).multiplyScalar(0.5),_q,_sc);
-      bones.setMatrixAt(nb,_mt);return nb+1;
-    };
-    const w=hj['wrist'];
+  /* dessine une main : os entre les articulations, boules aux articulations (pour les arrondir),
+     bouts des doigts plus gros, et une paume pleine (un éventail de triangles depuis le poignet) */
+  function drawHand(h,hj,nb,nt,nk){
     const pos=new Map();
-    for(const c of CHAINS)for(const name of c){const j=hj[name];if(j&&j.visible){const v=new THREE.Vector3();j.getWorldPosition(v);pos.set(name,v);}}
-    if(w&&w.visible){const v=new THREE.Vector3();w.getWorldPosition(v);pos.set('wrist',v);}
+    for(const name in hj){const j=hj[name];if(j&&j.visible){const v=new THREE.Vector3();j.getWorldPosition(v);pos.set(name,v);}}
     if(pos.has('wrist')){
       for(const c of CHAINS){
         let prev=pos.get('wrist');
-        for(const name of c){const p=pos.get(name);if(p){nb=seg(prev,p);prev=p;}else break;}
+        for(const name of c){
+          const p=pos.get(name);if(!p)break;
+          _d.copy(p).sub(prev);const len=_d.length();
+          if(len>1e-5&&nb<MAX_BONES){
+            _q.setFromUnitVectors(UP,_d.multiplyScalar(1/len));_sc.set(1,len,1);
+            _mt.compose(_p.copy(prev).add(p).multiplyScalar(0.5),_q,_sc);bones.setMatrixAt(nb++,_mt);
+          }
+          prev=p;
+        }
       }
     }
-    for(const name of TIPS){const p=pos.get(name);if(p&&nt<MAX_TIPS){tips.setMatrixAt(nt++,_mt.makeTranslation(p.x,p.y,p.z));}}
-    return [nb,nt];
+    for(const [name,p] of pos){
+      if(TIPS.includes(name)){if(nt<MAX_TIPS)tips.setMatrixAt(nt++,_mt.makeTranslation(p.x,p.y,p.z));}
+      else if(nk<MAX_KNUCKLES)knuckles.setMatrixAt(nk++,_mt.makeTranslation(p.x,p.y,p.z));
+    }
+    const ok=PALM.every(n=>pos.has(n));h.palm.visible=ok;
+    if(ok){
+      const a=h.palm.geometry.attributes.position;
+      PALM.forEach((n,k)=>{const p=pos.get(n);a.setXYZ(k,p.x,p.y,p.z);});
+      a.needsUpdate=true;h.palm.geometry.computeVertexNormals();h.palm.geometry.computeBoundingSphere();
+    }
+    return [nb,nt,nk];
   }
 
   /* À chaque image : lire les mains, tenir les baguettes, dessiner la main.
@@ -245,7 +265,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       prevBtn.set(src,down);
     }
 
-    let nb=0,nt=0,tutoHand=null;
+    let nb=0,nt=0,nk=0,tutoHand=null;
     for(const h of hands){
       const hj=h.g.joints||{};
       const th=hj['thumb-tip'],ix=hj['index-finger-tip'],md=hj['middle-finger-tip'];
@@ -254,10 +274,10 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       if(h.seen){
         th.getWorldPosition(_a);ix.getWorldPosition(_b);md.getWorldPosition(_c);
         const pinch=!!(h.g.inputState&&h.g.inputState.pinching);
-        if(trick==='thumb'&&tuto.step<5){
+        if(!!trick&&tuto.step<5){
           /* tuto guidé : une seule main (la première suivie), l'autre attend */
           if(!tutoHand){tutoHand=h;tutoStep(h,t,pinch);}else h.stick.visible=false;
-        }else if(trick==='thumb'){
+        }else if(!!trick){
           /* chaque main a son détecteur : les deux mains peuvent faire le trick */
           const r=h.det.step({t,pinch,thumb:_a.clone(),index:_b.clone(),middle:_c.clone()});
           _d.copy(_c).sub(_a);
@@ -287,12 +307,13 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         }
       }else{
         h.stick.visible=false;
-        if(trick==='thumb')h.det.reset();
+        if(!!trick)h.det.reset();
       }
-      [nb,nt]=drawHand(hj,nb,nt);
+      [nb,nt,nk]=drawHand(h,hj,nb,nt,nk);
     }
     bones.count=nb;bones.instanceMatrix.needsUpdate=true;
     tips.count=nt;tips.instanceMatrix.needsUpdate=true;
+    knuckles.count=nk;knuckles.instanceMatrix.needsUpdate=true;
 
     /* les deux pinces tenues longtemps : retour (mode libre) */
     if(trick!=='thumb'){
@@ -311,6 +332,8 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     stickGeo.dispose();wood.dispose();green.dispose();boneGeo.dispose();skin.dispose();
     scene.remove(bones);bones.dispose();
     scene.remove(tips);tips.dispose();
+    scene.remove(knuckles);knuckles.dispose();
+    for(const h of hands){scene.remove(h.palm);h.palm.geometry.dispose();}palmMat.dispose();
     scene.remove(pnl.mesh);pnl.mesh.geometry.dispose();pnl.mesh.material.map.dispose();pnl.mesh.material.dispose();
   }
 

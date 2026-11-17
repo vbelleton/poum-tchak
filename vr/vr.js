@@ -1002,9 +1002,10 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinstart',x:30,y:34,w:MW-60,h:11,txt:'Pratique libre',big:true});
-    it.push({id:'spinthumb',x:30,y:49,w:MW-60,h:11,txt:'Thumb Around (MVP)',big:true});
-    it.push({id:'back',x:30,y:63,w:MW-60,h:10,txt:'‹ Retour'});
+    it.push({id:'spinthumb',x:30,y:24,w:MW-60,h:10,txt:'Thumb Around',big:true});
+    it.push({id:'spinrev',x:30,y:37,w:MW-60,h:10,txt:'Reverse Thumb Around',big:true});
+    it.push({id:'spinstart',x:30,y:50,w:MW-60,h:9,txt:'Pratique libre'});
+    it.push({id:'back',x:30,y:63,w:MW-60,h:9,txt:'‹ Retour'});
     return it;
   }
   if(mode==='kit'){
@@ -1049,7 +1050,7 @@ function menuItems(mode){
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinstart'};
+const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinthumb'};
 function drawMenu(mode){
   const {api}=S,p=S.menu;
   S.items=menuItems(mode);
@@ -1159,6 +1160,7 @@ function menuDo(id){
   if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
+  if(id==='spinrev'){startSpin('reverse');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
@@ -1182,16 +1184,16 @@ function menuDo(id){
   }
 }
 /* Drumstick Spin : les mains suivies remplacent la batterie. Il faut un casque (pas l'aperçu). */
-const SPIN_THUMB_KEY='poumtchak.spin.thumb';
-const spinStore={
-  get(){try{return JSON.parse(localStorage.getItem(SPIN_THUMB_KEY))||null;}catch(e){return null;}},
-  set(v){try{localStorage.setItem(SPIN_THUMB_KEY,JSON.stringify(v));}catch(e){}}
-};
+/* essais et réussites, un par figure : poumtchak.spin.thumb, poumtchak.spin.reverse */
+const spinStore=trick=>({
+  get(){try{return JSON.parse(localStorage.getItem('poumtchak.spin.'+trick))||null;}catch(e){return null;}},
+  set(v){try{localStorage.setItem('poumtchak.spin.'+trick,JSON.stringify(v));}catch(e){}}
+});
 function startSpin(trick){
   if(S.spin)return;
   if(!S.session){S.msg='Drumstick Spin a besoin d\'un casque : l\'aperçu n\'a pas de mains.';S.sub='spin';return;}
   S.sub=false;
-  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
+  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:trick?spinStore(trick):null});
   S.kit.visible=false;S.menu.mesh.visible=false;
   /* les rayons du menu ne servent pas pendant le mode */
   for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
