@@ -650,7 +650,7 @@ function buttons(t){
     /* un bouton est lu une fois par image : on date le coup de maintenant, pas de l'instant
        d'affichage prévu de l'image (qui peut être un peu dans le futur) */
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
-    else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
+    else if(down(0)){const p=S.api.opts().kick==='charley'&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
     if(st.hand==='right')menuGrab(st);
     if(down(4)){if(mode){menuDo(S.focus);if(!S)return;}}
@@ -873,8 +873,8 @@ function draw(t){
    On vise avec la manette et on appuie sur la gâchette, ou on se déplace au stick et on valide avec A/X ;
    en aperçu, souris ou clavier. Tout est dessiné sur un canvas : chaque bouton garde son rectangle (en cm). */
 const MW=124,MH=108;
-const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
-const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
+const KICKS={gachette:'Gâchette',charley:'+ Charley pied',auto:'Automatique',tete:'Hoche la tête'};
+const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',charley:'Gâchette droite : grosse caisse · gâchette gauche : charleston au pied',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
 function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub||'main';}
 function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':S.sub==='spin'?'spinmenu':'kitmenu';S.sub=false;}
 function menuItems(mode){
@@ -959,7 +959,8 @@ function menuItems(mode){
   it.push({id:'mainsmenu',x:68.5,y:67,w:14,h:H,txt:'Mains ›'});
   it.push({id:'spinmenu',x:83.5,y:67,w:16,h:H,txt:'Spin ›'});
   it.push({id:'import',x:101,y:67,w:MW-106,h:H,txt:'+ Chants'});
-  it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'play',x:30,y:76,w:22,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'rec',x:54,y:76,w:20,h:10,txt:api.rec()?'■ Garder':'● Écrire',on:api.rec()});
   it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
@@ -1057,7 +1058,8 @@ function menuDo(id){
   if(id==='menu'){pause(false);api.stop();return;}
   if(id==='open'){S.mini=false;return;}
   S.result=null;S.msg='';
-  if(id==='play'){start();return;}
+  if(id==='rec'){const was=api.rec(),r=api.recToggle();S.msg=was?(r?'Gardé dans Mes grooves : « '+r+' ». Choisis-le dans Chant pour le rejouer.':'Rien d\'enregistré.'):'Un clic par temps : compte 4, puis joue. « ■ Garder » pour finir.';return;}
+  if(id==='play'){if(api.rec())api.recToggle();start();return;}
   if(id==='mini'){S.mini=true;return;}
   if(id==='import'){S.afterExit=()=>s_importPrompt(api);exit();return;}
   if(id==='kitmenu'){S.sub='kit';S.focus='back';return;}
