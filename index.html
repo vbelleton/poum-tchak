@@ -36,7 +36,7 @@
 :root{
   --bg:#ECEFF3; --surface:#FFFFFF; --cell-a:#E3E7ED; --cell-b:#D8DDE5;
   --ink:#141922; --ink-inv:#FFFFFF; --muted:#566074; --line:#CBD2DC; --edge:#7F899B; --err:#B3321C; --ok:#1B7A43; --warn:#8F5600;
-  --c-poum:#2F4BD0; --c-tchak:#D4432B; --c-doum:#117A5E; --c-toum:#8742B8;
+  --c-poum:#2F4BD0; --c-tchak:#D4432B; --c-tim:#0A6A94; --c-doum:#117A5E; --c-toum:#8742B8;
   --c-tss:#97640A; --c-tchaa:#5E7A0A; --c-psch:#B02468;
   --f-display:'Bricolage Grotesque','Arial Narrow',system-ui,sans-serif;
   --f-body:'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -47,7 +47,7 @@
   :root:not([data-theme="light"]){
     --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
     --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70; --ok:#5DD18D; --warn:#F2B04A;
-    --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
+    --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-tim:#5CC8F2; --c-doum:#46D2AB; --c-toum:#CA9CF5;
     --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
     color-scheme:dark;
   }
@@ -55,7 +55,7 @@
 :root[data-theme="dark"]{
   --bg:#0E1218; --surface:#171D26; --cell-a:#1F2732; --cell-b:#283141;
   --ink:#EEF1F6; --ink-inv:#0E1218; --muted:#97A1B2; --line:#2B3442; --edge:#6F7A8C; --err:#FF8A70; --ok:#5DD18D; --warn:#F2B04A;
-  --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-doum:#46D2AB; --c-toum:#CA9CF5;
+  --c-poum:#8D9CFF; --c-tchak:#FF8A70; --c-tim:#5CC8F2; --c-doum:#46D2AB; --c-toum:#CA9CF5;
   --c-tss:#F2BB4A; --c-tchaa:#BCD64A; --c-psch:#FF84B8;
   color-scheme:dark;
 }
@@ -95,7 +95,7 @@ body[data-tab="rythme"] .stage,body[data-tab="pratique"] .stage,body[data-tab="e
 .tempo-read{font:500 12px var(--f-mono);color:var(--muted);white-space:nowrap}
 @keyframes flash{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 6px var(--ok,#7BE3A6)}}
 .flash{animation:flash .8s 4}
-.kit{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
+.kit{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-top:8px}
 .ic{appearance:none;border:1px solid var(--edge);background:var(--surface);border-radius:10px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;min-width:0;transition:transform .08s,background .08s,border-color .08s,color .08s}
 .ico{width:100%;max-width:34px;height:auto;aspect-ratio:1;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ic .w{font:700 12px/1.1 var(--f-body);color:var(--ink);max-width:100%;overflow-wrap:anywhere}
@@ -391,7 +391,8 @@ textarea.src{resize:none;overflow:hidden;min-height:38px;line-height:1.3;field-s
 .l-kit .pad[data-id].fb-bad{background:var(--err)}
 .l-kit .pad[data-id=tchaa]{--x:14;--y:22;--s:26}
 .l-kit .pad[data-id=tss]{--x:14;--y:70;--s:26}
-.l-kit .pad[data-id=doum]{--x:50;--y:22;--s:26}
+.l-kit .pad[data-id=tim]{--x:38;--y:24;--s:22}
+.l-kit .pad[data-id=doum]{--x:61;--y:24;--s:24}
 .l-kit .pad[data-id=psch]{--x:86;--y:21;--s:30}
 .l-kit .pad[data-id=tchak]{--x:37;--y:62;--s:30}
 .l-kit .pad[data-id=toum]{--x:82;--y:66;--s:30}
@@ -812,6 +813,7 @@ body.gm-live{overflow:hidden}
   <defs>
     <symbol id="i-poum" viewBox="0 0 48 48"><circle cx="24" cy="23" r="17"/><circle cx="24" cy="23" r="10"/><circle cx="24" cy="23" r="2.4" style="fill:currentColor"/><path d="M13 38l-4 7M35 38l4 7"/></symbol>
     <symbol id="i-tchak" viewBox="0 0 48 48"><ellipse cx="24" cy="27" rx="16" ry="5"/><path d="M8 27v10c0 2.8 7 5 16 5s16-2.2 16-5V27"/><path d="M11 9l13 14M37 9L24 23"/></symbol>
+    <symbol id="i-tim" viewBox="0 0 48 48"><ellipse cx="24" cy="17" rx="9" ry="3.2"/><path d="M15 17v9c0 1.8 4 3.2 9 3.2s9-1.4 9-3.2v-9"/><path d="M24 29v12M16 45h16"/></symbol>
     <symbol id="i-doum" viewBox="0 0 48 48"><ellipse cx="24" cy="15" rx="12" ry="4"/><path d="M12 15v12c0 2.2 5.4 4 12 4s12-1.8 12-4V15"/><path d="M24 31v10M15 45h18"/></symbol>
     <symbol id="i-toum" viewBox="0 0 48 48"><ellipse cx="24" cy="16" rx="17" ry="5"/><path d="M7 16v14c0 2.8 7.6 5 17 5s17-2.2 17-5V16"/><path d="M10 34l-3 10M38 34l3 10M24 36v8"/></symbol>
     <symbol id="i-tss" viewBox="0 0 48 48"><ellipse cx="24" cy="15" rx="17" ry="3.6"/><ellipse cx="24" cy="20" rx="17" ry="3.6"/><path d="M24 24v18M14 45l10-3 10 3"/></symbol>
@@ -1350,6 +1352,7 @@ body.gm-live{overflow:hidden}
 const DRUMS=[
   {id:'poum', name:'Grosse caisse',     short:'Grosse caisse', abbr:'G. caisse'},
   {id:'tchak',name:'Caisse claire',     short:'Caisse claire', abbr:'C. claire'},
+  {id:'tim',  name:'Tom aigu',          short:'Tom aigu',      abbr:'Tom aigu'},
   {id:'doum', name:'Tom médium',        short:'Tom médium',    abbr:'Tom méd.'},
   {id:'toum', name:'Tom basse',         short:'Tom basse',     abbr:'Tom basse'},
   {id:'tss',  name:'Charleston fermé',  short:'Charley',       abbr:'Charley'},
@@ -1357,7 +1360,11 @@ const DRUMS=[
   {id:'psch', name:'Crash',             short:'Crash',         abbr:'Crash'}
 ];
 const IDS=DRUMS.map(d=>d.id);
-const ROWS=['psch','tchaa','tss','tchak','doum','toum','poum'];
+/* Ordre des lignes d'un rythme gardé en texte (lien, mémoire). Le tom aigu est venu après :
+   il est rangé à la fin, et un ancien rythme sans lui se lit toujours. */
+const PACK_IDS=['poum','tchak','doum','toum','tss','tchaa','psch','tim'];
+const PACK_OLD=7;
+const ROWS=['psch','tchaa','tss','tchak','tim','doum','toum','poum'];
 const METERS={
   '44':{label:'4/4',steps:16,perBeat:4,beats:4,line:8,count:['1','e','&','a']},
   '34':{label:'3/4',steps:12,perBeat:4,beats:3,line:8,count:['1','e','&','a']},
@@ -1374,6 +1381,7 @@ const COMBOS_DEFAULT={
   'doum+toum':'droum','doum+tss':'douts','doum+tchaa':'dchaa','doum+psch':'douch',
   'toum+tss':'touts','toum+tchaa':'tchaou','toum+psch':'touch',
   'tss+tchaa':'tsch','tss+psch':'psts','tchaa+psch':'pschaa',
+  'poum+tim':'pim','tchak+tim':'tchim',
   'poum+tchak+tss':'patch','poum+tchak+tchaa':'patchaa','poum+tchak+psch':'pouf','tchak+tss+psch':'pschats'
 };
 function defaultEntries(){
@@ -1381,6 +1389,7 @@ function defaultEntries(){
   return [
     s('poum','poum','Usage français'),s('boum','poum','Beatbox (B)'),s('pum','poum',''),
     s('tchak','tchak','Usage français'),s('tchac','tchak','Autre graphie'),s('tak','tchak','Darbouka'),s('tek','tchak','Darbouka'),
+    s('tim','tim','Plus aigu que doum'),
     s('doum','doum','Darbouka (dum)'),s('dum','doum','Darbouka'),
     s('toum','toum','Cours de batterie'),s('tom','toum','Tombak'),
     s('tss','tss','Beatbox'),s('ts','tss','Beatbox'),
@@ -1443,6 +1452,7 @@ function gridFromStr(o,m,old){
   const g=emptyGrid(m);
   for(const d of DRUMS){
     const str=o[d.id];
+    if(str===undefined&&d.id==='tim')continue;
     if(typeof str!=='string'||str.length!==m.steps)return null;
     for(let i=0;i<m.steps;i++){
       const v=str.charCodeAt(i)-48;
@@ -1729,18 +1739,18 @@ function sanitizeCal(o){
   });
   return out;
 }
-function packGrid(g,m){return IDS.map(id=>g[id].slice(0,m.steps).map(v=>v|0).join('')).join(';');}
+function packGrid(g,m){return PACK_IDS.map(id=>g[id].slice(0,m.steps).map(v=>v|0).join('')).join(';');}
 function unpackGrid(str,m){
   if(typeof str!=='string')return null;
   const parts=str.split(';');
-  if(parts.length!==IDS.length)return null;
+  if(parts.length!==PACK_IDS.length&&parts.length!==PACK_OLD)return null;
   const g=emptyGrid(m);
-  for(let k=0;k<IDS.length;k++){
+  for(let k=0;k<parts.length;k++){
     if(parts[k].length!==m.steps)return null;
     for(let i=0;i<m.steps;i++){
       const v=parts[k].charCodeAt(i)-48;
       if(v<0||v>3)return null;
-      g[IDS[k]][i]=v;
+      g[PACK_IDS[k]][i]=v;
     }
   }
   return g;
@@ -1748,7 +1758,7 @@ function unpackGrid(str,m){
 function sanitizeGroove(o){
   if(!o||typeof o!=='object')return null;
   const m=METERS[o.m];
-  if(!m||!Array.isArray(o.g)||!o.g.length||o.g.length>8)return null;
+  if(!m||!Array.isArray(o.g)||!o.g.length||o.g.length>MAXBARS)return null;
   const bars=o.g.map(x=>unpackGrid(x,m));
   if(bars.some(b=>!b))return null;
   const name=typeof o.n==='string'?o.n.trim().slice(0,40):'';
@@ -1757,17 +1767,18 @@ function sanitizeGroove(o){
 }
 function sanitizeGrooves(arr){
   if(!Array.isArray(arr))return [];
-  return arr.map(sanitizeGroove).filter(Boolean).slice(0,40);
+  return arr.map(sanitizeGroove).filter(Boolean).slice(0,200);
 }
 /* Jeux : la partition d'une partie, tirée d'un rythme. Ce que le joueur frappe ne sort que s'il le
    frappe ; le reste (accompagnement) et le clic sont joués par l'appli. */
 const GM_LANES={
-  couloirs:[{ids:['poum']},{ids:['tchak']},{ids:['tss','tchaa']},{ids:['doum','toum','psch']}],
+  couloirs:[{ids:['poum']},{ids:['tchak']},{ids:['tss','tchaa']},{ids:['tim','doum','toum','psch']}],
   rebonds:[{ids:['poum']},{ids:['tchak']}],
   orbite:[{ids:[]}],
   ecoute:[{ids:['poum']},{ids:['tchak']}],
   /* réalité virtuelle : un pad par fût, comme sur une vraie batterie (grosse caisse à la gâchette ou à la pédale MIDI) */
-  vr:[{ids:['poum']},{ids:['tchak']},{ids:['tss','tchaa']},{ids:['doum']},{ids:['toum']},{ids:['psch']}]
+  vr:[{ids:['poum']},{ids:['tchak']},{ids:['tss','tchaa']},{ids:['doum']},{ids:['toum']},{ids:['psch']},{ids:['tim']}]
+  /* le tom aigu est venu après : couloir 6, pour que les numéros des autres ne changent pas */
 };
 const GM_LEVELS={facile:'Peu',moyen:'Moyen',difficile:'Beaucoup'};
 const GM_LV_TXT={facile:'peu de notes',moyen:'notes moyennes',difficile:'beaucoup de notes'};
@@ -2001,7 +2012,7 @@ const state={bpm:100,meter:'44',swing:false,click:true,solf:'kodaly',brush:2,bar
   ramp:{on:false,add:2,every:4},sil:{on:false,every:4},sound:'synth',tab:'rythme',kvl:{layout:'kit',mine:null,mode:'libre',off:0,micOff:0,midiOff:0},
   pattern:null,playing:false,song:false,live:false,mute:false};
 const G=()=>state.bars[state.bar];
-const MAXBARS=8;
+const MAXBARS=999;
 const VEL={1:0.34,2:1,3:1.28};
 
 /* ---------- Mémoire locale ---------- */
@@ -2024,7 +2035,11 @@ function loadStore(){
   try{s=JSON.parse(localStorage.getItem(STORE_KEY)||'null');}catch(e){}
   if(!s||typeof s!=='object')return false;
   const d=sanitizeDict(s);
-  if(d)dict=d;
+  if(d){
+    dict=d;
+    /* un dictionnaire gardé avant l'arrivée du tom aigu : on lui donne son mot */
+    if(!dict.some(e=>keyOf(e.ids)==='tim')&&!dict.some(e=>e.w==='tim'))dict.push({w:'tim',ids:['tim'],src:'Plus aigu que doum'});
+  }
   if(typeof s.bpm==='number')state.bpm=Math.max(40,Math.min(220,Math.round(s.bpm)));
   if(METERS[s.meter])state.meter=s.meter;
   state.swing=!!s.swing&&METERS[state.meter].perBeat===4;
@@ -2144,20 +2159,22 @@ function noise(t,dur,peak,opt){
 }
 /* Deux voix possibles : la synthèse, qui ne pèse rien, ou les échantillons
    d'une vraie batterie, décodés une fois puis gardés en mémoire. */
-const SGAIN={poum:1,tchak:0.92,doum:0.88,toum:0.88,tss:0.5,tchaa:0.5,psch:0.4};
+const SGAIN={poum:1,tchak:0.92,tim:0.85,doum:0.88,toum:0.88,tss:0.5,tchaa:0.5,psch:0.4};
 let kitBufs=null,kitState='';
 function loadKit(done){
   if(kitBufs||kitState==='load')return;
   const data=window.__KIT;
   if(!data||!ensureAudio()){kitState='fail';if(done)done(false);return;}
   kitState='load';
-  const out={};let left=IDS.length,bad=false;
+  /* pas d'échantillon de tom aigu : celui du tom médium, joué plus aigu (voir sampleVoice) */
+  const list=IDS.filter(id=>id!=='tim'||data.tim);
+  const out={};let left=list.length,bad=false;
   const fin=()=>{
     if(--left)return;
     if(bad&&!Object.keys(out).length){kitState='fail';if(done)done(false);return;}
     kitBufs=out;kitState='ok';if(done)done(true);
   };
-  IDS.forEach(id=>{
+  list.forEach(id=>{
     const b64=data[id];
     if(!b64){bad=true;fin();return;}
     let buf;
@@ -2170,8 +2187,9 @@ function loadKit(done){
   });
 }
 function sampleVoice(id,t,k){
-  const b=kitBufs[id];
+  const up=id==='tim'&&!kitBufs.tim,b=up?kitBufs.doum:kitBufs[id];
   const s=ctx.createBufferSource();s.buffer=b;
+  if(up)s.playbackRate.value=1.3;
   const g=ctx.createGain();g.gain.value=Math.min(1.5,k)*SGAIN[id];
   /* L'échantillon de crash monte lentement et sonne sourd : on le raccourcit, la synthèse lui donne l'attaque. */
   if(id==='psch'){g.gain.setValueAtTime(g.gain.value,t);g.gain.setTargetAtTime(0.0001,t+0.25,0.55);}
@@ -2183,7 +2201,7 @@ function sampleVoice(id,t,k){
 function voice(id,t,vel){
   if(!ctx)return;
   const k=vel==null?1:vel;
-  if(state.sound==='kit'&&kitBufs&&kitBufs[id]){
+  if(state.sound==='kit'&&kitBufs&&(kitBufs[id]||id==='tim'&&kitBufs.doum)){
     sampleVoice(id,t,k);
     if(id==='psch')synthVoice(id,t,k*0.85);
     return;
@@ -2200,6 +2218,7 @@ function synthVoice(id,t,k){
     case 'poum':  T(120,40,0.55,1.15);N(0.02,0.4,{bp:3500,q:0.9});return;
     case 'toum':  T(100,55,0.75,0.95);N(0.035,0.2,{bp:600,q:0.8});return;
     case 'doum':  T(165,90,0.55,0.9);N(0.035,0.2,{bp:1000,q:0.8});return;
+    case 'tim':   T(220,125,0.45,0.85);N(0.03,0.2,{bp:1400,q:0.8});return;
     case 'tchak': N(0.28,0.85,{bp:1800,q:0.5});N(0.12,0.45,{hp:4000});T(200,150,0.15,0.6,'triangle');return;
     case 'tss':   N(0.07,0.5,{hp:7000});return;
     case 'tchaa': N(0.6,0.42,{hp:6000});return;
@@ -2209,6 +2228,7 @@ function synthVoice(id,t,k){
     case 'poum':  T(95,58,0.35,0.7);return;
     case 'toum':  T(170,120,0.8,0.7);N(0.03,0.08,{bp:900,q:0.8});return;
     case 'doum':  T(255,185,0.7,0.7);N(0.03,0.08,{bp:1400,q:0.8});return;
+    case 'tim':   T(335,250,0.6,0.65);N(0.03,0.08,{bp:1900,q:0.8});return;
     case 'tchak': N(0.16,0.5,{bp:3200,q:0.4});T(260,220,0.08,0.22,'triangle');return;
     case 'tss':   N(0.05,0.3,{hp:9000});T(5200,5200,0.05,0.04);return;
     case 'tchaa': N(0.9,0.26,{bp:6200,q:2});T(4300,4300,0.6,0.03);return;
@@ -2218,6 +2238,7 @@ function synthVoice(id,t,k){
     case 'poum':  T(160,42,0.9,1.15);return;
     case 'toum':  T(150,90,0.45,0.85);return;
     case 'doum':  T(230,140,0.4,0.85);return;
+    case 'tim':   T(310,190,0.35,0.8);return;
     case 'tchak': N(0.18,0.75,{hp:1500});T(330,180,0.1,0.5,'triangle');return;
     case 'tss':   N(0.03,0.5,{hp:9500});return;
     case 'tchaa': N(0.3,0.42,{hp:8500});return;
@@ -2227,6 +2248,7 @@ function synthVoice(id,t,k){
     case 'poum':  T(150,46,0.5,1.0);N(0.025,0.3,{bp:2800,q:0.8});break;
     case 'toum':  T(118,60,0.6,0.9);N(0.03,0.15,{bp:700,q:0.8});break;
     case 'doum':  T(196,104,0.45,0.85);N(0.03,0.15,{bp:1100,q:0.8});break;
+    case 'tim':   T(262,140,0.4,0.82);N(0.03,0.15,{bp:1450,q:0.8});break;
     case 'tchak': N(0.2,0.75,{bp:2300,q:0.6});N(0.07,0.4,{hp:5000});T(235,160,0.12,0.5,'triangle');break;
     case 'tss':   N(0.06,0.4,{hp:8000});break;
     case 'tchaa': N(0.45,0.36,{hp:6500});break;
@@ -2627,7 +2649,7 @@ function scoreTap(g){
     groups=known.map(id=>[[id],[id]]);
     note=' Comparé sur les fûts appris : '+known.map(W).join(', ')+'.';
   }else{
-    groups=[[['poum','doum','toum'],['poum']],[['tchak'],['tchak']],[['tss','tchaa','psch'],['tss']]];
+    groups=[[['poum','doum','toum'],['poum']],[['tchak','tim'],['tchak']],[['tss','tchaa','psch'],['tss']]];
     note=' Sans calibration, seuls les graves, les médiums et les aigus sont écoutés.';
   }
   let ok=0,miss=0,extra=0;
@@ -2645,7 +2667,7 @@ function scoreTap(g){
    une consigne, et des zones à frapper. Trois dispositions : la batterie,
    toutes les zones en bandes, ou seulement les fûts utiles au rythme. */
 const kvPads=$('#kvPads'),kvFall=$('#kvFall'),kvScore=$('#kvScore'),kvRead=$('#kvRead'),kvStaff=$('#kvStaff'),kvCount=$('#kvCount');
-const PAD_ORDER=['psch','tchaa','tss','doum','toum','tchak','poum'];
+const PAD_ORDER=['psch','tchaa','tss','tim','doum','toum','tchak','poum'];
 const padEls={};
 const lastHit={},downPtr=new Set();
 ['pointerup','pointercancel'].forEach(t=>window.addEventListener(t,e=>downPtr.delete(e.pointerId)));
@@ -2693,7 +2715,7 @@ function myDrums(){
   }
   return used;
 }
-const CASC_ORDER=['poum','toum','doum','tchak','tss','tchaa','psch'];
+const CASC_ORDER=['poum','toum','doum','tim','tchak','tss','tchaa','psch'];
 const zones=()=>{
   const lay=state.kvl.layout;
   if(lay==='utiles')return myDrums();
@@ -3112,10 +3134,11 @@ function micHits(ids,t,strength){
   if(cb.on){cbTap('mic',t-outLat()-inLat());return;}
   ids.forEach(id=>{padFlash(id);judge(id,t-micLatency());});
 }
-/* Les numéros de notes de batterie General MIDI, ceux des Alesis (Nitro, DM10) et de la plupart des batteries électroniques. */
+/* Les numéros de notes de batterie General MIDI, ceux des Alesis (Nitro, DM10) et de la plupart des batteries électroniques.
+   Les trois toms de l'Alesis Nitro Max : tom 1 = 48 (bord 50), tom 2 = 45 (bord 47), tom 3 = 43 (bord 58). */
 const GM_DRUM={35:'poum',36:'poum',37:'tchak',38:'tchak',39:'tchak',40:'tchak',
   42:'tss',44:'tss',22:'tss',51:'tss',59:'tss',53:'tss',46:'tchaa',26:'tchaa',
-  48:'doum',50:'doum',47:'doum',45:'doum',43:'toum',41:'toum',58:'toum',
+  48:'tim',50:'tim',47:'doum',45:'doum',43:'toum',41:'toum',58:'toum',
   49:'psch',57:'psch',55:'psch',52:'psch',27:'psch'};
 const midiHitsT=[];
 function midiTempo(t){
@@ -3143,7 +3166,7 @@ function midiMsg(e){
   if(!state.playing)midiTempo(t);
   judge(id,t-midiLatency());
 }
-function midiRoute(e){if(cb.on){cbMidi(e);return;}if(gm.vr&&!gm.on&&vrMod){const [st,nt,v]=e.data;if((st&0xf0)===0x90&&v&&GM_DRUM[nt])vrMod.midiIdle(GM_DRUM[nt]);return;}if(gm.on){if(gm.midi)gmMidi(e);return;}if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
+function midiRoute(e){if(cb.on){cbMidi(e);return;}if(gm.vr&&!gm.on&&vrMod){const [st,nt,v]=e.data;if((st&0xf0)===0x90&&v&&GM_DRUM[nt]){vrMod.midiIdle(GM_DRUM[nt]);recHit(GM_DRUM[nt],v/100);}return;}if(gm.on){if(gm.midi)gmMidi(e);return;}if(mn.midi&&state.tab==='mains'&&!kvOpen)mnMidi(e);else if(kvMidi)midiMsg(e);}
 function midiInputs(){return midiAcc?[...midiAcc.inputs.values()]:[];}
 function midiBind(){
   const ins=midiInputs();
@@ -4374,7 +4397,7 @@ const GM_INFO={
   /* pas dans la liste des jeux : on y entre par « Jouer en VR » */
   vr:{name:'Batterie VR',txt:'Une batterie en 3D : les notes arrivent vers chaque pad, frappe-les avec les baguettes au bon moment.'}
 };
-const GM_KEYS={couloirs:{d:0,f:1,j:2,k:3},rebonds:{f:0,j:1,arrowleft:0,arrowright:1},orbite:{' ':0,enter:0,f:0,j:0},ecoute:{f:0,j:1,arrowleft:0,arrowright:1},vr:{b:0,f:1,d:2,j:3,k:4,l:5}};
+const GM_KEYS={couloirs:{d:0,f:1,j:2,k:3},rebonds:{f:0,j:1,arrowleft:0,arrowright:1},orbite:{' ':0,enter:0,f:0,j:0},ecoute:{f:0,j:1,arrowleft:0,arrowright:1},vr:{b:0,f:1,d:2,h:6,j:3,k:4,l:5}};
 const GM_CLICK={coupe:'Se coupe',toujours:'Toujours là'};
 const GM_CLICK_HINT={coupe:'Dès la 4e manche, le clic se tait sur la fin du second passage, puis sur tout ce passage à partir de la 7e.',toujours:'Le clic reste sur toutes les mesures : pour apprendre les motifs.'};
 /* Écoute puis rejoue : trois aides, choisies au premier lancement puis gardées. */
@@ -4523,7 +4546,13 @@ async function gmImport(files){
 const gmSteers=()=>gm.game==='rebonds'&&gm.ctl!=='frappe';
 const gmKey=()=>gm.game+'|'+gm.rh+'|'+gm.lvl+'|'+gm.tol+(gmSteers()?'|'+gm.ctl:'');
 const gmMyGroove=()=>state.bars.some(g=>DRUMS.some(d=>g[d.id].some(v=>v)));
+/* un groove enregistré, choisi dans Jeux ou le casque par son nom : 'grv:<nom>' */
+const gmGrv=id=>typeof id==='string'&&id.indexOf('grv:')===0?(grooves||[]).find(g=>g.n===id.slice(4))||null:null;
+const gmGrvList=()=>(grooves||[]).map(g=>({id:'grv:'+g.n,label:g.n}));
+function gmRhLabel(id){const g=gmGrv(id);if(g)return g.n;if(id==='mine')return 'Mon rythme';const p=PATTERNS.find(x=>x.id===id);return p?p.label:'';}
 function gmSource(){
+  const grv=gmGrv(gm.rh);
+  if(grv){const m=METERS[grv.m],bars=grv.g.map(x=>unpackGrid(x,m)).filter(Boolean);if(bars.length)return {bars,meter:grv.m,swing:grv.s};}
   if(gm.rh==='mine'&&gmMyGroove())return {bars:state.bars,meter:state.meter,swing:state.swing};
   const p=PATTERNS.find(x=>x.id===gm.rh)||PATTERNS[0];
   return {bars:[mk(METERS[p.meter],p.spec)],meter:p.meter,swing:p.swing};
@@ -4552,7 +4581,7 @@ function gmRender(){
   }).join('');
   const rh=$('#gmRh');rh.textContent='';
   const chip=(host,id,label)=>{const b=el('button','chip',label);b.type='button';b.dataset.v=id;b.title=label;b.setAttribute('aria-pressed',String(gm.rh===id));host.appendChild(b);};
-  [...PATTERNS.map(p=>({id:p.id,label:p.label})),{id:'mine',label:'Mon rythme'}].forEach(p=>chip(rh,p.id,p.label));
+  [...PATTERNS.map(p=>({id:p.id,label:p.label})),{id:'mine',label:'Mon rythme'},...gmGrvList()].forEach(p=>chip(rh,p.id,p.label));
   const ch=$('#gmCh');ch.textContent='';ch.hidden=!gm.songs.length;
   $('#lab-gmCh').textContent=gm.songs.length?'Mes chants':'Mes chants (aucun pour l\'instant)';
   gm.songs.forEach(x=>chip(ch,'chant:'+x.id,x.title));
@@ -4577,7 +4606,7 @@ function gmRender(){
   $('#gmHow').textContent='Comment jouer à '+GM_INFO[gm.game].name;
   $('#gmGameTxt').textContent=GM_INFO[gm.game].txt;
   const sumSong=gmCurSong(),sumP=PATTERNS.find(x=>x.id===gm.rh);
-  $('#gmSum').textContent=[GM_INFO[gm.game].name,sumSong?sumSong.title:gm.rh==='mine'?'Mon rythme':sumP?sumP.label:'',GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');
+  $('#gmSum').textContent=[GM_INFO[gm.game].name,sumSong?sumSong.title:gmRhLabel(gm.rh),GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');
   $('#gmClickRow').hidden=gm.game!=='ecoute';
   $('#gmEPRow').hidden=gm.game!=='ecoute';
   $('#gmELenRow').hidden=gm.game!=='ecoute';
@@ -5714,7 +5743,7 @@ function gmFinish(fell){
   gmRender();
   const stars=fell?0:gmStars(p),offs=sc.offs.slice().sort((a,b)=>a-b),med=offs.length?offs[offs.length>>1]:0;
   const next=gm.song?gm.bpm:fell||p<60?Math.max(40,gm.bpm-5):p>=90?Math.min(220,gm.bpm+5):gm.bpm;
-  const lb=el('span',null,gm.song?gm.song.title:(PATTERNS.find(x=>x.id===gm.rh)||{label:'Mon rythme'}).label),label=lb.innerHTML;
+  const lb=el('span',null,gm.song?gm.song.title:gmRhLabel(gm.rh)||'Mon rythme'),label=lb.innerHTML;
   const name=GM_INFO[gm.game].name;
   const cheer='<p class="gm-cheer">'+(fell?'Boum ! Pas grave, ça repart quand tu veux.':GM_CHEER[stars])+'</p>';
   const star=cheer+'<p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>';
@@ -5741,7 +5770,7 @@ gmRender();gmLoadSongs().then(gmWhySay);
 gm.vr=false;gm.vrPrev='couloirs';gm.paused=false;
 /* La grosse caisse sans batterie : à la gâchette, jouée toute seule, ou d'un coup de tête. */
 const VR_KICK_KEY='poumtchak.vr.grossecaisse';
-let vrKick='gachette';try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','auto','tete'].includes(k))vrKick=k;}catch(e){}
+let vrKick='gachette';try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','charley','auto','tete'].includes(k))vrKick=k;}catch(e){}
 function vrAutoKick(c,song){
   const k=c.notes.filter(n=>n.lane===0);if(!k.length)return;
   c.notes=c.notes.filter(n=>n.lane!==0);
@@ -5788,8 +5817,8 @@ const VR_EXOS=[
   {id:'b3',label:'Le rythme de base',bars:[X44(ROCK)]},
   {id:'b4',label:'Deux poum',bars:[X44({poum:[0,8,10],tchak:[4,12],tss:EVEN16})]},
   {id:'b5',label:'Charley à contretemps',bars:[X44({poum:[0,4,8,12],tss:[2,6,10,14]})]},
-  {id:'b6',label:'Les toms descendent',bars:[X44({tchak:[0,2],doum:[4,6],toum:[8,10],poum:[12]})]},
-  {id:'b7',label:'Rythme puis roulement',bars:[X44(ROCK),X44({poum:[0],tss:[0,2],tchak:[4,6],doum:[8,10],toum:[12,14]})]},
+  {id:'b6',label:'Les toms descendent',bars:[X44({tchak:[0,2],tim:[4,6],doum:[8,10],toum:[12],poum:[12]})]},
+  {id:'b7',label:'Rythme puis roulement',bars:[X44(ROCK),X44({poum:[0],tss:[0,2],tim:[4,6],doum:[8,10],toum:[12,14]})]},
   {id:'b8',label:'Crash, puis le rythme',bars:[X44({psch:[0],poum:[0,8],tchak:[4,12],tss:[2,4,6,8,10,12,14]}),X44(ROCK)]},
   {id:'r1',label:'Au hasard · facile',rand:1},
   {id:'r2',label:'Au hasard · moyen',rand:2},
@@ -5798,8 +5827,10 @@ const VR_EXOS=[
 function exoSaved(){
   try{
     const L=JSON.parse(localStorage.getItem(EXOS_KEY)||'[]');
+    /* un exercice gardé avant l'arrivée du tom aigu n'a pas sa ligne : elle est vide */
     return Array.isArray(L)?L.filter(e=>e&&typeof e.name==='string'&&METERS[e.meter]&&Array.isArray(e.bars)&&e.bars.length&&
-      e.bars.every(g=>g&&IDS.every(id=>Array.isArray(g[id])&&g[id].length===METERS[e.meter].steps))):[];
+      e.bars.every(g=>g&&IDS.every(id=>(id==='tim'&&g[id]===undefined)||Array.isArray(g[id])&&g[id].length===METERS[e.meter].steps)))
+      .map(e=>({...e,bars:e.bars.map(g=>g.tim?g:{...g,tim:new Array(METERS[e.meter].steps).fill(0)})})):[];
   }catch(e){return [];}
 }
 function exoList(){
@@ -5850,7 +5881,9 @@ const vrApi={
   /* même règle qu'une frappe sur l'écran (gmEventAt) : l'horloge du son moins le temps écoulé depuis le geste */
   atPerf(ms){return gmToGame(ctx.currentTime-Math.max(-0.05,Math.min(0.15,(performance.now()-ms)/1000))-latency());},
   hit:(lane,at)=>gmHit(lane,at,true),
-  play:(id,v)=>{if(ensureAudio())voice(id,ctx.currentTime,v||1);},
+  play:(id,v)=>{if(ensureAudio())voice(id,ctx.currentTime,v||1);recHit(id,v);},
+  rec:()=>!!vrRec,
+  recToggle:()=>vrRec?recStop():recStart(),
   step:()=>gmVrStep(),
   stop:()=>gmHalt(),
   launch:()=>{vrMains=null;vrExo=null;return vrLaunch();},
@@ -5893,7 +5926,7 @@ const vrApi={
   pct:()=>gmPct(gm.sc),
   stars:p=>gmStars(p),
   noFail:()=>gmNoFail(),
-  title(){if(vrExo)return 'Exercice : '+vrExo.label;if(vrMains)return vrMains.chain?'Mains : les 16 duos':'Mains : gauche '+vrMains.l+', droite '+vrMains.r;const s=gmCurSong(),p=PATTERNS.find(x=>x.id===gm.rh);return [s?s.title:gm.rh==='mine'?'Mon rythme':p?p.label:'',GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');},
+  title(){if(vrExo)return 'Exercice : '+vrExo.label;if(vrMains)return vrMains.chain?'Mains : les 16 duos':'Mains : gauche '+vrMains.l+', droite '+vrMains.r;const s=gmCurSong(),p=PATTERNS.find(x=>x.id===gm.rh);return [s?s.title:gmRhLabel(gm.rh),GM_LV_TXT[gm.lvl]].filter(Boolean).join(' · ');},
   midiText(){
     if(!gm.midi)return 'Batterie MIDI : coupée (à allumer dans Jeux, avant d\'entrer)';
     const ins=midiInputs();return ins.length?'Batterie MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓':'Batterie MIDI : allumée, aucune batterie branchée';
@@ -5904,6 +5937,7 @@ const vrApi={
     gm.songs.forEach(x=>L.push({id:'chant:'+x.id,label:x.title}));
     PATTERNS.forEach(x=>L.push({id:x.id,label:'Rythme : '+x.label}));
     if(gmMyGroove())L.push({id:'mine',label:'Mon rythme'});
+    gmGrvList().forEach(x=>L.push({id:x.id,label:'Mon groove : '+x.label}));
     return L;
   },
   pause(on){
@@ -5920,7 +5954,7 @@ const vrApi={
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
     else if(k==='slow')gm.slow=!!v;
     else if(k==='sound'&&SOUNDS[v])setSound(v,true);
-    else if(k==='kick'&&['gachette','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
+    else if(k==='kick'&&['gachette','charley','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
     gmSave();
   },
   /* « + Mes chants » dans le casque : on sort de la VR et la page montre où ajouter les chants */
@@ -5932,10 +5966,48 @@ const vrApi={
     setTimeout(()=>b.classList.remove('flash'),4000);
   },
   setVR(on){
+    if(!on&&vrRec)recStop();
     if(on){if(!gm.vr){gm.vrPrev=gm.game;gm.vr=true;}gm.game='vr';}
     else if(gm.vr){gm.vr=false;gm.game=gm.vrPrev;gmRender();}
   }
 };
+/* Écrire un rythme en le jouant dans le casque : un clic par temps (une mesure pour compter),
+   chaque frappe est calée à la double croche, puis le rythme est gardé dans « Mes grooves »
+   sous un nom qu'on peut changer, et se modifie ensuite sur la grille. */
+let vrRec=null;
+function recStart(){
+  if(gm.on||!ensureAudio())return false;
+  const bpm=gm.bpm,beat=60/bpm,t0=ctx.currentTime+0.15;
+  vrRec={bpm,beat,start:t0+4*beat,hits:[],n:0};
+  const r=vrRec;
+  r.timer=setInterval(()=>{while(t0+r.n*beat<ctx.currentTime+0.2){clickSound(t0+r.n*beat,r.n%4===0);r.n++;}},40);
+  return true;
+}
+function recHit(id,v){
+  if(!vrRec||gm.on||!IDS.includes(id))return;
+  vrRec.hits.push({id,t:ctx.currentTime-latency(),v:v||1});
+}
+function recStop(){
+  const r=vrRec;if(!r)return null;
+  clearInterval(r.timer);vrRec=null;
+  const m=METERS['44'],step=r.beat/4,bars=[];
+  r.hits.forEach(h=>{
+    const k=Math.round((h.t-r.start)/step);if(k<0)return;
+    const b=Math.floor(k/m.steps);
+    while(bars.length<=b)bars.push(emptyGrid(m));
+    bars[b][h.id][k%m.steps]=h.v<0.5?1:h.v>1.1?3:2;
+  });
+  while(bars.length&&!DRUMS.some(d=>bars[bars.length-1][d.id].some(x=>x)))bars.pop();
+  if(!bars.length)return null;
+  const d=new Date(),z=x=>String(x).padStart(2,'0');
+  let n='Casque '+z(d.getDate())+'/'+z(d.getMonth()+1)+' '+z(d.getHours())+'h'+z(d.getMinutes());
+  if(grooves.some(g=>g.n===n))n+=':'+z(d.getSeconds());
+  grooves.unshift({n,m:'44',s:false,b:r.bpm,g:bars.map(g=>packGrid(g,m))});
+  if(grooves.length>200)grooves.length=200;
+  saveStore();renderGrooves();
+  gm.rh='grv:'+n;gmSave();
+  return n;
+}
 /* Une partie dans le casque : pas d'explication ni de calibration à l'écran (personne ne le voit). */
 async function vrLaunch(){
   if(gm.on||gm.busy)return '';
@@ -6284,7 +6356,7 @@ function refreshTempoRead(){
 function renderAll(){refreshLabels();refreshPads();renderBars();renderGrid();refreshText();updateControls();}
 
 /* ---------- Travailler ---------- */
-let grooves=[];
+var grooves=[];
 let workTimer=null;
 function setWork(t){
   $('#workMsg').textContent=t;
@@ -6352,7 +6424,16 @@ function renderGrooves(){
     const del=el('button','btn ghost','Supprimer');del.type='button';
     del.setAttribute('aria-label','Supprimer le groove '+gr.n);
     del.addEventListener('click',()=>{grooves.splice(i,1);saveStore();renderGrooves();gmsg('« '+gr.n+' » supprimé.');$('#grooveSave').focus();});
-    sp.append(load,del);row.appendChild(sp);
+    const ren=el('button','btn ghost','Renommer');ren.type='button';
+    ren.setAttribute('aria-label','Renommer le groove '+gr.n);
+    ren.addEventListener('click',()=>{
+      const nn=($('#grooveName').value||'').trim().slice(0,40);
+      if(!nn||nn===gr.n){gmsg('Écris le nouveau nom dans la case « Nom du groove », puis Renommer.',true);$('#grooveName').focus();return;}
+      if(grooves.some(x=>x!==gr&&x.n.toLowerCase()===nn.toLowerCase())){gmsg('Ce nom est déjà pris.',true);return;}
+      const old=gr.n;gr.n=nn;if(gm.rh==='grv:'+old){gm.rh='grv:'+nn;gmSave();}
+      saveStore();renderGrooves();gmsg('« '+old+' » s\'appelle maintenant « '+nn+' ».');
+    });
+    sp.append(load,ren,del);row.appendChild(sp);
     host.appendChild(row);
   });
 }
@@ -6362,7 +6443,7 @@ $('#grooveSave').addEventListener('click',()=>{
   const gr=currentGroove(name);
   const i=grooves.findIndex(x=>x.n.toLowerCase()===name.toLowerCase());
   if(i>=0)grooves[i]=gr;else grooves.unshift(gr);
-  if(grooves.length>40)grooves.length=40;
+  if(grooves.length>200)grooves.length=200;
   saveStore();renderGrooves();
   gmsg(i>=0?'« '+name+' » remplacé.':'« '+name+' » enregistré.');
 });
@@ -6433,7 +6514,7 @@ $('#applySolf').addEventListener('click',()=>{
 
 /* ---------- Mots : s'entraîner à traduire une consigne ---------- */
 const TR_KEY='poumtchak.trad';
-const TR_LVL={1:['tchak','poum'],2:['tss','tchak','poum'],3:['psch','tss','tchak','doum','toum','poum']};
+const TR_LVL={1:['tchak','poum'],2:['tss','tchak','poum'],3:['psch','tss','tchak','tim','doum','toum','poum']};
 const tr={lvl:1,ans:null,me:null,seen:false,last:'',view:'grille',step:0,res:null};
 try{const v=+localStorage.getItem(TR_KEY);if(TR_LVL[v])tr.lvl=v;const w=localStorage.getItem(TR_KEY+'.vue');if(w==='kit'||w==='grille')tr.view=w;}catch(e){}
 const rnd=p=>Math.random()<p;
@@ -6450,8 +6531,8 @@ function trMake(lvl){
     if(rnd(0.5))g.tchak[7]=1;
     if(rnd(0.7)){
       /* un petit roulement sur le dernier temps */
-      const f=rnd(0.5)?[['doum'],['toum']]:[['tchak'],['doum']];
-      [6,7].forEach((st,k)=>{['tss','tchak','poum','doum','toum'].forEach(id=>{g[id][st]=0;});f[k].forEach(id=>{g[id][st]=1;});});
+      const f=[[['doum'],['toum']],[['tchak'],['doum']],[['tim'],['doum']],[['tim'],['toum']]][Math.floor(Math.random()*4)];
+      [6,7].forEach((st,k)=>{['tss','tchak','poum','tim','doum','toum'].forEach(id=>{g[id][st]=0;});f[k].forEach(id=>{g[id][st]=1;});});
     }
     if(rnd(0.4)){g.poum[5]=1;}
   }
@@ -6904,6 +6985,7 @@ function entryRow(e,i,showIds){
 const REF={
   poum:{txt:'Coup grave et plein, le temps fort de « poum-tchak ».',src:[['Usage français','poum-tchak'],['Darbouka','dum'],['Tombak','tom'],['Taiko','don'],['Beatbox','B']]},
   tchak:{txt:'Coup sec et brillant, le contretemps de « poum-tchak ».',src:[['Usage français','poum-tchak'],['Darbouka','tek'],['Tombak','bak'],['Beatbox','Pf']]},
+  tim:{txt:'Le i rend le son plus aigu que doum et toum : le petit tom, en haut à gauche de la grosse caisse.',src:[['Voyelle aiguë','i'],['Darbouka','tek (aigu)']]},
   doum:{txt:'Même famille grave que poum, joué au centre de la peau. Attribué ici au tom médium.',src:[['Darbouka','dum'],['Taiko','don']]},
   toum:{txt:'Mot venu de ton cours. Son rond et grave, attribué ici au tom basse (à ajuster).',src:[['Tombak','tom'],['Cours de batterie','toum']]},
   tss:{txt:'Bruit court et aigu du charleston fermé.',src:[['Beatbox','ts / tss']]},

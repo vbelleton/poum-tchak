@@ -13,7 +13,7 @@ test.describe('Mes grooves', () => {
     await page.locator('#patterns').getByRole('button', { name: 'Valse' }).click();
     await page.getByRole('button', { name: 'Charger le groove Funk du mardi' }).click();
     await expect(page.locator('#bpmIn')).toHaveValue('92');
-    await expect(page.locator('#grid .cell')).toHaveCount(7 * 16);
+    await expect(page.locator('#grid .cell')).toHaveCount(8 * 16);
     await expect(cellule(page, 'tchak', 2)).toHaveClass(/lv1/);
 
     await page.reload();

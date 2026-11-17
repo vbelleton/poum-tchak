@@ -38,7 +38,8 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   le taper. À 80 % de précision le tempo monte ; sinon il ralentit, autant de
   fois qu'il faut. **Batterie électronique (MIDI)** : branchée en USB, chaque coup
   arrive avec le fût et l'heure exacts, allume son pad et est noté ; le tempo joué
-  s'affiche. Chrome ou Edge (ordinateur, Android) ; sur iPhone, Safari ne gère pas
+  s'affiche. Les trois toms de l'Alesis Nitro Max ont chacun leur pad : tom aigu « tim »
+  (note 48), tom médium « doum » (45), tom basse « toum » (43). Chrome ou Edge (ordinateur, Android) ; sur iPhone, Safari ne gère pas
   le MIDI : passer par une appli navigateur MIDI (Web MIDI Browser).
   **Ma vraie batterie** : le micro entend chaque coup joué sur
   une vraie batterie, reconnaît le fût (grave, médium, aigu, ou les fûts appris
@@ -74,7 +75,7 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
   batterie MIDI, même calage et même notation que le reste, avec étoiles et record.
 - **Jouer en VR** (casque Meta Quest, dans son navigateur) : le bouton apparaît dans Jeux
   quand le navigateur sait ouvrir un casque. Une batterie en 3D, un pad par fût (grosse caisse,
-  caisse claire, charley, tom médium, tom basse, crash) avec sa couleur et son mot ; les notes
+  caisse claire, charley, les trois toms (aigu, médium, basse), crash) avec sa couleur et son mot ; les notes
   arrivent dans le couloir de chaque pad. Les manettes sont les baguettes (vibration à chaque
   coup), la gâchette fait la grosse caisse. Avec **Batterie MIDI** allumé avant d'entrer, la
   vraie batterie compte aussi, pédale comprise (si le navigateur du casque gère le MIDI). Avant
@@ -193,13 +194,21 @@ reste appuyé, Tap) et Jouer. Entre les deux, sept rubriques :
 - Sur l'écran d'un téléphone, il reste 30 à 50 ms entre le doigt et le son :
   c'est bon pour lire et mémoriser un rythme, pas pour travailler un toucher.
 
+## Licence
+
+Tous droits réservés (voir `LICENSE`). Tu peux jouer à Poum Tchak et t'en
+servir librement pour t'entraîner ou enseigner, sans le revendre. Le copier,
+le republier, le modifier pour le diffuser ou le vendre demande mon accord.
+Les Chants libres (`chants/`, Creative Commons BY ou BY-SA 3.0), three.js
+(MIT) et les sons de batterie (Apache 2.0) gardent leur propre licence.
+
 ## Crédits
 
 Les sons de batterie viennent de
 [Web Audio Samples](https://github.com/GoogleChromeLabs/web-audio-samples) de
 l'équipe Chrome Web Audio, sous licence Apache 2.0 : grosse caisse, caisse
 claire, toms, charleston et crash. Le charleston ouvert est fabriqué à partir du
-charleston fermé.
+charleston fermé, et le tom aigu à partir du tom médium joué plus aigu.
 
 La 3D du mode VR utilise [three.js](https://threejs.org) (version 0.170, licence MIT,
 `vr/three-LICENSE.txt`).

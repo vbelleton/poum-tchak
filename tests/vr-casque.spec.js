@@ -47,13 +47,13 @@ test('casque Quest 2 simulé : vérifier les pads, jouer aux manettes, régler, 
   await expect.poll(async () => (await vr(page))?.placed).toBe(true);
   expect((await vr(page)).xr).toBe(true);
 
-  // vérification des pads : cinq coups de baguette et la gâchette pour la grosse caisse
-  for (const i of [1, 2, 3, 4, 5]) await coup(page, i);
+  // vérification des pads : six coups de baguette (dont les trois toms) et la gâchette pour la grosse caisse
+  for (const i of [1, 2, 3, 4, 5, 6]) await coup(page, i);
   // la gâchette vise le menu si la manette le pointe : on pointe la main gauche vers le sol
   await page.evaluate(() => window.__dev.controllers.left.quaternion.set(-0.7071, 0, 0, 0.7071));
   await page.waitForTimeout(100);
   await bouton(page, 'left', 'trigger');
-  await expect.poll(async () => (await vr(page)).checked.sort()).toEqual([0, 1, 2, 3, 4, 5]);
+  await expect.poll(async () => (await vr(page)).checked.sort()).toEqual([0, 1, 2, 3, 4, 5, 6]);
 
   // « Hoche la tête » : un petit coup de tête vers le bas fait la grosse caisse, un mouvement lent non
   await page.evaluate(() => window.__gm.vr().menuPress('kick:tete'));

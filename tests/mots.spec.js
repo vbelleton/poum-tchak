@@ -36,7 +36,7 @@ test.describe('Dictionnaire', () => {
     await expect(page.locator('.dm[data-k="toum"]')).toHaveText('« dong » ajouté.');
     await page.getByRole('button', { name: 'Afficher « dong » à la place' }).click();
     await expect(page.locator('.dm[data-k="toum"]')).toHaveText('« dong » est maintenant le mot affiché.');
-    await expect(page.locator('#kit .ic:nth-child(4)')).toContainText('dong');
+    await expect(page.locator('#kit .ic:nth-child(5)')).toContainText('dong');
   });
 
   test('chaque fût garde au moins un mot', async ({ page }) => {
@@ -55,7 +55,7 @@ test.describe('Dictionnaire', () => {
     await page.getByLabel('Nouveau mot fondu', { exact: true }).fill('tapouf');
     await page.locator('#comboAdd').click();
     await expect(page.locator('.dm[data-k="combos"]')).toHaveText('« tapouf » ajouté pour toum + tss + psch.');
-    await expect(page.locator('#comboCount')).toHaveText('26 mots');
+    await expect(page.locator('#comboCount')).toHaveText('28 mots');
   });
 
   test('exporter, tout remettre, puis recharger l\'export', async ({ page }) => {

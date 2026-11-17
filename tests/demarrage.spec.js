@@ -3,10 +3,10 @@ const { test, expect, rubrique, memoire } = require('./outils/base');
 test.describe('Démarrage et rubriques', () => {
   test("la page s'ouvre sur le rythme rock, sans erreur", async ({ page }) => {
     await expect(page).toHaveTitle(/Poum Tchak/);
-    await expect(page.locator('#kit .ic')).toHaveCount(7);
+    await expect(page.locator('#kit .ic')).toHaveCount(8);
     await expect(page.getByRole('tab', { name: 'Rythme' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#patterns [data-v="rock"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#grid .cell')).toHaveCount(7 * 16);
+    await expect(page.locator('#grid .cell')).toHaveCount(8 * 16);
     await expect(page.locator('#txtPhrase')).toHaveValue(/^pouts \. tss \. tchats/);
     await expect(page.locator('#bpmIn')).toHaveValue('100');
     await expect(page.locator('#tempoRead')).toHaveText('100 BPM · 4/4');
@@ -43,7 +43,7 @@ test.describe('Démarrage et rubriques', () => {
 
   test('les fûts sont nommés, sans notes de musique', async ({ page }) => {
     await expect(page.locator('#kit .ic').first()).toContainText('Grosse caisse');
-    await expect(page.locator('#kit .ic').nth(4)).toContainText('Charley');
+    await expect(page.locator('#kit .ic').nth(5)).toContainText('Charley');
     await expect(page.locator('#grid .rl').first()).toContainText('Crash');
     await expect(page.locator('#kit')).not.toContainText(/\b(do|ré|mi|fa|sol|la|si)\b/);
   });

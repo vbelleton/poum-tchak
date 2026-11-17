@@ -31,11 +31,11 @@ test.describe('Batterie électronique (MIDI)', () => {
       document.querySelectorAll('.pad').forEach((p) => new MutationObserver(() => {
         if (p.classList.contains('on')) vus.add(p.dataset.id);
       }).observe(p, { attributes: true, attributeFilter: ['class'] }));
-      // grosse caisse, caisse claire, charleston fermé, ouvert, tom, tom basse, crash
-      for (const n of [36, 38, 42, 46, 48, 43, 49]) { window.__frappe(n); await new Promise((r) => setTimeout(r, 60)); }
+      // grosse caisse, caisse claire, charleston fermé, ouvert, les trois toms du Nitro Max (48, 45, 43), crash
+      for (const n of [36, 38, 42, 46, 48, 45, 43, 49]) { window.__frappe(n); await new Promise((r) => setTimeout(r, 60)); }
       return [...vus].sort();
     });
-    expect(allumes).toEqual(['doum', 'poum', 'psch', 'tchaa', 'tchak', 'toum', 'tss']);
+    expect(allumes).toEqual(['doum', 'poum', 'psch', 'tchaa', 'tchak', 'tim', 'toum', 'tss']);
   });
 
   test('le tempo joué s\'affiche, et on peut le prendre', async ({ page }) => {

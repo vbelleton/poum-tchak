@@ -7,21 +7,26 @@
    Repère de la batterie (groupe `kit`) : origine au sol sous la tête du joueur, -z devant lui,
    y vers le haut. Tout ce qui bouge (pads, notes, panneaux) est dans ce repère. */
 import * as THREE from './three.module.min.js';
+import * as SPIN from './spin.js';
 
-const COL={poum:'#8D9CFF',tchak:'#FF8A70',doum:'#46D2AB',toum:'#CA9CF5',tss:'#F2BB4A',tchaa:'#BCD64A',psch:'#FF84B8'};
+const COL={poum:'#8D9CFF',tchak:'#FF8A70',tim:'#5CC8F2',doum:'#46D2AB',toum:'#CA9CF5',tss:'#F2BB4A',tchaa:'#BCD64A',psch:'#FF84B8'};
 const POP={ok:'#7BE3A6',warn:'#F2BB4A',bad:'#FF8A70'};
 const BG=0x0B0E14;
 const FONT='"Bricolage Grotesque",system-ui,sans-serif';
 /* Les pads, un par couloir du jeu « vr » de la page (même ordre que GM_LANES.vr).
    x, z : position devant le joueur ; y : hauteur au-dessus de la caisse claire ; r : rayon.
-   La grosse caisse (couloir 0) se joue à la gâchette ou à la pédale MIDI : c'est un fût debout. */
+   La grosse caisse (couloir 0) se joue à la gâchette ou à la pédale MIDI : c'est un fût debout.
+   Les trois toms comme sur une vraie batterie : tom aigu (tim) à gauche au-dessus de la grosse caisse,
+   tom médium (doum) à droite, tom basse (toum) plus bas à droite. Le tom aigu est venu après :
+   couloir 6, à la fin de la liste, pour que les numéros des autres couloirs ne changent pas. */
 const PADS=[
   {lane:0,id:'poum',kick:true,x:0.0,y:0,z:-1.9,r:0.32},
   {lane:1,id:'tchak',x:-0.16,y:0,z:-0.40,r:0.15},
   {lane:2,id:'tss',x:-0.46,y:0.10,z:-0.36,r:0.15},
-  {lane:3,id:'doum',x:-0.02,y:0.13,z:-0.60,r:0.12},
+  {lane:3,id:'doum',x:0.11,y:0.13,z:-0.64,r:0.115},
   {lane:4,id:'toum',x:0.32,y:-0.04,z:-0.42,r:0.15},
-  {lane:5,id:'psch',x:0.42,y:0.30,z:-0.62,r:0.18}
+  {lane:5,id:'psch',x:0.42,y:0.30,z:-0.62,r:0.18},
+  {lane:6,id:'tim',x:-0.14,y:0.15,z:-0.67,r:0.105}
 ];
 const FAR=4.6;
 const KICK_W=0.95;        /* largeur du couloir de la grosse caisse : une grande barre bien visible, loin devant, hors de la vue cachée par les pads */            /* distance d'où partent les notes, en mètres */
@@ -393,6 +398,7 @@ function cleanup(){
   if(s.api.gm.on)s.api.stop();
   s.api.setVR(false);
   if(s.afterExit)setTimeout(s.afterExit,0);
+  if(s.spin)s.spin.dispose();
   if(s.keyH)document.removeEventListener('keydown',s.keyH);
   if(s.resizeH)removeEventListener('resize',s.resizeH);
   if(s.preview&&s.canvas.parentNode)s.canvas.parentNode.removeChild(s.canvas);
@@ -431,7 +437,7 @@ function buildWorld(){
       const rim=new THREE.Mesh(new THREE.TorusGeometry(P.r,0.012,8,48),rimMat);
       rim.rotation.x=Math.PI/2;rim.position.y=0.018;g.add(rim);
       if(!CYMBALS.has(P.id)){ /* le fût, visible dans les styles « acoustiques » */
-        const depth=P.id==='tchak'?0.13:P.id==='doum'?0.2:0.28;
+        const depth=P.id==='tchak'?0.13:P.id==='tim'?0.16:P.id==='doum'?0.2:0.28;
         const shell=new THREE.Mesh(new THREE.CylinderGeometry(P.r,P.r,depth,40,1,true),S.shellMat);
         shell.position.y=-depth/2-0.017;g.add(shell);P._shell=shell;
       }
@@ -719,6 +725,8 @@ function buttons(t){
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
     else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))recenter();
+    else if(down(0)){const p=S.api.opts().kick==='charley'&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
+    if(down(3))placeFromHead();
     if(st.hand==='right')menuGrab(st);
     if(down(4)){if(mode){menuDo(S.focus);if(!S)return;}}
     const ax=gp.axes&&gp.axes.length>2?gp.axes[2]:0,ay=gp.axes&&gp.axes.length>3?gp.axes[3]:0;
@@ -827,6 +835,13 @@ function loop(t,frame){
     else S.msg='Baguettes au-dessus des pads, comme pour jouer… '+Math.ceil(r/1000);
   }
   if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
+  if(S.spin){
+    /* pendant le mode, les boutons se lisent là : on tient à jour leur état pour qu'un B encore enfoncé
+       au retour à la batterie ne quitte pas le casque */
+    for(const st of S.sticks){const gp=st.src&&st.src.gamepad;if(gp)S.btnPrev.set(st,gp.buttons.map(b=>b.pressed));}
+    if(S.spin.update(t))stopSpin();
+  }
+  else if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   /* casque retiré ou menu du système ouvert : pause */
   if(S&&S.session&&gm.on&&!S.paused&&S.session.visibilityState&&S.session.visibilityState!=='visible')pause(true);
   if(!S)return;  /* les coups d'abord, puis les notes ratées */
@@ -923,7 +938,7 @@ function draw(t){
     drawPanel(S.hud,lines,{bar:gm.loop||api.noFail()?null:gm.gauge});
   }
   /* menu : hors partie, ou en pause */
-  const mode=menuMode();
+  const mode=S.spin?null:menuMode();
   S.menu.mesh.visible=!!mode;
   if(mode){
     drawMenu(mode);
@@ -940,10 +955,10 @@ function draw(t){
    On vise avec la manette et on appuie sur la gâchette, ou on se déplace au stick et on valide avec A/X ;
    en aperçu, souris ou clavier. Tout est dessiné sur un canvas : chaque bouton garde son rectangle (en cm). */
 const MW=124,MH=108;
-const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
-const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
+const KICKS={gachette:'Gâchette',charley:'+ Charley pied',auto:'Automatique',tete:'Hoche la tête'};
+const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',charley:'Gâchette droite : grosse caisse · gâchette gauche : charleston au pied',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
 function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub||'main';}
-function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':'kitmenu';S.sub=false;}
+function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':S.sub==='spin'?'spinmenu':'kitmenu';S.sub=false;}
 function menuItems(mode){
   const {api}=S,it=[];
   if(mode==='mini'){it.push({id:'open',x:MW/2-16,y:MH-14,w:32,h:10,txt:'☰ Menu',big:true});return it;}
@@ -987,6 +1002,12 @@ function menuItems(mode){
     it.push({id:'back',x:MW-28,y:63,w:23,h:10,txt:'‹ Retour'});
     return it;
   }
+  if(mode==='spin'){
+    it.push({id:'spinstart',x:30,y:34,w:MW-60,h:11,txt:'Pratique libre',big:true});
+    it.push({id:'spinthumb',x:30,y:49,w:MW-60,h:11,txt:'Thumb Around (MVP)',big:true});
+    it.push({id:'back',x:30,y:63,w:MW-60,h:10,txt:'‹ Retour'});
+    return it;
+  }
   if(mode==='kit'){
     row(19,'Sons');seg(19,'sound',o.sounds,o.sound);
     row(26.5,'Style');seg(26.5,'style',STYLES,S.style);
@@ -1018,16 +1039,18 @@ function menuItems(mode){
   row(59,'Ralentir');
   it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
   row(67,'Aller à');
-  it.push({id:'kitmenu',x:30,y:67,w:22,h:H,txt:'Batterie ›'});
-  it.push({id:'exomenu',x:53.5,y:67,w:24,h:H,txt:'Exercices ›'});
-  it.push({id:'mainsmenu',x:79,y:67,w:18,h:H,txt:'Mains ›'});
-  it.push({id:'import',x:98.5,y:67,w:MW-103.5,h:H,txt:'+ Chants'});
-  it.push({id:'play',x:30,y:76,w:MW-80,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'kitmenu',x:30,y:67,w:17,h:H,txt:'Batterie ›'});
+  it.push({id:'exomenu',x:48.5,y:67,w:19,h:H,txt:'Exercices ›'});
+  it.push({id:'mainsmenu',x:68.5,y:67,w:14,h:H,txt:'Mains ›'});
+  it.push({id:'spinmenu',x:83.5,y:67,w:16,h:H,txt:'Spin ›'});
+  it.push({id:'import',x:101,y:67,w:MW-106,h:H,txt:'+ Chants'});
+  it.push({id:'play',x:30,y:76,w:22,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
+  it.push({id:'rec',x:54,y:76,w:20,h:10,txt:api.rec()?'■ Garder':'● Écrire',on:api.rec()});
   it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay'};
+const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinstart'};
 function drawMenu(mode){
   const {api}=S,p=S.menu;
   S.items=menuItems(mode);
@@ -1036,6 +1059,11 @@ function drawMenu(mode){
   const R=S.result,nc=S.checked.size;
   let title='Poum Tchak · VR',status=null,foot=[];
   if(mode==='pause'){title='Pause';status={t:api.title(),c:'#97A1B2'};foot=[{t:'B/Y ou A/X : reprendre · vise un bouton, gâchette pour choisir',c:'#C9D1DC'}];}
+  else if(mode==='spin'){
+    title='Drumstick Spin';
+    status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Mets tes mains devant le casque, mains suivies activées',c:'#97A1B2'};
+    foot=[{t:'Thumb Around : le pouce pivote, lâche la pince, puis rattrape',c:'#C9D1DC'}];
+  }
   else if(mode==='main'||mode==='kit'||mode==='mains'||mode==='exo'){
     if(mode==='kit')title='Ma batterie';
     if(mode==='mains')title='Mains : une main contre l\'autre';
@@ -1117,6 +1145,9 @@ function menuDo(id){
   S.result=null;S.msg='';S.recalAt=0;
   if(id==='play'){start();return;}
   if(id==='recal'){S.recalAt=performance.now()+3000;return;}
+  S.result=null;S.msg='';
+  if(id==='rec'){const was=api.rec(),r=api.recToggle();S.msg=was?(r?'Gardé dans Mes grooves : « '+r+' ». Choisis-le dans Chant pour le rejouer.':'Rien d\'enregistré.'):'Un clic par temps : compte 4, puis joue. « ■ Garder » pour finir.';return;}
+  if(id==='play'){if(api.rec())api.recToggle();start();return;}
   if(id==='mini'){S.mini=true;return;}
   if(id==='import'){S.afterExit=()=>s_importPrompt(api);exit();return;}
   if(id==='kitmenu'){S.sub='kit';S.focus='back';return;}
@@ -1126,6 +1157,9 @@ function menuDo(id){
   if(id==='ex-'||id==='ex+'){api.setExo('step',id==='ex+'?1:-1);return;}
   if(id==='exnew'){api.setExo('new');return;}
   if(/^rep:/.test(id)){api.setExo('rep',+id.slice(4));return;}
+  if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
+  if(id==='spinstart'){startSpin(null);return;}
+  if(id==='spinthumb'){startSpin('thumb');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
@@ -1147,6 +1181,23 @@ function menuDo(id){
     else if(k==='lay')setLayout(v);
     else{api.set(k,v);if(k==='sound')api.play('tchak',1);}
   }
+}
+/* Drumstick Spin : les mains suivies remplacent la batterie. Il faut un casque (pas l'aperçu). */
+const SPIN_THUMB_KEY='poumtchak.spin.thumb';
+const spinStore={
+  get(){try{return JSON.parse(localStorage.getItem(SPIN_THUMB_KEY))||null;}catch(e){return null;}},
+  set(v){try{localStorage.setItem(SPIN_THUMB_KEY,JSON.stringify(v));}catch(e){}}
+};
+function startSpin(trick){
+  if(S.spin)return;
+  if(!S.session){S.msg='Drumstick Spin a besoin d\'un casque : l\'aperçu n\'a pas de mains.';S.sub='spin';return;}
+  S.sub=false;
+  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
+  S.kit.visible=false;S.menu.mesh.visible=false;
+}
+function stopSpin(){
+  if(!S.spin)return;
+  S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';
 }
 /* Choisir un fichier est impossible dans le casque : on revient à la page, sur le bouton d'import. */
 function s_importPrompt(api){if(api.importPrompt)api.importPrompt();}
@@ -1202,13 +1253,15 @@ export function simStrike(lane){
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
+/* Tests : les mains suivies par Drumstick Spin. */
+export function spinDebug(){return S&&S.spin?S.spin.debug():null;}
 /* La page : P ou Échap pendant une partie en VR met en pause (ou reprend). */
 export function togglePause(){if(S&&S.api.gm.on)pause(!S.paused);}
 export function state(){return S?{mode:menuMode(),focus:S.focus,paused:S.paused,mini:S.mini}:null;}
