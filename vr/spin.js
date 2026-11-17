@@ -96,6 +96,46 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   const stickGeo=new THREE.CylinderGeometry(0.006,0.009,STICK,10);
   for(const h of hands){h.stick=new THREE.Mesh(stickGeo,wood);h.stick.visible=false;scene.add(h.stick);}
 
+  /* mains pleines : chaque doigt est un tube entre ses articulations, la paume une bille */
+  const SKIN=new THREE.MeshStandardMaterial({color:0xE0B894,roughness:0.7});
+  const boneGeo=new THREE.CylinderGeometry(1,1,1,8,1),palmGeo=new THREE.SphereGeometry(1,12,8);
+  for(const h of hands){
+    h.bones=[];
+    for(let i=0;i<20;i++){const m=new THREE.Mesh(boneGeo,SKIN);m.visible=false;scene.add(m);h.bones.push(m);}
+    h.palm=new THREE.Mesh(palmGeo,SKIN);h.palm.visible=false;scene.add(h.palm);
+  }
+  const FINGER_CHAIN=['-metacarpal','-phalanx-proximal','-phalanx-intermediate','-phalanx-distal','-tip'];
+  const FINGER_NAMES=['thumb','index-finger','middle-finger','ring-finger','pinky-finger'];
+  const _P=new THREE.Vector3(),_Q=new THREE.Vector3();
+  function updateHand(h){
+    const hj=h.g.joints||{};
+    h.bones.forEach(m=>{m.visible=false;});h.palm.visible=false;
+    let bi=0;
+    const seg=(a,b,r)=>{
+      if(!a||!b||!a.visible||!b.visible||bi>=h.bones.length)return;
+      a.getWorldPosition(_P);b.getWorldPosition(_Q);
+      const len=_P.distanceTo(_Q);if(len<1e-4)return;
+      const m=h.bones[bi++];
+      m.position.copy(_P).add(_Q).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(UP,_Q.clone().sub(_P).normalize());
+      m.scale.set(r,len,r);m.visible=true;
+    };
+    const wrist=hj['wrist'];
+    for(const f of FINGER_NAMES){
+      let prev=wrist;
+      for(const suf of FINGER_CHAIN){
+        const j=hj[f+suf];
+        if(!j)continue;
+        seg(prev,j,0.0085);prev=j;
+      }
+    }
+    const mid=hj['middle-finger-metacarpal'];
+    if(wrist&&mid&&wrist.visible&&mid.visible){
+      wrist.getWorldPosition(_P);mid.getWorldPosition(_Q);
+      h.palm.position.copy(_P).add(_Q).multiplyScalar(0.5);
+      h.palm.scale.setScalar(0.024);h.palm.visible=true;
+    }
+  }
   /* les articulations des mains, en une seule passe de dessin (InstancedMesh) */
   const jointMat=new THREE.MeshStandardMaterial({color:0xD7C7A6,roughness:0.6});
   const joints=new THREE.InstancedMesh(new THREE.SphereGeometry(JOINT_R,8,6),jointMat,MAX_JOINTS*2);
@@ -201,14 +241,8 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
           }
         }
       }
-      /* articulations de cette main */
-      for(const k in hj){
-        const j=hj[k];
-        if(!j||!j.visible||n>=MAX_JOINTS*2)continue;
-        j.getWorldPosition(_p);
-        _m.makeTranslation(_p.x,_p.y,_p.z);
-        joints.setMatrixAt(n++,_m);
-      }
+      /* la main pleine, tube par tube */
+      updateHand(h);
     }
     joints.count=n;joints.instanceMatrix.needsUpdate=true;
 
