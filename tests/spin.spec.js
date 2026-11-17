@@ -60,6 +60,8 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
   // tuto guidé : pincer (étape 1), garder le pouce immobile (2), ouvrir (3 : la baguette tourne seule),
   // puis l'étape 4 attend une pince au bon moment
   expect(mains.tuto).toBe(0);
+  // la main réaliste (modèle WebXR generic-hand, gardé dans vr/hands/) se charge pour les deux mains
+  await expect.poll(async () => (await vr(page)).spinInfo.mesh, { timeout: 10_000 }).toEqual([true, true]);
   const pince = (v) => page.evaluate((x) => { for (const h of Object.values(window.__dev.hands)) h.updatePinchValue(x); }, v);
   await pince(1);
   await expect.poll(async () => (await vr(page)).spinInfo.tuto, { timeout: 10_000 }).toBe(2);

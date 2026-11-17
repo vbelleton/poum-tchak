@@ -4,6 +4,11 @@
    Ce module ne touche ni à la batterie ni au menu : vr.js l'allume, lui donne la scène et la session,
    et appelle update() à chaque image. Le pincement vient du suivi de core three.js (hand.inputState). */
 import * as THREE from './three.module.min.js';
+import { XRHandModelFactory } from './addons/webxr/XRHandModelFactory.js';
+
+/* La main réaliste : le modèle de main standard WebXR (generic-hand, peau et doigts articulés),
+   gardé dans vr/hands/ pour marcher hors ligne. Tant qu'il n'est pas chargé, la main est dessinée en os. */
+let handFactory=null;
 
 const STICK=0.40;            /* longueur de la baguette virtuelle (m), comme dans vr.js */
 const HOLD_EXIT_MS=2000;     /* les deux pinces tenues ce temps = retour à la batterie */
@@ -100,11 +105,22 @@ const PALM=['wrist','thumb-phalanx-proximal','index-finger-phalanx-proximal','mi
 
 /* renderer, scene, session : la session WebXR en cours. panel, drawPanel : les panneaux de vr.js.
    play(id, force) : le son de vr.js. trick : null (libre) ou 'thumb' (Thumb Around). */
-export function create({renderer,scene,session,panel,drawPanel,play,trick=null,store=null}){
+export function create({renderer,scene,session,panel,drawPanel,play,trick=null,store=null,srcs=[]}){
   const hands=[0,1].map(i=>{
     const g=renderer.xr.getHand(i);scene.add(g);
     return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector(trick==='reverse'?-1:1)};
   });
+
+  handFactory=handFactory||new XRHandModelFactory().setPath('./vr/hands/');
+  hands.forEach((h,i)=>{
+    /* un modèle par main, gardé d'une session du mode à l'autre */
+    if(!h.g.userData.model){h.g.userData.model=handFactory.createHandModel(h.g,'mesh');h.g.add(h.g.userData.model);}
+    h.model=h.g.userData.model;
+    /* la main était déjà là avant le mode : on lui redonne l'événement de connexion */
+    const src=srcs[i];
+    if(src&&src.hand&&!h.model.motionController)h.g.dispatchEvent({type:'connected',data:src});
+  });
+  const meshOn=h=>!!(h.model&&h.model.motionController&&h.model.motionController.bones&&h.model.motionController.bones.length);
 
   /* une baguette par main, cachée tant que la pince ne la tient pas */
   const wood=new THREE.MeshStandardMaterial({color:0xE9D6B0,roughness:0.5});
@@ -358,7 +374,12 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         h.stick.visible=false;
         if(!!trick)h.det.reset();
       }
-      [nb,nt,nk]=drawHand(h,hj,nb,nt,nk);
+      if(meshOn(h)){
+        h.palm.visible=false;
+        /* couleur de peau, une fois le modèle chargé */
+        if(!h.model.userData.skin){h.model.userData.skin=true;h.model.traverse(o=>{if(o.isMesh&&o.material&&o.material.color)o.material.color.set(0xE2B99C);});}
+      }
+      else [nb,nt,nk]=drawHand(h,hj,nb,nt,nk);
     }
     bones.count=nb;bones.instanceMatrix.needsUpdate=true;
     tips.count=nt;tips.instanceMatrix.needsUpdate=true;
@@ -390,5 +411,5 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
 }

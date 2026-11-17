@@ -1195,7 +1195,7 @@ function startSpin(trick){
   if(S.spin)return;
   if(!S.session){S.msg='Drumstick Spin a besoin d\'un casque : l\'aperçu n\'a pas de mains.';S.sub='spin';return;}
   S.sub=false;
-  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:trick?spinStore(trick):null});
+  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:trick?spinStore(trick):null,srcs:S.sticks.map(st=>st.src)});
   S.kit.visible=false;S.menu.mesh.visible=false;
   /* les rayons du menu ne servent pas pendant le mode */
   for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
