@@ -5,6 +5,7 @@
    et appelle update() à chaque image. Le pincement vient du suivi de core three.js (hand.inputState). */
 import * as THREE from './three.module.min.js';
 import { XRHandModelFactory } from './addons/webxr/XRHandModelFactory.js';
+import { GLTFLoader } from './addons/loaders/GLTFLoader.js';
 
 /* La main réaliste : le modèle de main standard WebXR (generic-hand, peau et doigts articulés),
    gardé dans vr/hands/ pour marcher hors ligne. Tant qu'il n'est pas chargé, la main est dessinée en os. */
@@ -13,6 +14,8 @@ let handFactory=null;
 const STICK=0.40;            /* longueur de la baguette virtuelle (m), comme dans vr.js */
 const HOLD_EXIT_MS=2000;     /* les deux pinces tenues ce temps = retour à la batterie */
 const UP=new THREE.Vector3(0,1,0);
+/* main fantôme : place par rapport au panneau (m), orientation (rad), et pliage des doigts (rad) */
+const GHOST={x:0.42,y:-0.08,z:-0.4,rx:Math.PI/2,ry:0,rz:0,curl:1.2,scale:1.4};
 
 /* Thumb Around : seuils, à calibrer sur le casque */
 const TA={
@@ -161,6 +164,56 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     pad.position.set(cp.x+fwd.x*0.45,cp.y-0.6,cp.z+fwd.z*0.45);scene.add(pad);
   }
   const _w2=new THREE.Vector3(),_e2=new THREE.Vector3(),_f2=new THREE.Vector3();
+
+  /* Main fantôme : à côté du panneau, elle rejoue le geste au ralenti, en boucle.
+     Thumb Around (et Reverse) : la pince tient, l'index s'ouvre, la baguette fait le tour du pouce, l'index la rattrape.
+     Rebond : la main frappe, une fois main ouverte, une fois doigts fermés. */
+  const ghost={root:null,bones:{},baseY:0,stick:null,mat:null,smat:null};
+  let disposed=false;
+  if(trick){
+    ghost.mat=new THREE.MeshStandardMaterial({color:0x9BD8FF,emissive:0x1E4B66,transparent:true,opacity:0.5,depthWrite:false});
+    ghost.smat=new THREE.MeshStandardMaterial({color:0x9BD8FF,emissive:0x1E4B66,transparent:true,opacity:0.7});
+    ghost.stick=new THREE.Mesh(stickGeo,ghost.smat);ghost.stick.visible=false;scene.add(ghost.stick);
+    new GLTFLoader().load('./vr/hands/right.glb',g=>{
+      if(disposed)return;
+      const root=g.scene;
+      root.traverse(o=>{if(o.isMesh){o.material=ghost.mat;o.frustumCulled=false;}if(o.name)ghost.bones[o.name]=o;});
+      for(const k in ghost.bones)ghost.bones[k].userData.r0=ghost.bones[k].rotation.clone();
+      const right=new THREE.Vector3(-fwd.z,0,fwd.x);
+      root.position.copy(pnl.mesh.position).addScaledVector(right,GHOST.x).addScaledVector(fwd,GHOST.z);root.position.y+=GHOST.y;
+      root.rotation.set(GHOST.rx,Math.atan2(-fwd.x,-fwd.z)+GHOST.ry,GHOST.rz,'YXZ');
+      root.scale.setScalar(GHOST.scale);
+      ghost.baseY=root.position.y;scene.add(root);ghost.root=root;
+    },undefined,()=>{});
+  }
+  const _g1=new THREE.Vector3(),_g2=new THREE.Vector3(),_g3=new THREE.Vector3(),_gu=new THREE.Vector3();
+  function curl(names,a){for(const n of names){const b=ghost.bones[n];if(b&&b.userData.r0)b.rotation.x=b.userData.r0.x+a;}}
+  const BACK=['middle-finger-phalanx-proximal','middle-finger-phalanx-intermediate','ring-finger-phalanx-proximal','ring-finger-phalanx-intermediate','pinky-finger-phalanx-proximal','pinky-finger-phalanx-intermediate'];
+  function ghostUpdate(t){
+    const r=ghost.root;if(!r)return;
+    const B=ghost.bones,pos=(n,v)=>{const b=B[n];if(b)b.getWorldPosition(v);return !!b;};
+    if(trick==='rebond'){
+      const k=Math.floor(t/1200)%2,s=(t%1200)/1200;
+      r.position.y=ghost.baseY+0.08*Math.abs(Math.cos(s*Math.PI));
+      curl(BACK,k?GHOST.curl:0);
+      r.updateMatrixWorld(true);
+      if(!pos('wrist',_g1)||!pos('thumb-tip',_g2)||!pos('index-finger-tip',_g3))return;
+      _g2.add(_g3).multiplyScalar(0.5);_gu.copy(_g2).sub(_g1).normalize();
+      ghost.stick.position.copy(_g2).addScaledVector(_gu,STICK/2-0.08);
+      ghost.stick.quaternion.setFromUnitVectors(UP,_gu);ghost.stick.visible=true;
+      return;
+    }
+    const ph=(t%4500)/4500;
+    const open=ph<0.2?0:ph<0.28?(ph-0.2)/0.08:ph<0.8?1:ph<0.88?1-(ph-0.8)/0.08:0;
+    const ang=ph<0.28?0:ph<0.8?(ph-0.28)/0.52*2*Math.PI:2*Math.PI;
+    curl(['index-finger-phalanx-proximal','index-finger-phalanx-intermediate'],-GHOST.curl*0.6*open);
+    r.updateMatrixWorld(true);
+    if(!pos('thumb-tip',_g1)||!pos('index-finger-tip',_g2)||!pos('middle-finger-tip',_g3))return;
+    _gu.copy(_g2).sub(_g1).normalize();
+    _g3.sub(_g1);_g3.addScaledVector(_gu,-_g3.dot(_gu)).normalize();
+    _g3.applyAxisAngle(_gu,(trick==='reverse'?-1:1)*ang);
+    ghost.stick.position.copy(_g1);ghost.stick.quaternion.setFromUnitVectors(UP,_g3);ghost.stick.visible=true;
+  }
   /* une image de Rebond pour la main h (pouce en _a, index en _b) */
   function rebond(h,hj,t,pinch){
     const w=hj['wrist'];
@@ -394,11 +447,15 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     }
 
     if(pad&&padT&&t-padT>300){padMat.color.set(0x39414F);padT=0;}
+    ghostUpdate(t);
     draw(t);
     return exit;
   }
 
   function dispose(){
+    disposed=true;
+    if(ghost.root){scene.remove(ghost.root);ghost.root.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
+    if(ghost.stick){scene.remove(ghost.stick);ghost.mat.dispose();ghost.smat.dispose();}
     for(const h of hands){scene.remove(h.g);scene.remove(h.stick);}
     stickGeo.dispose();wood.dispose();green.dispose();boneGeo.dispose();skin.dispose();
     scene.remove(bones);bones.dispose();
@@ -411,5 +468,5 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,ghost:!!ghost.root,ghostStick:!!(ghost.stick&&ghost.stick.visible),mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
 }

@@ -1198,11 +1198,12 @@ function startSpin(trick){
   S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:trick?spinStore(trick):null,srcs:S.sticks.map(st=>st.src)});
   S.kit.visible=false;S.menu.mesh.visible=false;
   /* les rayons du menu ne servent pas pendant le mode */
-  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
+  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;if(st.holder)st.holder.visible=false;S.hover.delete(st);}
 }
 function stopSpin(){
   if(!S.spin)return;
   S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';
+  for(const st of S.sticks)if(st.holder)st.holder.visible=true;
   /* un bouton encore enfoncé au retour ne compte pas : il faut le relâcher d'abord */
   for(const st of S.sticks)S.btnPrev.set(st,new Array(16).fill(true));
 }
