@@ -71,6 +71,12 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
   await expect.poll(async () => (await vr(page))?.spin).toBe(false);
   await expect.poll(async () => (await vr(page))?.menu).toBe(true);
 
+  // Rebond : le pad d'entraînement, on commence main ouverte
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spinreb'); });
+  await expect.poll(async () => (await vr(page))?.spinInfo?.rebond).toBe('open');
+  await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await vr(page))?.spin).toBe(false);
+
   // le casque se quitte avec B encore
   await bouton(page, 'right', 'b-button');
   await expect.poll(() => vr(page)).toBeNull();

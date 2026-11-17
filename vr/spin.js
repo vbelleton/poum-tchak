@@ -134,6 +134,50 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   pnl.mesh.lookAt(cp.x,cp.y-0.1,cp.z);
   scene.add(pnl.mesh);
 
+  /* Rebond : un pad d'entraînement devant soi, à hauteur de caisse claire. La baguette est tenue
+     par la pince pouce-index (le point d'appui) ; on alterne une frappe main ouverte (les autres doigts
+     décollés, la baguette rebondit librement) et une frappe doigts fermés (les doigts serrent la baguette). */
+  let pad=null,padMat=null,padT=0;
+  const reb={expect:'open'};
+  if(trick==='rebond'){
+    padMat=new THREE.MeshStandardMaterial({color:0x39414F,roughness:0.8});
+    pad=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.03,32),padMat);
+    pad.position.set(cp.x+fwd.x*0.45,cp.y-0.6,cp.z+fwd.z*0.45);scene.add(pad);
+  }
+  const _w2=new THREE.Vector3(),_e2=new THREE.Vector3(),_f2=new THREE.Vector3();
+  /* une image de Rebond pour la main h (pouce en _a, index en _b) */
+  function rebond(h,hj,t,pinch){
+    const w=hj['wrist'];
+    if(!pinch||!w||!w.visible){h.stick.visible=false;h.tipPrev=null;return;}
+    w.getWorldPosition(_w2);
+    h.mid.copy(_a).add(_b).multiplyScalar(0.5);
+    _f2.copy(h.mid).sub(_w2);if(_f2.lengthSq()<1e-6)return;_f2.normalize();
+    h.stick.position.copy(h.mid).addScaledVector(_f2,STICK/2-0.08);
+    h.stick.quaternion.setFromUnitVectors(UP,_f2);h.stick.visible=true;
+    const tip=_e2.copy(h.mid).addScaledVector(_f2,STICK-0.08);
+    /* main ouverte ou fermée : distance moyenne du poignet au bout du majeur, de l'annulaire et de l'auriculaire */
+    let sum=0,n=0;
+    for(const k of ['middle-finger-tip','ring-finger-tip','pinky-finger-tip']){const j=hj[k];if(j&&j.visible){j.getWorldPosition(_p);sum+=_p.distanceTo(_w2);n++;}}
+    const open=n?sum/n:0,state=open>0.14?'open':open<0.11?'closed':'mid';
+    const top=pad.position.y+0.015,r=Math.hypot(tip.x-pad.position.x,tip.z-pad.position.z);
+    if(h.armed===undefined)h.armed=true;
+    if(h.tipPrev){
+      if(!h.armed&&tip.y>top+0.03)h.armed=true;
+      if(h.armed&&h.tipPrev.y>top&&tip.y<=top&&r<0.2){
+        h.armed=false;stats.tries++;padT=t;
+        if(state===reb.expect){
+          stats.ok++;reb.expect=reb.expect==='open'?'closed':'open';
+          play('tchak',0.9);say('Bien !',t);padMat.color.set(0x7BE3A6);
+        }else{
+          play('tss',0.5);padMat.color.set(0xF2BB4A);
+          say(reb.expect==='open'?'Ouvre la main : laisse rebondir':'Ferme les doigts sur la baguette',t);
+        }
+        if(store&&store.set)store.set(stats);
+      }
+    }
+    (h.tipPrev||(h.tipPrev=new THREE.Vector3())).copy(tip);
+  }
+
   const prevBtn=new Map();   /* bouton B/Y de chaque manette, pour ne lire qu'un appui */
   let bothSince=0;
   const stats=(store&&store.get&&store.get())||{tries:0,ok:0};
@@ -203,7 +247,11 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   function draw(t){
     const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
-    if(!!trick&&tuto.step<5){
+    if(trick==='rebond'){
+      lines[0].t='Rebond';
+      lines.push({t:reb.expect==='open'?'Frappe le pad main OUVERTE':'Frappe le pad doigts FERMÉS',size:4.2,color:reb.expect==='open'?'#7BE3A6':'#8D9CFF',weight:800});
+      lines.push({t:coach&&t-coachT<1500?coach:'Rebonds : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2',weight:700});
+    }else if(!!trick&&tuto.step<5){
       lines.push({t:TUTO[Math.min(tuto.step,4)===3?2:Math.min(tuto.step,4)===4?3:Math.min(tuto.step,4)],size:3.8,color:'#E8ECF2',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Une étape à la fois : elle avance toute seule',size:3.4,color:coach?'#7BE3A6':'#97A1B2',weight:700});
     }else if(!!trick){
@@ -274,7 +322,8 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       if(h.seen){
         th.getWorldPosition(_a);ix.getWorldPosition(_b);md.getWorldPosition(_c);
         const pinch=!!(h.g.inputState&&h.g.inputState.pinching);
-        if(!!trick&&tuto.step<5){
+        if(trick==='rebond')rebond(h,hj,t,pinch);
+        else if(!!trick&&tuto.step<5){
           /* tuto guidé : une seule main (la première suivie), l'autre attend */
           if(!tutoHand){tutoHand=h;tutoStep(h,t,pinch);}else h.stick.visible=false;
         }else if(!!trick){
@@ -323,6 +372,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       }else bothSince=0;
     }
 
+    if(pad&&padT&&t-padT>300){padMat.color.set(0x39414F);padT=0;}
     draw(t);
     return exit;
   }
@@ -331,6 +381,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     for(const h of hands){scene.remove(h.g);scene.remove(h.stick);}
     stickGeo.dispose();wood.dispose();green.dispose();boneGeo.dispose();skin.dispose();
     scene.remove(bones);bones.dispose();
+    if(pad){scene.remove(pad);pad.geometry.dispose();padMat.dispose();}
     scene.remove(tips);tips.dispose();
     scene.remove(knuckles);knuckles.dispose();
     for(const h of hands){scene.remove(h.palm);h.palm.geometry.dispose();}palmMat.dispose();
@@ -339,5 +390,5 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,tuto:tuto.step,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
 }

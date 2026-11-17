@@ -1002,10 +1002,11 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinthumb',x:30,y:24,w:MW-60,h:10,txt:'Thumb Around',big:true});
-    it.push({id:'spinrev',x:30,y:37,w:MW-60,h:10,txt:'Reverse Thumb Around',big:true});
-    it.push({id:'spinstart',x:30,y:50,w:MW-60,h:9,txt:'Pratique libre'});
-    it.push({id:'back',x:30,y:63,w:MW-60,h:9,txt:'‹ Retour'});
+    it.push({id:'spinthumb',x:30,y:20,w:MW-60,h:9,txt:'Thumb Around',big:true});
+    it.push({id:'spinrev',x:30,y:31,w:MW-60,h:9,txt:'Reverse Thumb Around',big:true});
+    it.push({id:'spinreb',x:30,y:42,w:MW-60,h:9,txt:'Rebond',big:true});
+    it.push({id:'spinstart',x:30,y:54,w:MW-60,h:8,txt:'Pratique libre'});
+    it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
   if(mode==='kit'){
@@ -1161,6 +1162,7 @@ function menuDo(id){
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
   if(id==='spinrev'){startSpin('reverse');return;}
+  if(id==='spinreb'){startSpin('rebond');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
