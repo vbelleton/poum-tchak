@@ -174,7 +174,16 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     const lines=[{t:trick==='thumb'?'Thumb Around · MVP':'Drumstick Spin · prototype',size:5,weight:800}];
     if(trick==='thumb'){
       lines.push({t:'Essais : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2'});
-      lines.push({t:coach&&t-coachT<2500?coach:'Pivot : le pouce. Lâche, laisse tourner, rattrape.',size:3.6,color:coach===COACH.ok?'#7BE3A6':'#F2BB4A',weight:700});
+      /* le tuto pas à pas : une seule consigne à la fois, celle de l'étape en cours */
+      const held=hands.some(h=>h.held);
+      const step=det.phase==='roll'?3:held||det.phase==='caught'?2:1;
+      const guide=[
+        'Étape 1 sur 3 : pince la baguette entre le pouce et l\'index.',
+        'Étape 2 sur 3 : garde le pouce immobile, lâche la pince, fais tourner la baguette autour.',
+        'Étape 3 sur 3 : rattrape-la en reprenant la pince.'
+      ];
+      lines.push({t:coach&&t-coachT<2500?coach:guide[step-1],size:3.6,color:coach===COACH.ok?'#7BE3A6':'#F2BB4A',weight:700});
+      lines.push({t:'Étape '+step+' sur 3 · Essais réussis : '+stats.ok,size:3,color:'#97A1B2'});
     }else{
       lines.push({t:status(),size:3.4,color:'#7BE3A6',weight:700});
       lines.push({t:'Pince le pouce et l\'index pour tenir la baguette',size:3.2,color:'#97A1B2'});
