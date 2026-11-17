@@ -108,9 +108,14 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   for(const h of hands){h.stick=new THREE.Mesh(stickGeo,wood);h.stick.visible=false;scene.add(h.stick);}
 
   /* la main : os (cylindres) et bouts des doigts (boules), chacun en une seule passe de dessin */
-  const skin=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65,transparent:true,opacity:0.8});
+  const skin=new THREE.MeshStandardMaterial({color:0xD9A98A,roughness:0.55,transparent:false,opacity:1});
   const boneGeo=new THREE.CylinderGeometry(BONE_R,BONE_R,1,10);
   const bones=new THREE.InstancedMesh(boneGeo,skin,MAX_BONES);bones.count=0;bones.frustumCulled=false;scene.add(bones);
+  /* les articulations arrondies (rond aux phalanges) et la paume (un plat orienté) */
+  const knucks=new THREE.InstancedMesh(new THREE.SphereGeometry(BONE_R*1.12,10,8),skin,2*25);knucks.count=0;knucks.frustumCulled=false;scene.add(knucks);
+  const palms=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),skin,2);palms.count=0;palms.frustumCulled=false;scene.add(palms);
+  let nk=0,np=0;
+  const _bx=new THREE.Vector3(),_by=new THREE.Vector3(),_bz=new THREE.Vector3(),_bm=new THREE.Matrix4(),_bq=new THREE.Quaternion(),_bs=new THREE.Vector3();
   const tips=new THREE.InstancedMesh(new THREE.SphereGeometry(TIP_R,12,8),skin,MAX_TIPS);tips.count=0;tips.frustumCulled=false;scene.add(tips);
 
   /* le panneau d'aide, devant soi au lancement, puis fixe */
@@ -121,6 +126,32 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   pnl.mesh.position.set(cp.x+fwd.x*1.1,cp.y-0.1,cp.z+fwd.z*1.1);
   pnl.mesh.lookAt(cp.x,cp.y-0.1,cp.z);
   scene.add(pnl.mesh);
+
+  /* une baguette témoin, à droite du panneau, qui montre le mouvement à faire en boucle */
+  const demoMat=new THREE.MeshStandardMaterial({color:0x7BB6FF,roughness:0.4,transparent:true,opacity:0.85});
+  const demo=new THREE.Mesh(stickGeo,demoMat);demo.visible=trick!==null;scene.add(demo);
+  const right=new THREE.Vector3().crossVectors(fwd,UP).normalize();
+  const demoBase=new THREE.Vector3(pnl.mesh.position.x+right.x*0.7,pnl.mesh.position.y-0.05,pnl.mesh.position.z+right.z*0.7);
+  const _da=new THREE.Vector3();
+  function demoStep(t){
+    if(!trick){demo.visible=false;return;}
+    const s=t/1000;
+    if(trick==='rebond'){
+      /* la baguette tombe, rebondit de moins en moins haut, puis recommence */
+      const c=(s%1.6)/1.6,h=Math.abs(Math.sin(c*Math.PI*3))*0.16*(1-c);
+      demo.position.set(demoBase.x,demoBase.y-0.1+h,demoBase.z);
+      demo.quaternion.setFromAxisAngle(_da.set(fwd.x,0,fwd.z),Math.PI/2);
+    }else{
+      /* thumb : pivote autour d'un bout ; moulinet : tourne autour de son milieu */
+      const a=(s%1.8)/1.8*Math.PI*2;
+      const axis=_da.copy(fwd).normalize();
+      demo.quaternion.setFromAxisAngle(axis,a);
+      const off=trick==='thumb'?STICK/2:0;
+      demo.position.set(demoBase.x,demoBase.y,demoBase.z);
+      if(off){const d=new THREE.Vector3(0,1,0).applyQuaternion(demo.quaternion);demo.position.addScaledVector(d,off);}
+    }
+    demo.visible=true;
+  }
 
   const prevBtn=new Map();   /* bouton B/Y de chaque manette, pour ne lire qu'un appui */
   let bothSince=0;
@@ -215,13 +246,15 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   const _s=new THREE.Vector3(),_e=new THREE.Vector3(),_d=new THREE.Vector3(),_q=new THREE.Quaternion(),_sc=new THREE.Vector3(),_mt=new THREE.Matrix4(),_one=new THREE.Vector3(1,1,1);
 
   /* dessine les os d'une main : un segment par paire d'articulations qui se suivent */
+  const taper=n=>{const i=n%30;return i%6===0?1.25:i%6===1?1.15:i%6===2?1.05:0.95;};
   function drawHand(hj,nb,nt){
     const seg=(a,b)=>{
       if(nb>=MAX_BONES)return nb;
       _s.copy(a);_e.copy(b);_d.copy(_e).sub(_s);const len=_d.length();
       if(len<1e-5)return nb;
       _q.setFromUnitVectors(UP,_d.multiplyScalar(1/len));
-      _sc.set(1,len,1);_mt.compose(_p.copy(_s).add(_e).multiplyScalar(0.5),_q,_sc);
+      const k=taper(nb);
+      _sc.set(k,len,k);_mt.compose(_p.copy(_s).add(_e).multiplyScalar(0.5),_q,_sc);
       bones.setMatrixAt(nb,_mt);return nb+1;
     };
     const w=hj['wrist'];
@@ -233,6 +266,18 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         let prev=pos.get('wrist');
         for(const name of c){const p=pos.get(name);if(p){nb=seg(prev,p);prev=p;}else break;}
       }
+    }
+    /* une bille à chaque articulation, sauf le bout (déjà arrondi) */
+    for(const [name,p] of pos){if(name==='wrist'||TIPS.includes(name)||nk>=50)continue;knucks.setMatrixAt(nk++,_mt.makeTranslation(p.x,p.y,p.z));}
+    /* la paume : du poignet vers le majeur, largeur index → auriculaire */
+    const pw=pos.get('wrist'),pmid=pos.get('middle-finger-metacarpal'),pix=pos.get('index-finger-metacarpal'),ppk=pos.get('pinky-finger-metacarpal');
+    if(pw&&pmid&&pix&&ppk&&np<2){
+      _by.copy(pmid).sub(pw);const L=_by.length();_by.normalize();
+      _bx.copy(pix).sub(ppk);const Wd=_bx.length();_bx.normalize();
+      _bz.crossVectors(_bx,_by).normalize();_bx.crossVectors(_by,_bz).normalize();
+      _bm.makeBasis(_bx,_by,_bz);_bq.setFromRotationMatrix(_bm);
+      _bs.set(Wd*1.25,L*1.05,0.022);
+      palms.setMatrixAt(np++,_mt.compose(_p.copy(pw).add(pmid).multiplyScalar(0.5),_bq,_bs));
     }
     for(const name of TIPS){const p=pos.get(name);if(p&&nt<MAX_TIPS){tips.setMatrixAt(nt++,_mt.makeTranslation(p.x,p.y,p.z));}}
     return [nb,nt];
@@ -251,7 +296,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       prevBtn.set(src,down);
     }
 
-    let nb=0,nt=0;
+    let nb=0,nt=0;nk=0;np=0;
     let trickHand=null;
     for(const h of hands){
       const hj=h.g.joints||{};
@@ -301,6 +346,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     }
     bones.count=nb;bones.instanceMatrix.needsUpdate=true;
     tips.count=nt;tips.instanceMatrix.needsUpdate=true;
+    knucks.count=nk;knucks.instanceMatrix.needsUpdate=true;palms.count=np;palms.instanceMatrix.needsUpdate=true;
 
     /* les deux pinces tenues longtemps : retour (mode libre) */
     if(trick!=='thumb'){
@@ -311,15 +357,17 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     }
     if(trick==='moulinet'&&!hands.some(h=>h.held))ml.has=false;
 
+    demoStep(t);
     draw(t);
     return exit;
   }
 
   function dispose(){
     for(const h of hands){scene.remove(h.g);scene.remove(h.stick);}
+    scene.remove(demo);demoMat.dispose();
     stickGeo.dispose();wood.dispose();boneGeo.dispose();skin.dispose();
     scene.remove(bones);bones.dispose();
-    scene.remove(tips);tips.dispose();
+    scene.remove(tips);tips.dispose();scene.remove(knucks);knucks.dispose();scene.remove(palms);palms.dispose();
     if(pad){scene.remove(pad);pad.geometry.dispose();pad.material.dispose();}
     scene.remove(pnl.mesh);pnl.mesh.geometry.dispose();pnl.mesh.material.map.dispose();pnl.mesh.material.dispose();
   }
