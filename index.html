@@ -875,10 +875,11 @@ body.gm-live{overflow:hidden}
     <div class="gm-opts">
       <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p><button type="button" class="tog" id="gmHHBtn" aria-pressed="false" style="margin-top:8px">Avec le charley</button><p class="hint" id="gmHHHint" style="margin:6px 0 0"></p></div>
       <div><label class="lab" for="gmFree">Chants libres, prêts à jouer</label><select class="sm" id="gmFree" style="width:100%"></select><p class="hint" style="margin:6px 0 0">De vraies chansons d'une minute, sous licence libre, avec leur batterie. Rien à importer. Le tempo est indiqué pour chacune, du plus lent au plus rapide.</p></div>
-      <div><span class="lab" id="lab-gmCh">Mes chants</span><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
+      <div><span class="lab" id="lab-gmCh">Mes chants</span><input type="search" id="gmChQ" placeholder="Chercher un chant…" autocomplete="off" aria-label="Chercher un chant" style="width:100%;margin:0 0 6px" hidden><p class="hint" id="gmChN" style="margin:0 0 6px" hidden></p><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
         <div class="row" style="margin-top:8px">
           <button type="button" class="btn ghost" id="gmImp">Importer des chants</button>
           <button type="button" class="btn ghost" id="gmDel" hidden>Retirer ce chant</button>
+          <button type="button" class="btn ghost" id="gmDelAll" hidden>Tout supprimer</button>
           <input type="file" id="gmFile" multiple hidden aria-label="Fichiers de chants">
         </div>
       </div>
@@ -1827,7 +1828,7 @@ function gmParseSong(buf){
   if(9+len>=u.length)throw new Error('Fichier de chant abîmé.');
   let h;try{h=JSON.parse(new TextDecoder().decode(u.subarray(9,9+len)));}catch(e){throw new Error('Fichier de chant abîmé.');}
   const fin=(x,min)=>typeof x==='number'&&isFinite(x)&&x>=min;
-  if(!h||typeof h.id!=='string'||!/^[\w.À-ÿ-]{1,120}$/.test(h.id)||typeof h.title!=='string'||!fin(h.bpm,30)||h.bpm>300||!Array.isArray(h.notes)||!Array.isArray(h.drums))throw new Error('Fichier de chant abîmé.');
+  if(!h||typeof h.id!=='string'||!/^[\p{L}\p{N}_.\-]{1,120}$/u.test(h.id)||typeof h.title!=='string'||!fin(h.bpm,30)||h.bpm>300||!Array.isArray(h.notes)||!Array.isArray(h.drums))throw new Error('Fichier de chant abîmé.');
   const notes=h.notes.filter(n=>Array.isArray(n)&&fin(n[0],0)&&fin(n[1],0)&&IDS.includes(h.drums[n[2]])).map(n=>[n[0],n[1],h.drums[n[2]]]).sort((a,b)=>a[0]-b[0]);
   if(!notes.length)throw new Error('Ce chant ne contient aucune note.');
   return {id:h.id,title:h.title.slice(0,80),bpm:h.bpm,dur:fin(h.dur,1)?h.dur:notes[notes.length-1][0]+3,notes,
@@ -4532,16 +4533,18 @@ async function gmImport(files){
       const head=new Uint8Array(buf,0,Math.min(2,buf.byteLength));
       const items=head[0]===0x50&&head[1]===0x4b?gmUnzip(buf):[{name:file.name,buf}];
       for(const it of items){
-        const song=gmParseSong(it.buf);
-        const {audio,...meta}=song;
-        await gmDbDo('readwrite',tx=>{tx.objectStore('meta').put(meta);tx.objectStore('audio').put(audio,song.id);});
-        n++;gm.rh='chant:'+song.id;lp.id=song.id;
+        try{
+          const song=gmParseSong(it.buf);
+          const {audio,...meta}=song;
+          await gmDbDo('readwrite',tx=>{tx.objectStore('meta').put(meta);tx.objectStore('audio').put(audio,song.id);});
+          n++;gm.rh='chant:'+song.id;lp.id=song.id;
+        }catch(e){bad+=(bad?' · ':'')+it.name.split('/').pop()+' : '+(e&&e.name==='QuotaExceededError'?'plus de place sur cet appareil.':e.message);}
       }
-    }catch(e){bad=file.name+' : '+(e&&e.name==='QuotaExceededError'?'plus de place sur cet appareil.':e.message);}
+    }catch(e){bad+=(bad?' · ':'')+file.name+' : '+e.message;}
   }
   if(n&&navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   await gmLoadSongs();gmSave();
-  say((n?n+(n>1?' chants importés, gardés sur cet appareil.':' chant importé, gardé sur cet appareil.'):'')+(bad?' Erreur : '+bad:''));
+  say((n?n+(n>1?' chants importés, gardés sur cet appareil.':' chant importé, gardé sur cet appareil.'):'')+(bad?' Non importés : '+bad:'')+' Tu as maintenant '+gm.songs.length+' chant'+(gm.songs.length>1?'s':'')+'.');
 }
 const gmSteers=()=>gm.game==='rebonds'&&gm.ctl!=='frappe';
 const gmKey=()=>gm.game+'|'+gm.rh+'|'+gm.lvl+'|'+gm.tol+(gmSteers()?'|'+gm.ctl:'');
@@ -4584,7 +4587,13 @@ function gmRender(){
   [...PATTERNS.map(p=>({id:p.id,label:p.label})),{id:'mine',label:'Mon rythme'},...gmGrvList()].forEach(p=>chip(rh,p.id,p.label));
   const ch=$('#gmCh');ch.textContent='';ch.hidden=!gm.songs.length;
   $('#lab-gmCh').textContent=gm.songs.length?'Mes chants':'Mes chants (aucun pour l\'instant)';
-  gm.songs.forEach(x=>chip(ch,'chant:'+x.id,x.title));
+  const q=($('#gmChQ').value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const fold=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const shown=gm.songs.filter(x=>!q||fold(x.title).includes(q));
+  shown.forEach(x=>chip(ch,'chant:'+x.id,x.title));
+  $('#gmChQ').hidden=!gm.songs.length;$('#gmDelAll').hidden=!gm.songs.length;
+  const cn=$('#gmChN');cn.hidden=!gm.songs.length;
+  cn.textContent=q?(shown.length?shown.length+' sur '+gm.songs.length+' chants':'Aucun chant ne correspond à « '+q+' ».'):gm.songs.length+' chant'+(gm.songs.length>1?'s':'')+' importé'+(gm.songs.length>1?'s':'');
   const fr=$('#gmFree');
   if(!fr.options.length){
     const o0=el('option',null,'Choisis un chant…');o0.value='';fr.appendChild(o0);
@@ -4684,6 +4693,15 @@ async function gmMidiToggle(say){
 $('#gmMidi').addEventListener('click',()=>gmMidiToggle(t=>{$('#gmMsg').textContent=t;}));
 $('#lpMidi').addEventListener('click',()=>gmMidiToggle(t=>{$('#lpMsg').textContent=t;}));
 $('#gmImp').addEventListener('click',()=>$('#gmFile').click());
+$('#gmChQ').addEventListener('input',()=>gmRender());
+$('#gmDelAll').addEventListener('click',async()=>{
+  const b=$('#gmDelAll');
+  if(!b.dataset.sure){b.dataset.sure='1';b.textContent='Sûr ? Touche encore pour tout supprimer';setTimeout(()=>{delete b.dataset.sure;b.textContent='Tout supprimer';},4000);return;}
+  delete b.dataset.sure;b.textContent='Tout supprimer';
+  try{await gmDbDo('readwrite',tx=>{tx.objectStore('meta').clear();tx.objectStore('audio').clear();});}catch(e){}
+  const n=gm.songs.length;await gmLoadSongs();
+  $('#gmMsg').textContent=n+' chant'+(n>1?'s':'')+' supprimé'+(n>1?'s':'')+'.';
+});
 $('#gmFile').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)await gmImport(fs);});
 $('#gmDel').addEventListener('click',async()=>{
   const song=gmCurSong();if(!song||song.free)return;
