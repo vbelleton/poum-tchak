@@ -525,8 +525,9 @@ function headPose(){
 function menuDefault(){
   if(!S.base||!S.head)return;
   headPose();
-  const d=menuMode()==='pause'?0.6:0.75,m=S.menu.mesh,yaw=Math.atan2(-_mf.x,-_mf.z);
-  m.position.set(_mh.x+_mf.x*d,_mh.y-0.12,_mh.z+_mf.z*d);
+  const d=menuMode()==='pause'?2.0:2.4,m=S.menu.mesh,yaw=Math.atan2(-_mf.x,-_mf.z);
+  /* au-delà de la grosse caisse (à 1,9 m) : le menu ne chevauche plus les pads ; plus grand pour rester lisible */
+  m.position.set(_mh.x+_mf.x*d,_mh.y+0.1,_mh.z+_mf.z*d);m.scale.setScalar(d/1.25);
   m.rotation.set(-0.12,yaw,0,'YXZ');
   S.menuT=performance.now();
 }
@@ -562,7 +563,7 @@ function grabWork(){
   /* toujours en face : hors du regard plus de 1,5 s, ou à plus de 2,5 m */
   if(!m.visible||S.hg||S.sticks.some(st=>st.grab))return;
   headPose();
-  _gp.copy(m.position).sub(_mh);const far=_gp.length()>2.5;_gp.y=0;
+  _gp.copy(m.position).sub(_mh);const far=_gp.length()>3.6;_gp.y=0;
   const away=_gp.lengthSq()>1e-4&&_gp.normalize().dot(_mf)<0.5;
   if(!away&&!far){S.awayT=0;return;}
   if(!S.awayT)S.awayT=performance.now();
