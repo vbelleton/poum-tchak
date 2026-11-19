@@ -751,6 +751,7 @@ body[data-mnview="orbites"] .mn-lane{display:none}
 .gm-tempo{display:inline-flex;align-items:center;gap:6px}
 .gm-tempo button{appearance:none;width:44px;height:44px;border:1px solid var(--edge);border-radius:9px;background:var(--surface);font-size:20px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .gm-tempo output{min-width:88px;text-align:center;font:600 16px var(--f-mono)}
+.pl-list{margin:8px 0 12px;padding-left:22px}.pl-list li{display:flex;align-items:center;gap:6px;margin:4px 0}.pl-list li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pl-list .ib{min-width:34px}
 .gm-ch .chip{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .welcome{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
 .welcome b{display:block;font:800 18px/1.2 var(--f-display)}
@@ -881,6 +882,13 @@ body.gm-live{overflow:hidden}
           <button type="button" class="btn ghost" id="gmDel" hidden>Retirer ce chant</button>
           <button type="button" class="btn ghost" id="gmDelAll" hidden>Tout supprimer</button>
           <input type="file" id="gmFile" multiple hidden aria-label="Fichiers de chants">
+        </div>
+      </div>
+      <div><span class="lab" id="lab-gmPl">Playlists</span><p class="hint" id="gmPlHint" style="margin:0 0 6px"></p><div class="pick gm-ch" id="gmPl" role="group" aria-labelledby="lab-gmPl"></div>
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="btn" id="gmPlGo" hidden>Jouer la playlist</button>
+          <button type="button" class="btn ghost" id="gmPlEdit" hidden>Modifier</button>
+          <button type="button" class="btn ghost" id="gmPlNew">Nouvelle playlist</button>
         </div>
       </div>
       <div><span class="lab" id="lab-gmRh">Rythmes</span><div class="pick" id="gmRh" role="group" aria-labelledby="lab-gmRh"></div></div>
@@ -4595,6 +4603,54 @@ function gmArt(game){
     '<path d="M46 64l5-16h16l5 16z" fill="var(--c-tchak)"/><path d="M38 44l4-11h12l-1 11z" fill="var(--c-poum)"/><path d="M60 29l-1-8h8l3 8z" fill="var(--c-tchak)"/><path d="M48 18l1-5h6v5z" fill="var(--c-poum)"/>'+
     '<path d="M59 53q-8-26-11-20" fill="none" stroke="#fff" stroke-dasharray="2 3"/><circle cx="59" cy="42" r="6" fill="#fff"/></svg>';
 }
+/* Playlists : une liste de chants (chants libres ou importés), joués l'un après l'autre. Le bilan de
+   chaque chant propose le suivant, sur la page comme dans le casque. Gardées sur cet appareil. */
+const PL_KEY='poumtchak.playlists';
+let gmPls=[];
+try{const v=JSON.parse(localStorage.getItem(PL_KEY)||'[]');if(Array.isArray(v))gmPls=v.filter(p=>p&&p.id&&Array.isArray(p.items)).map(p=>({id:String(p.id),name:String(p.name||'Playlist').slice(0,60),items:p.items.filter(x=>typeof x==='string')}));}catch(e){}
+gm.pl=null;gm.plSel=gmPls[0]?gmPls[0].id:null;
+const plsSave=()=>{try{localStorage.setItem(PL_KEY,JSON.stringify(gmPls));}catch(e){}};
+const plsGet=id=>gmPls.find(p=>p.id===id)||null;
+/* les chants encore là (un chant retiré de l'appareil est sauté) */
+const plsItems=pl=>{if(!pl)return [];const ok=new Set(gmAllSongs().map(x=>'chant:'+x.id));return pl.items.filter(x=>ok.has(x));};
+const plsTitle=id=>{const s=gmAllSongs().find(x=>'chant:'+x.id===id);return s?s.title:'';};
+function plsNew(){const pl={id:'pl'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:'Playlist '+(gmPls.length+1),items:[]};gmPls.push(pl);plsSave();return pl;}
+/* lancer une playlist : on se place sur son premier chant */
+function plsStart(id){const L=plsItems(plsGet(id));if(!L.length)return false;gm.pl={id,i:0,done:false};gm.rh=L[0];gmSave();return true;}
+/* la playlist en cours ; choisir un autre chant à la main la quitte */
+function plsCur(){if(!gm.pl)return null;const pl=plsGet(gm.pl.id),L=plsItems(pl);if(!pl||L[gm.pl.i]!==gm.rh){gm.pl=null;return null;}return {pl,L,i:gm.pl.i};}
+function plsNext(){const c=plsCur();return c&&c.i+1<c.L.length?c.L[c.i+1]:null;}
+function plsAdvance(){const c=plsCur();if(!c||c.i+1>=c.L.length)return false;gm.pl.i++;gm.pl.done=false;gm.rh=c.L[gm.pl.i];gmSave();gmRender();return true;}
+const plsEsc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function plsEdit(id,focus){
+  const pl=plsGet(id);if(!pl)return;
+  const songs=gmAllSongs().map(x=>({id:'chant:'+x.id,label:x.title})),name=x=>{const s=songs.find(y=>y.id===x);return s?s.label:'(chant retiré de l\'appareil)';};
+  let h='<button type="button" class="ib pr-x" id="plX" aria-label="Fermer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
+  h+='<div class="pr-sec"><h3>Playlist</h3><label class="lab" for="plName">Nom</label><input type="text" id="plName" maxlength="60" autocomplete="off" style="width:100%" value="'+plsEsc(pl.name)+'">';
+  h+=pl.items.length?'<ol class="pl-list" id="plList">'+pl.items.map((x,i)=>'<li><span>'+plsEsc(name(x))+'</span>'+
+    '<button type="button" class="ib" data-a="up" data-i="'+i+'" aria-label="Monter"'+(i?'':' disabled')+'>↑</button>'+
+    '<button type="button" class="ib" data-a="down" data-i="'+i+'" aria-label="Descendre"'+(i<pl.items.length-1?'':' disabled')+'>↓</button>'+
+    '<button type="button" class="ib" data-a="del" data-i="'+i+'" aria-label="Retirer de la playlist">✕</button></li>').join('')+'</ol>':'<p class="hint">Aucun chant pour l\'instant : ajoute-les dans l\'ordre où tu veux les jouer.</p>';
+  h+='<label class="lab" for="plAdd">Ajouter un chant</label><select class="sm" id="plAdd" style="width:100%"><option value="">Choisis un chant…</option>'+songs.map(s=>'<option value="'+plsEsc(s.id)+'">'+plsEsc(s.label)+'</option>').join('')+'</select></div>';
+  h+='<div class="row pr-btns"><button type="button" class="btn" id="plOk">C\'est prêt</button><button type="button" class="btn ghost" id="plDel">Supprimer la playlist</button></div>';
+  sheetOpen(h);
+  if(focus)setTimeout(()=>{const f=$(focus);if(f)f.focus({preventScroll:true});},80);
+  const done=()=>{sheetClose();gmRender();};
+  $('#plX').addEventListener('click',done);$('#plOk').addEventListener('click',done);
+  $('#plName').addEventListener('input',e=>{pl.name=e.target.value.trim().slice(0,60)||'Playlist';plsSave();});
+  $('#plAdd').addEventListener('change',e=>{if(!e.target.value)return;pl.items.push(e.target.value);plsSave();plsEdit(id,'#plAdd');});
+  if($('#plList'))$('#plList').addEventListener('click',e=>{
+    const b=e.target.closest('[data-a]');if(!b)return;
+    const i=+b.dataset.i,a=b.dataset.a,j=a==='up'?i-1:i+1;
+    if(a==='del')pl.items.splice(i,1);else if(j>=0&&j<pl.items.length)[pl.items[i],pl.items[j]]=[pl.items[j],pl.items[i]];
+    plsSave();plsEdit(id,a==='del'?'#plAdd':'#plList [data-a="'+a+'"][data-i="'+(a==='del'?i:j)+'"]');
+  });
+  $('#plDel').addEventListener('click',()=>{
+    const b=$('#plDel');
+    if(!b.dataset.sure){b.dataset.sure='1';b.textContent='Sûr ? Touche encore pour supprimer';setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent='Supprimer la playlist';}},4000);return;}
+    gmPls=gmPls.filter(p=>p.id!==id);plsSave();if(gm.pl&&gm.pl.id===id)gm.pl=null;if(gm.plSel===id)gm.plSel=gmPls[0]?gmPls[0].id:null;done();
+  });
+}
 function gmRender(){
   $('#gmGames').innerHTML=Object.entries(GM_INFO).filter(([id])=>id!=='vr').map(([id,g])=>{
     const best=pr.s.reduce((b,x)=>x.g==='jeux'&&x.game===id&&!x.lent&&x.score>b?x.score:b,0);
@@ -4612,6 +4668,13 @@ function gmRender(){
   $('#gmChQ').hidden=!gm.songs.length;$('#gmDelAll').hidden=!gm.songs.length;
   const cn=$('#gmChN');cn.hidden=!gm.songs.length;
   cn.textContent=q?(shown.length?shown.length+' sur '+gm.songs.length+' chants':'Aucun chant ne correspond à « '+q+' ».'):gm.songs.length+' chant'+(gm.songs.length>1?'s':'')+' importé'+(gm.songs.length>1?'s':'');
+  const pls=$('#gmPl');pls.textContent='';
+  if(!plsGet(gm.plSel))gm.plSel=gmPls[0]?gmPls[0].id:null;
+  gmPls.forEach(p=>{const n=plsItems(p).length,b=el('button','chip',p.name+' · '+n+' chant'+(n>1?'s':''));b.type='button';b.dataset.v=p.id;b.title=p.name;b.setAttribute('aria-pressed',String(gm.plSel===p.id));pls.appendChild(b);});
+  pls.hidden=!gmPls.length;
+  const psel=plsGet(gm.plSel),pc=plsCur();
+  $('#gmPlEdit').hidden=!psel;$('#gmPlGo').hidden=!psel||!plsItems(psel).length;
+  $('#gmPlHint').textContent=pc?'En cours : '+pc.pl.name+', chant '+(pc.i+1)+' sur '+pc.L.length+' · '+plsTitle(gm.rh)+'.':gmPls.length?'Choisis une playlist, puis « Jouer la playlist » : à la fin de chaque chant, le bilan propose le suivant.':'Pour enchaîner plusieurs chants : crée une playlist et mets-y tes chants dans l\'ordre.';
   const fr=$('#gmFree');
   if(!fr.options.length){
     const o0=el('option',null,'Choisis un chant…');o0.value='';fr.appendChild(o0);
@@ -4667,6 +4730,10 @@ function gmRender(){
 $('#gmGames').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.game=b.dataset.v;gmSave();gmRender();});
 $('#gmFree').addEventListener('change',e=>{if(e.target.value){gm.rh=e.target.value;gmSave();gmRender();}});
 ['#gmRh','#gmCh'].forEach(q=>$(q).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.rh=b.dataset.v;gmSave();gmRender();}));
+$('#gmPl').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.plSel=b.dataset.v;gmRender();});
+$('#gmPlNew').addEventListener('click',()=>{const p=plsNew();gm.plSel=p.id;gmRender();plsEdit(p.id,'#plName');});
+$('#gmPlEdit').addEventListener('click',()=>plsEdit(gm.plSel));
+$('#gmPlGo').addEventListener('click',()=>{if(plsStart(gm.plSel)){gmRender();gmLaunch(null);}});
 $('#gmLv').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.lvl=b.dataset.v;gmSave();gmRender();});
 $('#gmTol').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.tol=b.dataset.v;gmSave();gmRender();});
 $('#gmHHBtn').addEventListener('click',()=>{gm.hhOn=!gm.hhOn;gmSave();gmRender();});
@@ -5784,6 +5851,8 @@ function gmFinish(fell){
   let lvMsg='';
   if(lvNext&&lvNext!==gm.lvl&&gm.game!=='vr'){lvMsg=' Prochaine partie : '+GM_LV_TXT[lvNext]+(LV.indexOf(lvNext)>li?', tu as le niveau !':', pour reprendre confiance.');gm.lvl=lvNext;gmSave();gmRender();}
   const lb=el('span',null,gm.song?gm.song.title:gmRhLabel(gm.rh)||'Mon rythme'),label=lb.innerHTML;
+  const plc=plsCur(),plN=plsNext();if(plc)gm.pl.done=true;
+  if(plc)lvMsg+=' Playlist « '+plsEsc(plc.pl.name)+' » : chant '+(plc.i+1)+' sur '+plc.L.length+(plN?'.':', c\'était le dernier !');
   const name=GM_INFO[gm.game].name;
   const cheer='<p class="gm-cheer">'+(fell?'Boum ! Pas grave, ça repart quand tu veux.':GM_CHEER[stars])+'</p>';
   const star=cheer+'<p class="gm-stars" aria-label="'+stars+' étoile'+(stars>1?'s':'')+' sur 3">'+[0,1,2].map(i=>'<span'+(i<stars?'':' class="off"')+'>★</span>').join('')+'</p>';
@@ -5794,12 +5863,13 @@ function gmFinish(fell){
     (fell?(gm.game==='rebonds'?'La balle est tombée : ':'')+'la jauge d\'erreurs est vide. ':'')+sc.perfect+' parfaits, '+sc.good+' bien, '+sc.approx+' approximatifs, '+sc.miss+' ratés, '+sc.extra+' en trop. Meilleure série : '+sc.best+'.'+
     (offs.length>=8?' '+gmTiming(offs)+'.':'')+
     (slowed?' Ralenti jusqu\'à '+Math.round(gm.minRate*100)+' % : record à part.':'')+(gm.hhSc&&gm.hhSc.n?' Charley : '+Math.round(100*gm.hhSc.ok/(gm.hhSc.n+gm.hhSc.x))+' % de coups justes.':'')+(gm.ckFrom?' Partie reprise à la '+gm.ckFrom+'.':'')+lvMsg+'</p></div>';
-  h+='<div class="row pr-btns">'+(ck?'<button type="button" class="btn" id="gmResCk">Reprendre à la '+gmCkLabel(ck)+'</button>':'')+'<button type="button" class="btn'+(ck?' ghost':'')+'" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':ck?'Rejouer du début':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';
+  h+='<div class="row pr-btns">'+(plN?'<button type="button" class="btn" id="gmResNext">Chant suivant : '+plsEsc(plsTitle(plN))+'</button>':'')+(ck?'<button type="button" class="btn" id="gmResCk">Reprendre à la '+gmCkLabel(ck)+'</button>':'')+'<button type="button" class="btn'+(ck?' ghost':'')+'" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':ck?'Rejouer du début':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';
   sheetOpen(h);
   if(!fell)gmConfetti(before&&sc.pts>before?Math.max(stars,2):stars);
   if(ck)$('#gmResCk').addEventListener('click',()=>{sheetClose();gmLaunch(ck);});
   $('#gmResGo').addEventListener('click',()=>{sheetClose();gmSetBpm(next);$('#gmGo').click();});
   $('#gmResBack').addEventListener('click',sheetClose);
+  if(plN)$('#gmResNext').addEventListener('click',()=>{sheetClose();if(plsAdvance())gmLaunch(null);});
   $('#gmResX').addEventListener('click',sheetClose);
 }
 gmRender();gmLoadSongs().then(gmWhySay);
@@ -5972,8 +6042,12 @@ const vrApi={
     const ins=midiInputs();return ins.length?'Batterie MIDI : '+ins.map(i=>i.name||'batterie').join(', ')+' ✓':'Batterie MIDI : allumée, aucune batterie branchée';
   },
   /* le menu du casque : tout ce qu'on peut choisir dans Jeux, sans retirer le casque */
+  /* playlists : choisies dans la liste des chants ; à la fin d'un chant, « Suivant › » lance le prochain */
+  plNow(){const c=plsCur(),n=plsNext();return c?{name:c.pl.name,i:c.i,n:c.L.length,title:plsTitle(gm.rh),next:n?plsTitle(n):'',done:!!gm.pl.done}:null;},
+  plGo:()=>!gm.on&&plsAdvance(),
   sources(){
-    const L=FREE_SONGS.map(x=>({id:'chant:'+x.id,label:x.title+' · '+Math.round(x.bpm)+' BPM'}));
+    const L=gmPls.filter(p=>plsItems(p).length).map(p=>({id:'pl:'+p.id,label:'Playlist : '+p.name+' · '+plsItems(p).length+' chants'}));
+    L.push(...FREE_SONGS.map(x=>({id:'chant:'+x.id,label:x.title+' · '+Math.round(x.bpm)+' BPM'})));
     gm.songs.forEach(x=>L.push({id:'chant:'+x.id,label:x.title}));
     PATTERNS.forEach(x=>L.push({id:x.id,label:'Rythme : '+x.label}));
     if(gmMyGroove())L.push({id:'mine',label:'Mon rythme'});
@@ -5985,10 +6059,10 @@ const vrApi={
     gm.paused=!!on;
     if(on)ctx.suspend().catch(()=>{});else ctx.resume().catch(()=>{});
   },
-  opts(){const s=gmCurSong();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,rh:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
   set(k,v){
     if(gm.on)return;
-    if(k==='rh'&&typeof v==='string')gm.rh=v;
+    if(k==='rh'&&typeof v==='string'){if(v.startsWith('pl:'))plsStart(v.slice(3));else{gm.rh=v;gm.pl=null;}}
     else if(k==='lvl'&&GM_LEVELS[v])gm.lvl=v;
     else if(k==='tol'&&GM_TOL[v])gm.tol=v;
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
@@ -6095,7 +6169,8 @@ $('#gmVR').addEventListener('click',async()=>{
 });
 /* Tests automatiques : lire la partie en cours. */
 if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
-  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:(figé)=>{if(figé)ctx.resume=()=>Promise.resolve();return ctx.suspend();},charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop,vr:()=>vrMod,vrApi};
+  debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:(figé)=>{if(figé)ctx.resume=()=>Promise.resolve();return ctx.suspend();},charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop,vr:()=>vrMod,vrApi,
+  pls:{start:id=>plsStart(id),fin:()=>gmFinish(false),rh:()=>gm.rh,sel:()=>gm.plSel,render:()=>gmRender()}};
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
    Croches main droite. Départ à 50 BPM, +8 à chaque mesure tant que tu suis.
    Deux mesures de suite sous 85 % : c'est fini. Ta forme = le tempo le plus rapide tenu à 85 %. */
