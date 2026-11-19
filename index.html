@@ -1856,6 +1856,23 @@ function gmUnzip(buf){
 }
 /* La partition d'une partie sur un vrai chant : le son du chant est l'accompagnement. Les niveaux
    se lisent sur la position dans la mesure, pour rester justes quand le tempo réel varie. */
+/* Correction en direct d'une partition transcrite : un batteur n'a que deux mains. Quand plus de deux
+   frappes de main tombent au même instant (à 30 ms près), on garde les plus probables : caisse
+   claire, puis charley, crash, toms. La grosse caisse (au pied) n'est jamais retirée. */
+const GM_HAND_PRIO={tchak:0,tss:1,tchaa:1,psch:2,tim:3,doum:3,toum:3};
+function gmTwoHands(out){
+  for(let i=0;i<out.length;){
+    let j=i;while(j<out.length&&out[j].t-out[i].t<0.03)j++;
+    const hands=out.slice(i,j).filter(n=>n.id!=='poum');
+    if(hands.length>2){
+      hands.sort((a,b)=>(GM_HAND_PRIO[a.id]??9)-(GM_HAND_PRIO[b.id]??9));
+      const drop=new Set(hands.slice(2));
+      for(let k=j-1;k>=i;k--)if(drop.has(out[k])){out.splice(k,1);j--;}
+    }
+    i=j;
+  }
+  return out;
+}
 function gmSongChart(song,game,lvl){
   const m=METERS['44'],lanes=GM_LANES[game],sixteenth=60/song.bpm/4,barDur=240/song.bpm;
   const out=[],last=new Array(lanes.length).fill(-9);
@@ -1872,6 +1889,7 @@ function gmSongChart(song,game,lvl){
     }
     out.push({t,lane,id,vel:2});last[lane]=t;
   });
+  gmTwoHands(out);
   const beats=[],d=song.downbeats;
   for(let i=0;i+1<d.length;i++)for(let k=0;k<4;k++)beats.push({t:d[i]+(d[i+1]-d[i])*k/4,accent:k===0});
   const lastT=out.length?out[out.length-1].t:0;
@@ -5761,6 +5779,10 @@ function gmFinish(fell){
   gmRender();
   const stars=fell?0:gmStars(p),offs=sc.offs.slice().sort((a,b)=>a-b),med=offs.length?offs[offs.length>>1]:0;
   const next=gm.song?gm.bpm:fell||p<60?Math.max(40,gm.bpm-5):p>=90?Math.min(220,gm.bpm+5):gm.bpm;
+  /* difficulté adaptée : 90 % et plus, une marche de notes en plus ; jauge vide ou moins de 55 %, une en moins */
+  const LV=Object.keys(GM_LEVELS),li=LV.indexOf(gm.lvl),lvNext=LV[Math.max(0,Math.min(LV.length-1,li+(!fell&&p>=90?1:fell||p<55?-1:0)))];
+  let lvMsg='';
+  if(lvNext&&lvNext!==gm.lvl&&gm.game!=='vr'){lvMsg=' Prochaine partie : '+GM_LV_TXT[lvNext]+(LV.indexOf(lvNext)>li?', tu as le niveau !':', pour reprendre confiance.');gm.lvl=lvNext;gmSave();gmRender();}
   const lb=el('span',null,gm.song?gm.song.title:gmRhLabel(gm.rh)||'Mon rythme'),label=lb.innerHTML;
   const name=GM_INFO[gm.game].name;
   const cheer='<p class="gm-cheer">'+(fell?'Boum ! Pas grave, ça repart quand tu veux.':GM_CHEER[stars])+'</p>';
@@ -5771,7 +5793,7 @@ function gmFinish(fell){
   h+='<div class="pr-sec"><p class="pr-k">Précision</p><p class="pr-score"><b>'+p+' %</b> à '+Math.round(gm.curBpm)+' BPM · '+GM_LV_TXT[gm.lvl]+' · tolérance '+GM_TOL[gm.tol].label.toLowerCase()+(gm.game==='rebonds'?' · '+GM_CTL[gm.ctl]:'')+'</p><p class="pr-hint">'+
     (fell?(gm.game==='rebonds'?'La balle est tombée : ':'')+'la jauge d\'erreurs est vide. ':'')+sc.perfect+' parfaits, '+sc.good+' bien, '+sc.approx+' approximatifs, '+sc.miss+' ratés, '+sc.extra+' en trop. Meilleure série : '+sc.best+'.'+
     (offs.length>=8?' '+gmTiming(offs)+'.':'')+
-    (slowed?' Ralenti jusqu\'à '+Math.round(gm.minRate*100)+' % : record à part.':'')+(gm.hhSc&&gm.hhSc.n?' Charley : '+Math.round(100*gm.hhSc.ok/(gm.hhSc.n+gm.hhSc.x))+' % de coups justes.':'')+(gm.ckFrom?' Partie reprise à la '+gm.ckFrom+'.':'')+'</p></div>';
+    (slowed?' Ralenti jusqu\'à '+Math.round(gm.minRate*100)+' % : record à part.':'')+(gm.hhSc&&gm.hhSc.n?' Charley : '+Math.round(100*gm.hhSc.ok/(gm.hhSc.n+gm.hhSc.x))+' % de coups justes.':'')+(gm.ckFrom?' Partie reprise à la '+gm.ckFrom+'.':'')+lvMsg+'</p></div>';
   h+='<div class="row pr-btns">'+(ck?'<button type="button" class="btn" id="gmResCk">Reprendre à la '+gmCkLabel(ck)+'</button>':'')+'<button type="button" class="btn'+(ck?' ghost':'')+'" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':ck?'Rejouer du début':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';
   sheetOpen(h);
   if(!fell)gmConfetti(before&&sc.pts>before?Math.max(stars,2):stars);
