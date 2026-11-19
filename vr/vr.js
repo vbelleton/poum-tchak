@@ -416,7 +416,7 @@ function buildWorld(){
   const stage=new THREE.Mesh(new THREE.CircleGeometry(1.25,64),new THREE.MeshStandardMaterial({color:0x151A24,roughness:0.9}));
   stage.rotation.x=-Math.PI/2;stage.position.y=0.002;kit.add(stage);S.stage=stage;
   const gem=new THREE.CylinderGeometry(0.07,0.07,0.028,28);
-  const kickGem=new THREE.BoxGeometry(0.8,0.1,0.13);
+  const kickGem=new THREE.BoxGeometry(0.8,0.16,0.2);
   S.shellMat=new THREE.MeshStandardMaterial({color:0x1B1C21,roughness:0.35,metalness:0.2,side:THREE.DoubleSide});
   S.mats={};S.missMat=new THREE.MeshStandardMaterial({color:0x6F7A8C,transparent:true,opacity:0.35});
   for(const P of PADS){
@@ -494,7 +494,7 @@ function place(head,yaw,fixedFloor){
   pose();
   for(const p of S.pads){
     const P=p.P;
-    if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0,-1);if(p.line){p.line.position.set(P.x,0.04,P.z+0.3);p.line.scale.x=p.g.scale.x;}}
+    if(P.kick){p.g.position.set(P.x,P.r+0.02,P.z);p.base.set(P.x,0.03,P.z+0.3);p.dir.set(0,0.2,-0.98);if(p.line){p.line.position.set(P.x,0.04,P.z+0.3);p.line.scale.x=p.g.scale.x;}}
     else{
       p.g.position.set(P.x,S.padH+P.y,P.z);p.base.copy(p.g.position);
       p.dir.set(P.x*0.9,0.28,-1).normalize();
@@ -527,8 +527,8 @@ function menuDefault(){
   headPose();
   const d=menuMode()==='pause'?2.0:2.4,m=S.menu.mesh,yaw=Math.atan2(-_mf.x,-_mf.z);
   /* au-delà de la grosse caisse (à 1,9 m) : le menu ne chevauche plus les pads ; plus grand pour rester lisible */
-  m.position.set(_mh.x+_mf.x*d,_mh.y+0.1,_mh.z+_mf.z*d);m.scale.setScalar(d/1.25);
-  m.rotation.set(-0.12,yaw,0,'YXZ');
+  m.position.set(_mh.x+_mf.x*d,_mh.y+0.5,_mh.z+_mf.z*d);m.scale.setScalar(d/1.25);
+  m.rotation.set(0.1,yaw,0,'YXZ');
   S.menuT=performance.now();
 }
 /* Menu toujours en vue : s'il est sorti du regard depuis un moment (ou trop loin), il revient devant.
@@ -933,7 +933,6 @@ function draw(t){
       const m=gemFor(nt,p);seen.add(nt);
       const d=Math.max(-0.25,dt/lead)*FAR;
       m.position.copy(p.base).addScaledVector(p.dir,d);
-      if(p.P.kick)m.position.y=0.06;
       m.material=nt.res==='miss'?S.missMat:S.mats[nt.id]||S.mats.tss;
       m.scale.setScalar(dt<0?1:1+0.25*(1-Math.min(1,dt/0.2)));
     }
@@ -948,7 +947,6 @@ function draw(t){
         if(!S.active.has(p.P.lane)||k>=S.ticks.length)continue;
         const m=S.ticks[k++];m.visible=true;
         m.position.copy(p.base).addScaledVector(p.dir,dt/lead*FAR);
-        if(p.P.kick)m.position.y=0.01;
         m.scale.set(p.P.kick?KICK_W:p.P.r*1.4,b.accent?2.5:1,1);
         m.quaternion.copy(p.lane.quaternion);
       }
