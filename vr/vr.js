@@ -514,16 +514,63 @@ function place(head,yaw,fixedFloor){
 }
 /* Le menu est accroché au monde, pas à la batterie : incliner ou tourner la scène ne le déplace pas.
    Par défaut il se pose devant la tête ; on peut aussi le saisir (poignée droite) et le placer où l'on veut. */
+/* le menu se place face au joueur, là où il regarde maintenant, à hauteur des yeux et devant la batterie */
+const _mh=new THREE.Vector3(),_mq=new THREE.Quaternion(),_mf=new THREE.Vector3();
+function headPose(){
+  const cam=S.renderer.xr.getCamera();cam.getWorldPosition(_mh);cam.getWorldQuaternion(_mq);
+  _mf.set(0,0,-1).applyQuaternion(_mq);_mf.y=0;
+  if(_mh.lengthSq()<1e-4&&S.head){_mh.copy(S.head);_mf.set(-Math.sin(S.base?S.base.yaw:0),0,-Math.cos(S.base?S.base.yaw:0));}
+  if(_mf.lengthSq()<1e-4)_mf.set(0,0,-1);_mf.normalize();
+}
 function menuDefault(){
   if(!S.base||!S.head)return;
-  const yaw=S.base.yaw,d=menuMode()==='pause'?0.9:1.25,m=S.menu.mesh;
-  /* le menu reste à hauteur des yeux, un peu au-dessus du kit : jamais derrière les pads */
-  m.position.set(S.head.x-Math.sin(yaw)*d,S.head.y-0.25,S.head.z-Math.cos(yaw)*d);
+  headPose();
+  const d=menuMode()==='pause'?0.6:0.75,m=S.menu.mesh,yaw=Math.atan2(-_mf.x,-_mf.z);
+  m.position.set(_mh.x+_mf.x*d,_mh.y-0.12,_mh.z+_mf.z*d);
   m.rotation.set(-0.12,yaw,0,'YXZ');
+  S.menuT=performance.now();
+}
+/* Menu toujours en vue : s'il est sorti du regard depuis un moment (ou trop loin), il revient devant.
+   Mains (sans manettes) : une pince près du menu le déplace. Deux pinces (ou les deux poignées des
+   manettes) serrées ensemble : on monte ou on descend la batterie en levant ou baissant les mains. */
+const _gp=new THREE.Vector3();
+function grabWork(){
+  const m=S.menu.mesh,pts=[];
+  let grips=0;
+  for(const st of S.sticks){const gp=st.src&&st.src.gamepad;if(gp&&gp.buttons[1]&&gp.buttons[1].pressed){grips++;const v=new THREE.Vector3();(st.grip||st.tip).getWorldPosition(v);pts.push(v);}}
+  S.twoGrip=grips>=2;
+  const pinch=[];
+  for(let i=0;i<2;i++){
+    const h=S.renderer.xr.getHand(i),j=h&&h.joints&&h.joints['index-finger-tip'];
+    if(j&&j.visible&&h.inputState&&h.inputState.pinching){const v=new THREE.Vector3();j.getWorldPosition(v);pinch.push(v);}
+  }
+  if(!S.twoGrip&&grips===0)pts.push(...pinch);
+  /* deux prises : la batterie suit les mains en hauteur */
+  if(pts.length>=2){
+    const y=(pts[0].y+pts[1].y)/2;
+    if(!S.lift)S.lift={y0:y,h0:S.hOff};
+    else{const v=S.lift.h0+(y-S.lift.y0);if(Math.abs(v-S.hOff)>=0.01){setHeight(v);S.msg='Hauteur de la batterie : '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm';}}
+    S.hg=null;return;
+  }
+  S.lift=null;
+  /* une pince près du menu : il suit la main */
+  if(pinch.length===1&&m.visible){
+    const p=pinch[0];
+    if(!S.hg&&p.distanceTo(m.position)<0.7)S.hg=m.position.clone().sub(p);
+    if(S.hg){m.position.copy(p).add(S.hg);S.menuMoved=true;return;}
+  }else S.hg=null;
+  /* toujours en face : hors du regard plus de 1,5 s, ou à plus de 2,5 m */
+  if(!m.visible||S.hg||S.sticks.some(st=>st.grab))return;
+  headPose();
+  _gp.copy(m.position).sub(_mh);const far=_gp.length()>2.5;_gp.y=0;
+  const away=_gp.lengthSq()>1e-4&&_gp.normalize().dot(_mf)<0.5;
+  if(!away&&!far){S.awayT=0;return;}
+  if(!S.awayT)S.awayT=performance.now();
+  else if(performance.now()-S.awayT>1500||far){S.awayT=0;S.menuMoved=false;menuDefault();}
 }
 const _gm=new THREE.Matrix4(),_gr=new THREE.Matrix4(),_gs=new THREE.Vector3();
 function menuGrab(st){
-  const held=!!st.src&&st.src.gamepad&&st.src.gamepad.buttons[1]&&st.src.gamepad.buttons[1].pressed;
+  const held=!S.twoGrip&&!!st.src&&st.src.gamepad&&st.src.gamepad.buttons[1]&&st.src.gamepad.buttons[1].pressed;
   const m=S.menu.mesh;
   if(held&&S.menu.mesh.visible){
     st.ray.updateMatrixWorld(true);
@@ -724,7 +771,6 @@ function buttons(t){
     /* un bouton est lu une fois par image : on date le coup de maintenant, pas de l'instant
        d'affichage prévu de l'image (qui peut être un peu dans le futur) */
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
-    else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))recenter();
     else if(down(0)){const p=S.api.opts().kick==='charley'&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
@@ -829,13 +875,13 @@ function loop(t,frame){
     if(v.lengthSq()>0.01)placeFromHead();
   }
   updateDecor(t);
+  if(S.placed&&!S.spin)grabWork();
   if(S.placed&&frame&&S.resetAsk){S.resetAsk=false;recenter();}
   if(S.placed&&S.recalAt){
     const r=S.recalAt-performance.now();
     if(r<=0){S.recalAt=0;recenter();}
     else S.msg='Baguettes au-dessus des pads, comme pour jouer… '+Math.ceil(r/1000);
   }
-  if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   if(S.spin){
     /* pendant le mode, les boutons se lisent là : on tient à jour leur état pour qu'un B encore enfoncé
        au retour à la batterie ne quitte pas le casque */
@@ -1004,11 +1050,12 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinstart',x:30,y:22,w:MW-60,h:9,txt:'Pratique libre',big:true});
-    it.push({id:'spinrebond',x:30,y:32,w:MW-60,h:9,txt:'Rebond (main ouverte, puis doigts)',big:true});
-    it.push({id:'spinthumb',x:30,y:42,w:MW-60,h:9,txt:'Figure : Thumb Around',big:true});
-    it.push({id:'spinmoul',x:30,y:52,w:MW-60,h:9,txt:'Figure : Moulinet',big:true});
-    it.push({id:'back',x:30,y:63,w:MW-60,h:10,txt:'‹ Retour'});
+    it.push({id:'spinthumb',x:30,y:18,w:MW-60,h:8,txt:'Thumb Around',big:true});
+    it.push({id:'spinrev',x:30,y:27,w:MW-60,h:8,txt:'Reverse Thumb Around',big:true});
+    it.push({id:'spinmoul',x:30,y:36,w:MW-60,h:8,txt:'Moulinet',big:true});
+    it.push({id:'spinreb',x:30,y:45,w:MW-60,h:8,txt:'Rebond (main ouverte, puis doigts)',big:true});
+    it.push({id:'spinstart',x:30,y:55,w:MW-60,h:8,txt:'Pratique libre'});
+    it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
   if(mode==='kit'){
@@ -1053,7 +1100,7 @@ function menuItems(mode){
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinstart'};
+const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinthumb'};
 function drawMenu(mode){
   const {api}=S,p=S.menu;
   S.items=menuItems(mode);
@@ -1163,7 +1210,8 @@ function menuDo(id){
   if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
-  if(id==='spinrebond'){startSpin('rebond');return;}
+  if(id==='spinrev'){startSpin('reverse');return;}
+  if(id==='spinreb'||id==='spinrebond'){startSpin('rebond');return;}
   if(id==='spinmoul'){startSpin('moulinet');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
@@ -1188,23 +1236,26 @@ function menuDo(id){
   }
 }
 /* Drumstick Spin : les mains suivies remplacent la batterie. Il faut un casque (pas l'aperçu). */
-const SPIN_THUMB_KEY='poumtchak.spin.thumb';
-const spinStore={
-  get(){try{return JSON.parse(localStorage.getItem(SPIN_THUMB_KEY))||null;}catch(e){return null;}},
-  set(v){try{localStorage.setItem(SPIN_THUMB_KEY,JSON.stringify(v));}catch(e){}}
-};
+/* essais et réussites, un par figure : poumtchak.spin.thumb, poumtchak.spin.reverse */
+const spinStore=trick=>({
+  get(){try{return JSON.parse(localStorage.getItem('poumtchak.spin.'+trick))||null;}catch(e){return null;}},
+  set(v){try{localStorage.setItem('poumtchak.spin.'+trick,JSON.stringify(v));}catch(e){}}
+});
 function startSpin(trick){
   if(S.spin)return;
   if(!S.session){S.msg='Drumstick Spin a besoin d\'un casque : l\'aperçu n\'a pas de mains.';S.sub='spin';return;}
   S.sub=false;
-  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
+  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:trick?spinStore(trick):null,srcs:S.sticks.map(st=>st.src)});
   S.kit.visible=false;S.menu.mesh.visible=false;
   /* les rayons du menu ne servent pas pendant le mode */
-  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
+  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;if(st.holder)st.holder.visible=false;S.hover.delete(st);}
 }
 function stopSpin(){
   if(!S.spin)return;
   S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';
+  for(const st of S.sticks)if(st.holder)st.holder.visible=true;
+  /* un bouton encore enfoncé au retour ne compte pas : il faut le relâcher d'abord */
+  for(const st of S.sticks)S.btnPrev.set(st,new Array(16).fill(true));
 }
 /* Choisir un fichier est impossible dans le casque : on revient à la page, sur le bouton d'import. */
 function s_importPrompt(api){if(api.importPrompt)api.importPrompt();}

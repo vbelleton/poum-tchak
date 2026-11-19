@@ -71,3 +71,25 @@ test('Thumb Around : une baguette repliée (pince serrée) ne démarre pas le to
   const r = await joue(page, f);
   expect(r).toEqual([]);
 });
+
+test('Reverse Thumb Around : un tour dans le sens de Thumb Around est refusé', async ({ page }) => {
+  await page.goto('index.html');
+  const r = await page.evaluate(async () => {
+    const THREE = await import('./vr/three.module.min.js');
+    const { ThumbAroundDetector } = await import('./vr/spin.js');
+    const out = [];
+    for (const dir of [1, -1]) {
+      const d = new ThumbAroundDetector(-1);
+      let t = 0;
+      const f = (pinch, deg) => {
+        t += 20; const a = (dir * deg * Math.PI) / 180;
+        return d.step({ t, pinch, thumb: new THREE.Vector3(0, 0, 0), index: new THREE.Vector3(0.02, 0, 0), middle: new THREE.Vector3(0, 0.1 * Math.cos(a), 0.1 * Math.sin(a)) });
+      };
+      f(true, 0); f(true, 0);
+      for (let g = 10; g <= 330; g += 10) f(false, g);
+      out.push(f(true, 330));
+    }
+    return out;
+  });
+  expect(r).toEqual([{ ok: false, msg: 'Dans l\'autre sens !' }, { ok: true, msg: 'Bravo, tu as réussi !' }]);
+});
