@@ -1051,11 +1051,9 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinthumb',x:30,y:18,w:MW-60,h:8,txt:'Thumb Around',big:true});
-    it.push({id:'spinrev',x:30,y:27,w:MW-60,h:8,txt:'Reverse Thumb Around',big:true});
-    it.push({id:'spinmoul',x:30,y:36,w:MW-60,h:8,txt:'Moulinet',big:true});
-    it.push({id:'spinreb',x:30,y:45,w:MW-60,h:8,txt:'Rebond (main ouverte, puis doigts)',big:true});
-    it.push({id:'spinstart',x:30,y:55,w:MW-60,h:8,txt:'Pratique libre'});
+    [['spinthumb','Thumb Around'],['spinrev','Reverse Thumb Around'],['spintwirl','Entre les doigts'],['spinmoul','Moulinet'],
+     ['spinreb','Rebond (main ouverte, puis doigts)'],['spinstart','Pratique libre']].forEach(([id,txt],i)=>
+      it.push({id,x:30,y:16+i*8,w:MW-60,h:7,txt,big:id!=='spinstart'}));
     it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
@@ -1214,6 +1212,7 @@ function menuDo(id){
   if(id==='spinrev'){startSpin('reverse');return;}
   if(id==='spinreb'||id==='spinrebond'){startSpin('rebond');return;}
   if(id==='spinmoul'){startSpin('moulinet');return;}
+  if(id==='spintwirl'){startSpin('twirl');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}

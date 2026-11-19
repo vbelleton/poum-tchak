@@ -111,7 +111,8 @@ const PALM=['wrist','thumb-phalanx-proximal','index-finger-phalanx-proximal','mi
 export function create({renderer,scene,session,panel,drawPanel,play,trick=null,store=null,srcs=[]}){
   const hands=[0,1].map(i=>{
     const g=renderer.xr.getHand(i);scene.add(g);
-    return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector(trick==='reverse'?-1:1)};
+    return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector(trick==='reverse'?-1:1),pp:false,
+      ph:{mode:'none',pos:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),v:new THREE.Vector3(),w:new THREE.Vector3(),a:0,t0:0,p0:new THREE.Vector3(),lt:0,lm:new THREE.Vector3(),ld:new THREE.Vector3(0,1,0)}};
   });
 
   handFactory=handFactory||new XRHandModelFactory().setPath('./vr/hands/');
@@ -211,6 +212,14 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       ghost.stick.quaternion.setFromUnitVectors(UP,_gu);ghost.stick.visible=true;
       return;
     }
+    if(trick==='twirl'){
+      const MV=[[0,1],[1,2],[2,1],[1,0]],k=Math.floor(t/1000)%4,s=(t%1000)/1000,[fr,to]=MV[k],f=to>fr?to:fr;
+      for(let i=1;i<4;i++)curl([FING[i]+'-phalanx-proximal',FING[i]+'-phalanx-intermediate'],i===f?GHOST.curl*Math.sin(Math.PI*Math.min(1,s*1.4)):0);
+      r.updateMatrixWorld(true);
+      twirlPose(pos,fr,to,s<0.4?0:(s-0.4)/0.6,ghost.stick.position,_g3);
+      ghost.stick.quaternion.setFromUnitVectors(UP,_g3);ghost.stick.visible=true;
+      return;
+    }
     if(trick==='moulinet'){
       r.updateMatrixWorld(true);
       if(!pos('wrist',_g1)||!pos('thumb-tip',_g2)||!pos('index-finger-tip',_g3))return;
@@ -264,7 +273,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
 
   const prevBtn=new Map();   /* bouton B/Y de chaque manette, pour ne lire qu'un appui */
-  let bothSince=0;
+  let bothSince=0,lastT=0;
   const stats=(store&&store.get&&store.get())||{tries:0,ok:0};
 
   /* Tutoriel guidé de Thumb Around : cinq étapes courtes, qui avancent toutes seules.
@@ -322,6 +331,138 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   function say(msg,t){coach=msg;coachT=t;}
 
+  /* ---- Physique de la baguette (corps rigide simple) ----
+     Tenue : elle suit la pince, on mesure sa vitesse et sa vitesse de rotation.
+     Lâchée sur le pouce (Thumb Around) : elle tourne autour du pouce avec son élan, la gravité
+     (le point de pince n'est pas au centre : PIV) et un frottement. Rattrapée par une nouvelle pince.
+     Sans pivot : elle tombe (gravité, élan) jusqu'au sol, où elle reste ; une pince la reprend. */
+  const G=new THREE.Vector3(0,-9.8,0),PIV=0.06,IPIV=STICK*STICK/12+PIV*PIV;
+  const FLOOR=cp.y>1?0:cp.y-1.5;            /* sol : 0 en référence « local-floor », sinon sous la tête */
+  const MIN_W=2*Math.PI*0.6;                /* élan minimal donné au lâcher (le suivi des doigts mesure mal la pichenette) */
+  const _x=new THREE.Vector3(),_y=new THREE.Vector3(),_t1=new THREE.Vector3(),_t2=new THREE.Vector3(),_t3=new THREE.Vector3();
+  function placeHeld(h,t){
+    const ph=h.ph;
+    h.mid.copy(_a).add(_b).multiplyScalar(0.5);
+    _x.copy(_c).sub(h.mid);if(_x.lengthSq()>1e-6)h.dir.copy(_x.normalize());
+    ph.pos.copy(h.mid).addScaledVector(h.dir,PIV);ph.dir.copy(h.dir);
+    const dt=ph.lt?(t-ph.lt)/1000:0;
+    if(dt>1e-3&&dt<0.1){
+      _x.copy(h.mid).sub(ph.lm).divideScalar(dt);ph.v.lerp(_x,0.5);
+      _y.crossVectors(ph.ld,h.dir);const sn=_y.length();
+      _x.copy(_y).multiplyScalar(sn>1e-6?Math.asin(Math.min(1,sn))/sn/dt:0);ph.w.lerp(_x,0.5);
+    }
+    ph.lt=t;ph.lm.copy(h.mid);ph.ld.copy(h.dir);ph.mode='held';
+  }
+  function showPh(h){h.stick.position.copy(h.ph.pos);h.stick.quaternion.setFromUnitVectors(UP,h.ph.dir);h.stick.visible=true;}
+  function startFall(h,t){const ph=h.ph;ph.mode='fall';ph.t0=t;ph.lt=0;}
+  function fallPh(h,dt){
+    const ph=h.ph;if(ph.mode!=='fall')return;
+    ph.v.addScaledVector(G,dt);ph.pos.addScaledVector(ph.v,dt);
+    const wl=ph.w.length();if(wl>1e-4)ph.dir.applyAxisAngle(_x.copy(ph.w).divideScalar(wl),wl*dt).normalize();
+    ph.w.multiplyScalar(Math.exp(-0.3*dt));
+    if(ph.pos.y-Math.abs(ph.dir.y)*STICK/2<=FLOOR){
+      ph.dir.y=0;if(ph.dir.lengthSq()<1e-6)ph.dir.set(1,0,0);ph.dir.normalize();
+      ph.pos.y=FLOOR+0.01;ph.v.set(0,0,0);ph.w.set(0,0,0);ph.mode='floor';play('tss',0.5);
+    }
+  }
+  /* lâcher sur le pouce : la rotation se fait autour de l'axe pouce → index */
+  function startSpinPh(h,t){
+    const ph=h.ph,sg=trick==='reverse'?-1:1;
+    _t1.copy(_b).sub(_a).normalize();
+    let wu=ph.w.dot(_t1);if(sg*wu<MIN_W)wu=sg*MIN_W;
+    ph.w.copy(_t1).multiplyScalar(wu);ph.a=0;ph.t0=t;ph.p0.copy(_a);ph.mode='spin';ph.lt=0;
+  }
+  function spinPh(h,t,dt){
+    const ph=h.ph;
+    _t1.copy(_b).sub(_a);if(_t1.lengthSq()<1e-8)return;_t1.normalize();
+    ph.w.addScaledVector(_x.copy(ph.dir).cross(G),PIV/IPIV*dt);
+    const wu=ph.w.dot(_t1)*Math.exp(-0.5*dt);   /* frottement sur le pouce */
+    ph.w.copy(_t1).multiplyScalar(wu);
+    ph.dir.addScaledVector(_t1,-ph.dir.dot(_t1));if(ph.dir.lengthSq()<1e-6)ph.dir.copy(h.dir);
+    ph.dir.normalize().applyAxisAngle(_t1,wu*dt);ph.a+=wu*dt;
+    ph.pos.copy(_a).addScaledVector(ph.dir,PIV);
+    const lost=_a.distanceTo(ph.p0)>0.05,slow=t-ph.t0>600&&Math.abs(wu)<0.8;
+    if(lost||slow||t-ph.t0>4000){
+      ph.v.crossVectors(ph.w,_x.copy(ph.dir).multiplyScalar(PIV));startFall(h,t);
+      stats.tries++;play('tss',0.4);say(lost?COACH.pivot:COACH.incomplete,t);if(store&&store.set)store.set(stats);
+    }
+  }
+  function catchPh(h,t){
+    const ph=h.ph,sg=trick==='reverse'?-1:1;
+    h.mid.copy(_a).add(_b).multiplyScalar(0.5);_x.copy(_c).sub(h.mid).normalize();
+    const good=ph.dir.angleTo(_x)<Math.PI/3,turn=sg*ph.a;
+    let msg;
+    if(turn<=-TA.full)msg=COACH.sens;else if(turn<TA.full)msg=COACH.incomplete;else if(!good)msg=COACH.catch;else msg=COACH.ok;
+    stats.tries++;if(msg===COACH.ok){stats.ok++;play('tchak',0.9);}else play('tss',0.4);
+    say(msg,t);if(store&&store.set)store.set(stats);
+    ph.w.set(0,0,0);ph.v.set(0,0,0);placeHeld(h,t);
+  }
+  /* Thumb Around en pratique : une main, la physique fait le reste */
+  function spinFree(h,t,pinch,dt){
+    const rise=pinch&&!h.pp;h.pp=pinch;const m=h.ph.mode;
+    if(m==='held'||m==='none'){if(pinch)placeHeld(h,t);else if(m==='held')startSpinPh(h,t);}
+    else if(m==='spin'){if(rise)catchPh(h,t);else spinPh(h,t,dt);}
+    else if(rise){h.ph.w.set(0,0,0);h.ph.v.set(0,0,0);placeHeld(h,t);say('Baguette reprise',t);}
+    else fallPh(h,dt);
+    if(h.ph.mode!=='none')showPh(h);else h.stick.visible=false;
+  }
+
+  /* ---- Tour entre les doigts (finger twirl) ----
+     La baguette est coincée entre deux doigts (creux 0 : index-majeur, 1 : majeur-annulaire,
+     2 : annulaire-auriculaire). Replier le doigt de devant la fait passer, en un demi-tour,
+     au creux suivant ; aller jusqu'à l'auriculaire puis revenir à l'index = un tour réussi. */
+  const FING=['index-finger','middle-finger','ring-finger','pinky-finger'];
+  const FNAME=['l\'index','le majeur','l\'annulaire','l\'auriculaire'];
+  const tw={gap:0,dirn:1,anim:false,from:0,to:0,t0:0,arm:true};
+  const TW_MS=380;
+  const pivotF=(gap,dirn)=>dirn>0?gap+1:gap;
+  function gapC(pos,k,out){pos(FING[k]+'-phalanx-intermediate',_t1);pos(FING[k+1]+'-phalanx-intermediate',_t2);return out.copy(_t1).add(_t2).multiplyScalar(0.5);}
+  function palmN(pos,out){pos('wrist',_t3);pos('index-finger-phalanx-proximal',_t1);pos('pinky-finger-phalanx-proximal',_t2);
+    _t1.sub(_t3);_t2.sub(_t3);out.crossVectors(_t1,_t2);if(out.lengthSq()<1e-10)out.set(0,1,0);return out.normalize();}
+  const _tc=new THREE.Vector3(),_tc2=new THREE.Vector3(),_tn=new THREE.Vector3(),_ta=new THREE.Vector3();
+  /* pose de la baguette entre les creux from et to, s de 0 à 1 (demi-tour autour du doigt pivot) */
+  function twirlPose(pos,from,to,s,outP,outD){
+    palmN(pos,_tn);gapC(pos,from,_tc);
+    if(from!==to&&s>0){
+      gapC(pos,to,_tc2);_tc.lerp(_tc2,s).addScaledVector(_tn,0.02*Math.sin(Math.PI*s));
+      const f=to>from?to:from;pos(FING[f]+'-phalanx-proximal',_t1);pos(FING[f]+'-tip',_t2);
+      _ta.copy(_t2).sub(_t1);if(_ta.lengthSq()>1e-8)_tn.applyAxisAngle(_ta.normalize(),Math.PI*s);
+    }
+    outP.copy(_tc);outD.copy(_tn);
+  }
+  function curled(pos,f){
+    if(!pos('wrist',_t3)||!pos(FING[f]+'-phalanx-proximal',_t1)||!pos(FING[f]+'-tip',_t2))return 0;
+    const r=_t2.distanceTo(_t3)/Math.max(1e-4,_t1.distanceTo(_t3));
+    return r<1.4?1:r>1.6?-1:0;     /* 1 replié, -1 tendu, 0 entre les deux */
+  }
+  function twirl(h,hj,t){
+    const pos=(n,v)=>{const j=hj[n];if(!j||!j.visible)return false;j.getWorldPosition(v);return true;};
+    if(tw.anim){
+      const s=Math.min(1,(t-tw.t0)/TW_MS);
+      twirlPose(pos,tw.from,tw.to,s,h.ph.pos,h.ph.dir);
+      if(s>=1){
+        tw.anim=false;tw.gap=tw.to;tw.arm=false;play('tchak',0.7);
+        if(tw.gap===2)tw.dirn=-1;
+        else if(tw.gap===0){tw.dirn=1;stats.ok++;stats.tries++;play('psch',0.6);say('Un tour complet !',t);if(store&&store.set)store.set(stats);}
+      }
+    }else{
+      twirlPose(pos,tw.gap,tw.gap,0,h.ph.pos,h.ph.dir);
+      const c=curled(pos,pivotF(tw.gap,tw.dirn));
+      if(!tw.arm){if(c<0)tw.arm=true;}
+      else if(c>0){tw.anim=true;tw.from=tw.gap;tw.to=tw.gap+tw.dirn;tw.t0=t;}
+    }
+    h.ph.mode='twirl';showPh(h);
+  }
+
+  /* recommencer depuis le début (A/X, ou deux pinces 2,5 s quand le tuto est fini) */
+  let restartSince=0;
+  function restart(t){
+    tuto.step=0;tuto.t0=t;tuto.prev=false;tuto.lastT=0;reb.expect='open';
+    Object.assign(tw,{gap:0,dirn:1,anim:false,arm:true});
+    for(const h of hands){h.ph.mode='none';h.pp=false;h.stick.material=wood;h.stick.visible=false;h.det.reset();}
+    play('psch',0.5);say('On recommence depuis le début',t);
+  }
+
   function status(){
     return hands.map((h,i)=>{
       const name=i===0?'Main 1':'Main 2';
@@ -331,11 +472,15 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
 
   function draw(t){
-    const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick==='moulinet'?'Moulinet':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
+    const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick==='moulinet'?'Moulinet':trick==='twirl'?'Entre les doigts':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
     if(trick==='rebond'){
       lines[0].t='Rebond';
       lines.push({t:reb.expect==='open'?'Frappe le pad main OUVERTE':'Frappe le pad doigts FERMÉS',size:4.2,color:reb.expect==='open'?'#7BE3A6':'#8D9CFF',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Rebonds : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2',weight:700});
+    }else if(trick==='twirl'){
+      const f=pivotF(tw.gap,tw.dirn);
+      lines.push({t:tw.anim?'…':!tw.arm?'Tends '+FNAME[f]+'…':'Replie '+FNAME[f]+' : la baguette passe au creux suivant',size:3.8,color:'#E8ECF2',weight:800});
+      lines.push({t:coach&&t-coachT<1500?coach:'Jusqu\'à l\'auriculaire, puis retour à l\'index · Tours : '+stats.ok,size:3.4,color:'#97A1B2',weight:700});
     }else if(trick==='moulinet'){
       lines.push({t:hands.some(h=>h.held)?'Tourne le poignet : la baguette fait un cercle complet':'Pince la baguette entre le pouce et l\'index',size:3.8,color:'#E8ECF2',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Moulinets : '+stats.ok+' réussis',size:3.4,color:'#97A1B2',weight:700});
@@ -350,7 +495,8 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       lines.push({t:status(),size:3.4,color:'#7BE3A6',weight:700});
       lines.push({t:'Pince le pouce et l\'index pour tenir la baguette',size:3.2,color:'#97A1B2'});
     }
-    lines.push({t:'Deux pinces pendant 2 s, ou B/Y : retour à la batterie',size:3.2,color:'#97A1B2'});
+    if(trick)lines.push({t:'A/X'+(spinT&&tuto.step>=5?' ou deux pinces 2,5 s':'')+' : recommencer depuis le début',size:3.2,color:'#97A1B2'});
+    lines.push({t:trick==='thumb'?'B/Y : retour à la batterie':'Deux pinces pendant 2 s, ou B/Y : retour à la batterie',size:3.2,color:'#97A1B2'});
     drawPanel(pnl,lines);
   }
 
@@ -396,10 +542,13 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     /* manettes présentes : B/Y ramène à la batterie */
     for(const src of session.inputSources){
       const gp=src.gamepad;if(!gp)continue;
-      const down=!!(gp.buttons[5]&&gp.buttons[5].pressed);
-      if(down&&!prevBtn.get(src))exit=true;
-      prevBtn.set(src,down);
+      const down=!!(gp.buttons[5]&&gp.buttons[5].pressed),a=!!(gp.buttons[4]&&gp.buttons[4].pressed);
+      const p=prevBtn.get(src)||{};
+      if(down&&!p.b)exit=true;
+      if(a&&!p.a&&trick)restart(t);
+      prevBtn.set(src,{b:down,a});
     }
+    const dt=lastT?Math.min(0.05,(t-lastT)/1000):0;lastT=t;
 
     let nb=0,nt=0,nk=0,tutoHand=null;
     for(const h of hands){
@@ -415,36 +564,24 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
           /* tuto guidé : une seule main (la première suivie), l'autre attend */
           if(!tutoHand){tutoHand=h;tutoStep(h,t,pinch);}else h.stick.visible=false;
         }else if(spinT){
-          /* chaque main a son détecteur : les deux mains peuvent faire le trick */
-          const r=h.det.step({t,pinch,thumb:_a.clone(),index:_b.clone(),middle:_c.clone()});
-          _d.copy(_c).sub(_a);
-          if(_d.lengthSq()>1e-6){
-            h.stick.position.copy(_a).addScaledVector(_d,0.5);
-            h.stick.quaternion.setFromUnitVectors(UP,_d.clone().normalize());
-            h.stick.visible=true;
-          }
-          if(r){
-            if(r.ok){stats.ok++;stats.tries++;play('tchak',0.9);}
-            else{stats.tries++;play('tss',0.4);}
-            say(r.msg,t);
-            if(store&&store.set)store.set(stats);
-          }
+          /* pratique : chaque main a sa baguette physique, les deux mains peuvent faire le trick */
+          spinFree(h,t,pinch,dt);
+        }else if(trick==='twirl'){
+          if(!tutoHand){tutoHand=h;twirl(h,hj,t);}else h.stick.visible=false;
         }else{
-          if(pinch&&!h.held){h.held=true;play('tss',0.35);}
-          else if(!pinch&&h.held){h.held=false;h.stick.visible=false;}
+          if(pinch&&!h.held){h.held=true;h.ph.v.set(0,0,0);h.ph.w.set(0,0,0);play('tss',0.35);}
+          else if(!pinch&&h.held){h.held=false;startFall(h,t);}   /* lâchée : elle tombe avec son élan */
           if(h.held){
-            /* la baguette : au milieu de la pince, dirigée vers le bout du majeur */
-            h.mid.copy(_a).add(_b).multiplyScalar(0.5);
-            _c.sub(h.mid);
-            if(_c.lengthSq()>1e-6)h.dir.copy(_c.normalize());
-            h.stick.position.copy(h.mid);
-            h.stick.quaternion.setFromUnitVectors(UP,h.dir);
-            h.stick.visible=true;
+            /* la baguette tenue dans la pince, dirigée vers le bout du majeur */
+            placeHeld(h,t);
             if(trick==='moulinet')moulinet(h,t);
-          }else if(trick==='moulinet')ml.has=false;
+          }else{fallPh(h,dt);if(trick==='moulinet')ml.has=false;}
+          if(h.ph.mode!=='none')showPh(h);
         }
       }else{
-        h.stick.visible=false;
+        if(h.ph.mode==='spin'||h.ph.mode==='held')startFall(h,t);
+        if(h.ph.mode==='fall'||h.ph.mode==='floor'){fallPh(h,dt);showPh(h);}else h.stick.visible=false;
+        h.held=false;h.pp=false;
         if(spinT)h.det.reset();if(trick==='moulinet')ml.has=false;
       }
       if(meshOn(h)){
@@ -466,6 +603,10 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       }else bothSince=0;
     }
 
+    if(spinT&&tuto.step>=5){
+      if(hands.every(h=>h.seen&&h.pp)){if(!restartSince)restartSince=t;else if(t-restartSince>2500){restartSince=0;restart(t);}}
+      else restartSince=0;
+    }
     if(pad&&padT&&t-padT>300){padMat.color.set(0x39414F);padT=0;}
     ghostUpdate(t);
     draw(t);
@@ -488,5 +629,5 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,ghost:!!ghost.root,ghostStick:!!(ghost.stick&&ghost.stick.visible),mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,ghost:!!ghost.root,ghostStick:!!(ghost.stick&&ghost.stick.visible),mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),phys:hands.map(h=>h.ph.mode),twirl:tw.gap,coach,stats:{...stats}})};
 }

@@ -71,9 +71,37 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
   await expect.poll(async () => (await vr(page)).spinInfo.tuto, { timeout: 10_000 }).toBe(4);
   await page.evaluate(() => { window.__dev.primaryInputMode = 'controller'; });
   await page.waitForTimeout(200);
+  // A : recommencer le tuto depuis le début
+  await bouton(page, 'right', 'a-button');
+  await expect.poll(async () => (await vr(page)).spinInfo.tuto).toBe(0);
   await bouton(page, 'right', 'b-button');
   await expect.poll(async () => (await vr(page))?.spin).toBe(false);
   await expect.poll(async () => (await vr(page))?.menu).toBe(true);
+
+  // Entre les doigts : la baguette se place au premier creux (index-majeur), la main fantôme montre le tour
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spintwirl'); });
+  await expect.poll(async () => (await vr(page))?.spinInfo?.trick).toBe('twirl');
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'hand'; });
+  await expect.poll(async () => (await vr(page)).spinInfo.phys).toContain('twirl');
+  expect((await vr(page)).spinInfo.twirl).toBe(0);
+  await expect.poll(async () => (await vr(page)).spinInfo.ghostStick, { timeout: 10_000 }).toBe(true);
+
+  // physique : en pratique libre, la baguette lâchée tombe jusqu'au sol et y reste
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'controller'; });
+  await page.waitForTimeout(200);
+  await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await vr(page))?.spin).toBe(false);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spinstart'); });
+  await expect.poll(async () => (await vr(page))?.spin).toBe(true);
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'hand'; });
+  await pince(1);
+  await expect.poll(async () => (await vr(page)).spinInfo.phys).toEqual(['held', 'held']);
+  await pince(0);
+  await expect.poll(async () => (await vr(page)).spinInfo.phys, { timeout: 10_000 }).toEqual(['floor', 'floor']);
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'controller'; });
+  await page.waitForTimeout(200);
+  await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await vr(page))?.spin).toBe(false);
 
   // Rebond : le pad d'entraînement, on commence main ouverte
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spinreb'); });
