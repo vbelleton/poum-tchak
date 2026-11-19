@@ -882,7 +882,6 @@ function loop(t,frame){
     if(r<=0){S.recalAt=0;recenter();}
     else S.msg='Baguettes au-dessus des pads, comme pour jouer… '+Math.ceil(r/1000);
   }
-  if(S.placed){sticks(t);if(frame){rays();buttons(t);if(S)headKick(t,frame);}}
   if(S.spin){
     /* pendant le mode, les boutons se lisent là : on tient à jour leur état pour qu'un B encore enfoncé
        au retour à la batterie ne quitte pas le casque */
@@ -1051,11 +1050,12 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinstart',x:30,y:22,w:MW-60,h:9,txt:'Pratique libre',big:true});
-    it.push({id:'spinrebond',x:30,y:32,w:MW-60,h:9,txt:'Rebond (main ouverte, puis doigts)',big:true});
-    it.push({id:'spinthumb',x:30,y:42,w:MW-60,h:9,txt:'Figure : Thumb Around',big:true});
-    it.push({id:'spinmoul',x:30,y:52,w:MW-60,h:9,txt:'Figure : Moulinet',big:true});
-    it.push({id:'back',x:30,y:63,w:MW-60,h:10,txt:'‹ Retour'});
+    it.push({id:'spinthumb',x:30,y:18,w:MW-60,h:8,txt:'Thumb Around',big:true});
+    it.push({id:'spinrev',x:30,y:27,w:MW-60,h:8,txt:'Reverse Thumb Around',big:true});
+    it.push({id:'spinmoul',x:30,y:36,w:MW-60,h:8,txt:'Moulinet',big:true});
+    it.push({id:'spinreb',x:30,y:45,w:MW-60,h:8,txt:'Rebond (main ouverte, puis doigts)',big:true});
+    it.push({id:'spinstart',x:30,y:55,w:MW-60,h:8,txt:'Pratique libre'});
+    it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
   if(mode==='kit'){
@@ -1100,7 +1100,7 @@ function menuItems(mode){
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
 }
-const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinstart'};
+const FOCUS0={main:'play',pause:'resume',mini:'open',kit:'back',mains:'mplay',exo:'explay',spin:'spinthumb'};
 function drawMenu(mode){
   const {api}=S,p=S.menu;
   S.items=menuItems(mode);
@@ -1210,7 +1210,8 @@ function menuDo(id){
   if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
-  if(id==='spinrebond'){startSpin('rebond');return;}
+  if(id==='spinrev'){startSpin('reverse');return;}
+  if(id==='spinreb'||id==='spinrebond'){startSpin('rebond');return;}
   if(id==='spinmoul'){startSpin('moulinet');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
@@ -1235,23 +1236,26 @@ function menuDo(id){
   }
 }
 /* Drumstick Spin : les mains suivies remplacent la batterie. Il faut un casque (pas l'aperçu). */
-const SPIN_THUMB_KEY='poumtchak.spin.thumb';
-const spinStore={
-  get(){try{return JSON.parse(localStorage.getItem(SPIN_THUMB_KEY))||null;}catch(e){return null;}},
-  set(v){try{localStorage.setItem(SPIN_THUMB_KEY,JSON.stringify(v));}catch(e){}}
-};
+/* essais et réussites, un par figure : poumtchak.spin.thumb, poumtchak.spin.reverse */
+const spinStore=trick=>({
+  get(){try{return JSON.parse(localStorage.getItem('poumtchak.spin.'+trick))||null;}catch(e){return null;}},
+  set(v){try{localStorage.setItem('poumtchak.spin.'+trick,JSON.stringify(v));}catch(e){}}
+});
 function startSpin(trick){
   if(S.spin)return;
   if(!S.session){S.msg='Drumstick Spin a besoin d\'un casque : l\'aperçu n\'a pas de mains.';S.sub='spin';return;}
   S.sub=false;
-  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:spinStore});
+  S.spin=SPIN.create({renderer:S.renderer,scene:S.scene,session:S.session,panel,drawPanel,play:(id,v)=>S.api.play(id,v),trick,store:trick?spinStore(trick):null,srcs:S.sticks.map(st=>st.src)});
   S.kit.visible=false;S.menu.mesh.visible=false;
   /* les rayons du menu ne servent pas pendant le mode */
-  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;S.hover.delete(st);}
+  for(const st of S.sticks){if(st.line)st.line.visible=false;if(st.dot)st.dot.visible=false;if(st.holder)st.holder.visible=false;S.hover.delete(st);}
 }
 function stopSpin(){
   if(!S.spin)return;
   S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';
+  for(const st of S.sticks)if(st.holder)st.holder.visible=true;
+  /* un bouton encore enfoncé au retour ne compte pas : il faut le relâcher d'abord */
+  for(const st of S.sticks)S.btnPrev.set(st,new Array(16).fill(true));
 }
 /* Choisir un fichier est impossible dans le casque : on revient à la page, sur le bouton d'import. */
 function s_importPrompt(api){if(api.importPrompt)api.importPrompt();}
