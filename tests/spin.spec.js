@@ -56,8 +56,8 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
   await page.evaluate(() => { window.__dev.primaryInputMode = 'hand'; });
   await expect.poll(async () => (await vr(page))?.spinInfo?.seen).toEqual([true, true]);
   const mains = (await vr(page)).spinInfo;
-  expect(mains.bones).toBeGreaterThan(40);
-  expect(mains.tips).toBe(10);
+  // main en os tant que le modèle réaliste n'est pas chargé (il peut l'être déjà, s'il est en cache)
+  if (!mains.mesh.every(Boolean)) { expect(mains.bones).toBeGreaterThan(40); expect(mains.tips).toBe(10); }
   expect(mains.phase).toEqual(['idle', 'idle']);
   // tuto guidé : pincer (étape 1), garder le pouce immobile (2), ouvrir (3 : la baguette tourne seule),
   // puis l'étape 4 attend une pince au bon moment

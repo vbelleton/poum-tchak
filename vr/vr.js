@@ -517,7 +517,8 @@ function place(head,yaw,fixedFloor){
 function menuDefault(){
   if(!S.base||!S.head)return;
   const yaw=S.base.yaw,d=menuMode()==='pause'?0.9:1.25,m=S.menu.mesh;
-  m.position.set(S.head.x-Math.sin(yaw)*d,S.floorY+S.padH+0.72,S.head.z-Math.cos(yaw)*d);
+  /* le menu reste à hauteur des yeux, un peu au-dessus du kit : jamais derrière les pads */
+  m.position.set(S.head.x-Math.sin(yaw)*d,S.head.y-0.25,S.head.z-Math.cos(yaw)*d);
   m.rotation.set(-0.12,yaw,0,'YXZ');
 }
 const _gm=new THREE.Matrix4(),_gr=new THREE.Matrix4(),_gs=new THREE.Vector3();
@@ -723,7 +724,6 @@ function buttons(t){
     /* un bouton est lu une fois par image : on date le coup de maintenant, pas de l'instant
        d'affichage prévu de l'image (qui peut être un peu dans le futur) */
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
-    else if(down(0)){const p=S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))recenter();
     else if(down(0)){const p=S.api.opts().kick==='charley'&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
@@ -1002,10 +1002,11 @@ function menuItems(mode){
     return it;
   }
   if(mode==='spin'){
-    it.push({id:'spinthumb',x:30,y:20,w:MW-60,h:9,txt:'Thumb Around',big:true});
-    it.push({id:'spinrev',x:30,y:31,w:MW-60,h:9,txt:'Reverse Thumb Around',big:true});
-    it.push({id:'spinreb',x:30,y:42,w:MW-60,h:9,txt:'Rebond',big:true});
-    it.push({id:'spinstart',x:30,y:54,w:MW-60,h:8,txt:'Pratique libre'});
+    it.push({id:'spinthumb',x:30,y:18,w:MW-60,h:8,txt:'Thumb Around',big:true});
+    it.push({id:'spinrev',x:30,y:27,w:MW-60,h:8,txt:'Reverse Thumb Around',big:true});
+    it.push({id:'spinmoul',x:30,y:36,w:MW-60,h:8,txt:'Moulinet',big:true});
+    it.push({id:'spinreb',x:30,y:45,w:MW-60,h:8,txt:'Rebond (main ouverte, puis doigts)',big:true});
+    it.push({id:'spinstart',x:30,y:55,w:MW-60,h:8,txt:'Pratique libre'});
     it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
@@ -1162,7 +1163,8 @@ function menuDo(id){
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
   if(id==='spinrev'){startSpin('reverse');return;}
-  if(id==='spinreb'){startSpin('rebond');return;}
+  if(id==='spinreb'||id==='spinrebond'){startSpin('rebond');return;}
+  if(id==='spinmoul'){startSpin('moulinet');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}

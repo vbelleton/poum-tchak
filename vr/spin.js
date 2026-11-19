@@ -158,6 +158,9 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
      décollés, la baguette rebondit librement) et une frappe doigts fermés (les doigts serrent la baguette). */
   let pad=null,padMat=null,padT=0;
   const reb={expect:'open'};
+  /* Moulinet : la baguette tenue en pince dessine un cercle complet (tour de poignet) en moins de 2,5 s */
+  const spinT=trick==='thumb'||trick==='reverse';
+  const ml={travel:0,t0:0,prev:new THREE.Vector3(),has:false};
   if(trick==='rebond'){
     padMat=new THREE.MeshStandardMaterial({color:0x39414F,roughness:0.8});
     pad=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.03,32),padMat);
@@ -189,6 +192,11 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   const _g1=new THREE.Vector3(),_g2=new THREE.Vector3(),_g3=new THREE.Vector3(),_gu=new THREE.Vector3();
   function curl(names,a){for(const n of names){const b=ghost.bones[n];if(b&&b.userData.r0)b.rotation.x=b.userData.r0.x+a;}}
   const BACK=['middle-finger-phalanx-proximal','middle-finger-phalanx-intermediate','ring-finger-phalanx-proximal','ring-finger-phalanx-intermediate','pinky-finger-phalanx-proximal','pinky-finger-phalanx-intermediate'];
+  function moulinet(h,t){
+    if(!ml.has||t-ml.t0>2500){ml.has=true;ml.t0=t;ml.travel=0;ml.prev.copy(h.dir);return;}
+    ml.travel+=ml.prev.angleTo(h.dir);ml.prev.copy(h.dir);
+    if(ml.travel>=Math.PI*2){ml.has=false;stats.ok++;stats.tries++;play('tchak',0.9);say('Moulinet réussi !',t);if(store&&store.set)store.set(stats);}
+  }
   function ghostUpdate(t){
     const r=ghost.root;if(!r)return;
     const B=ghost.bones,pos=(n,v)=>{const b=B[n];if(b)b.getWorldPosition(v);return !!b;};
@@ -201,6 +209,14 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       _g2.add(_g3).multiplyScalar(0.5);_gu.copy(_g2).sub(_g1).normalize();
       ghost.stick.position.copy(_g2).addScaledVector(_gu,STICK/2-0.08);
       ghost.stick.quaternion.setFromUnitVectors(UP,_gu);ghost.stick.visible=true;
+      return;
+    }
+    if(trick==='moulinet'){
+      r.updateMatrixWorld(true);
+      if(!pos('wrist',_g1)||!pos('thumb-tip',_g2)||!pos('index-finger-tip',_g3))return;
+      _g2.add(_g3).multiplyScalar(0.5);_gu.copy(_g2).sub(_g1).normalize();
+      _g3.set(0,1,0).addScaledVector(_gu,-_gu.y).normalize().applyAxisAngle(_gu,(t%1500)/1500*2*Math.PI);
+      ghost.stick.position.copy(_g2);ghost.stick.quaternion.setFromUnitVectors(UP,_g3);ghost.stick.visible=true;
       return;
     }
     const ph=(t%4500)/4500;
@@ -315,15 +331,18 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   }
 
   function draw(t){
-    const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
+    const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick==='moulinet'?'Moulinet':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
     if(trick==='rebond'){
       lines[0].t='Rebond';
       lines.push({t:reb.expect==='open'?'Frappe le pad main OUVERTE':'Frappe le pad doigts FERMÉS',size:4.2,color:reb.expect==='open'?'#7BE3A6':'#8D9CFF',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Rebonds : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2',weight:700});
-    }else if(!!trick&&tuto.step<5){
+    }else if(trick==='moulinet'){
+      lines.push({t:hands.some(h=>h.held)?'Tourne le poignet : la baguette fait un cercle complet':'Pince la baguette entre le pouce et l\'index',size:3.8,color:'#E8ECF2',weight:800});
+      lines.push({t:coach&&t-coachT<1500?coach:'Moulinets : '+stats.ok+' réussis',size:3.4,color:'#97A1B2',weight:700});
+    }else if(spinT&&tuto.step<5){
       lines.push({t:TUTO[Math.min(tuto.step,4)===3?2:Math.min(tuto.step,4)===4?3:Math.min(tuto.step,4)],size:3.8,color:'#E8ECF2',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Une étape à la fois : elle avance toute seule',size:3.4,color:coach?'#7BE3A6':'#97A1B2',weight:700});
-    }else if(!!trick){
+    }else if(spinT){
       lines.push({t:TUTO[4],size:3.6,color:'#E8ECF2',weight:800});
       lines.push({t:'Essais : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2'});
       lines.push({t:coach&&t-coachT<2500?coach:'Pivot : le pouce. Lâche, laisse tourner, rattrape.',size:3.6,color:coach===COACH.ok?'#7BE3A6':'#F2BB4A',weight:700});
@@ -392,10 +411,10 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
         th.getWorldPosition(_a);ix.getWorldPosition(_b);md.getWorldPosition(_c);
         const pinch=!!(h.g.inputState&&h.g.inputState.pinching);
         if(trick==='rebond')rebond(h,hj,t,pinch);
-        else if(!!trick&&tuto.step<5){
+        else if(spinT&&tuto.step<5){
           /* tuto guidé : une seule main (la première suivie), l'autre attend */
           if(!tutoHand){tutoHand=h;tutoStep(h,t,pinch);}else h.stick.visible=false;
-        }else if(!!trick){
+        }else if(spinT){
           /* chaque main a son détecteur : les deux mains peuvent faire le trick */
           const r=h.det.step({t,pinch,thumb:_a.clone(),index:_b.clone(),middle:_c.clone()});
           _d.copy(_c).sub(_a);
@@ -421,11 +440,12 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
             h.stick.position.copy(h.mid);
             h.stick.quaternion.setFromUnitVectors(UP,h.dir);
             h.stick.visible=true;
-          }
+            if(trick==='moulinet')moulinet(h,t);
+          }else if(trick==='moulinet')ml.has=false;
         }
       }else{
         h.stick.visible=false;
-        if(!!trick)h.det.reset();
+        if(spinT)h.det.reset();if(trick==='moulinet')ml.has=false;
       }
       if(meshOn(h)){
         h.palm.visible=false;
