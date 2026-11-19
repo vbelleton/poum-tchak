@@ -527,8 +527,8 @@ function menuDefault(){
   headPose();
   const d=menuMode()==='pause'?2.0:2.4,m=S.menu.mesh,yaw=Math.atan2(-_mf.x,-_mf.z);
   /* au-delà de la grosse caisse (à 1,9 m) : le menu ne chevauche plus les pads ; plus grand pour rester lisible */
-  m.position.set(_mh.x+_mf.x*d,_mh.y+0.1,_mh.z+_mf.z*d);m.scale.setScalar(d/1.25);
-  m.rotation.set(-0.12,yaw,0,'YXZ');
+  m.position.set(_mh.x+_mf.x*d,_mh.y+0.5,_mh.z+_mf.z*d);m.scale.setScalar(d/1.25);
+  m.rotation.set(0.1,yaw,0,'YXZ');
   S.menuT=performance.now();
 }
 /* Menu toujours en vue : s'il est sorti du regard depuis un moment (ou trop loin), il revient devant.
