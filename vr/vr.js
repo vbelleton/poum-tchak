@@ -514,16 +514,63 @@ function place(head,yaw,fixedFloor){
 }
 /* Le menu est accroché au monde, pas à la batterie : incliner ou tourner la scène ne le déplace pas.
    Par défaut il se pose devant la tête ; on peut aussi le saisir (poignée droite) et le placer où l'on veut. */
+/* le menu se place face au joueur, là où il regarde maintenant, à hauteur des yeux et devant la batterie */
+const _mh=new THREE.Vector3(),_mq=new THREE.Quaternion(),_mf=new THREE.Vector3();
+function headPose(){
+  const cam=S.renderer.xr.getCamera();cam.getWorldPosition(_mh);cam.getWorldQuaternion(_mq);
+  _mf.set(0,0,-1).applyQuaternion(_mq);_mf.y=0;
+  if(_mh.lengthSq()<1e-4&&S.head){_mh.copy(S.head);_mf.set(-Math.sin(S.base?S.base.yaw:0),0,-Math.cos(S.base?S.base.yaw:0));}
+  if(_mf.lengthSq()<1e-4)_mf.set(0,0,-1);_mf.normalize();
+}
 function menuDefault(){
   if(!S.base||!S.head)return;
-  const yaw=S.base.yaw,d=menuMode()==='pause'?0.9:1.25,m=S.menu.mesh;
-  /* le menu reste à hauteur des yeux, un peu au-dessus du kit : jamais derrière les pads */
-  m.position.set(S.head.x-Math.sin(yaw)*d,S.head.y-0.25,S.head.z-Math.cos(yaw)*d);
+  headPose();
+  const d=menuMode()==='pause'?0.6:0.75,m=S.menu.mesh,yaw=Math.atan2(-_mf.x,-_mf.z);
+  m.position.set(_mh.x+_mf.x*d,_mh.y-0.12,_mh.z+_mf.z*d);
   m.rotation.set(-0.12,yaw,0,'YXZ');
+  S.menuT=performance.now();
+}
+/* Menu toujours en vue : s'il est sorti du regard depuis un moment (ou trop loin), il revient devant.
+   Mains (sans manettes) : une pince près du menu le déplace. Deux pinces (ou les deux poignées des
+   manettes) serrées ensemble : on monte ou on descend la batterie en levant ou baissant les mains. */
+const _gp=new THREE.Vector3();
+function grabWork(){
+  const m=S.menu.mesh,pts=[];
+  let grips=0;
+  for(const st of S.sticks){const gp=st.src&&st.src.gamepad;if(gp&&gp.buttons[1]&&gp.buttons[1].pressed){grips++;const v=new THREE.Vector3();(st.grip||st.tip).getWorldPosition(v);pts.push(v);}}
+  S.twoGrip=grips>=2;
+  const pinch=[];
+  for(let i=0;i<2;i++){
+    const h=S.renderer.xr.getHand(i),j=h&&h.joints&&h.joints['index-finger-tip'];
+    if(j&&j.visible&&h.inputState&&h.inputState.pinching){const v=new THREE.Vector3();j.getWorldPosition(v);pinch.push(v);}
+  }
+  if(!S.twoGrip&&grips===0)pts.push(...pinch);
+  /* deux prises : la batterie suit les mains en hauteur */
+  if(pts.length>=2){
+    const y=(pts[0].y+pts[1].y)/2;
+    if(!S.lift)S.lift={y0:y,h0:S.hOff};
+    else{const v=S.lift.h0+(y-S.lift.y0);if(Math.abs(v-S.hOff)>=0.01){setHeight(v);S.msg='Hauteur de la batterie : '+(S.hOff>0?'+':'')+Math.round(S.hOff*100)+' cm';}}
+    S.hg=null;return;
+  }
+  S.lift=null;
+  /* une pince près du menu : il suit la main */
+  if(pinch.length===1&&m.visible){
+    const p=pinch[0];
+    if(!S.hg&&p.distanceTo(m.position)<0.7)S.hg=m.position.clone().sub(p);
+    if(S.hg){m.position.copy(p).add(S.hg);S.menuMoved=true;return;}
+  }else S.hg=null;
+  /* toujours en face : hors du regard plus de 1,5 s, ou à plus de 2,5 m */
+  if(!m.visible||S.hg||S.sticks.some(st=>st.grab))return;
+  headPose();
+  _gp.copy(m.position).sub(_mh);const far=_gp.length()>2.5;_gp.y=0;
+  const away=_gp.lengthSq()>1e-4&&_gp.normalize().dot(_mf)<0.5;
+  if(!away&&!far){S.awayT=0;return;}
+  if(!S.awayT)S.awayT=performance.now();
+  else if(performance.now()-S.awayT>1500||far){S.awayT=0;S.menuMoved=false;menuDefault();}
 }
 const _gm=new THREE.Matrix4(),_gr=new THREE.Matrix4(),_gs=new THREE.Vector3();
 function menuGrab(st){
-  const held=!!st.src&&st.src.gamepad&&st.src.gamepad.buttons[1]&&st.src.gamepad.buttons[1].pressed;
+  const held=!S.twoGrip&&!!st.src&&st.src.gamepad&&st.src.gamepad.buttons[1]&&st.src.gamepad.buttons[1].pressed;
   const m=S.menu.mesh;
   if(held&&S.menu.mesh.visible){
     st.ray.updateMatrixWorld(true);
@@ -828,6 +875,7 @@ function loop(t,frame){
     if(v.lengthSq()>0.01)placeFromHead();
   }
   updateDecor(t);
+  if(S.placed&&!S.spin)grabWork();
   if(S.placed&&frame&&S.resetAsk){S.resetAsk=false;recenter();}
   if(S.placed&&S.recalAt){
     const r=S.recalAt-performance.now();
