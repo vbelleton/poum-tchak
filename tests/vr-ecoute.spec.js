@@ -45,12 +45,14 @@ test('aperçu VR : les mains fantômes jouent pendant l\'écoute, et on peut les
   // le bouton n'est là qu'avec Écoute puis rejoue ; par défaut, les mains sont visibles
   expect(await page.evaluate(() => window.__gm.vr().menuIds())).toContain('ghost');
   expect((await vr()).ghostOn).toBe(true);
-  // les boutons « Mains » et « Kick » se règlent et sont retenus
-  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('ghost'); v.menuPress('ghostkick'); });
+  // « Fantôme » passe écoute → avec moi → non → écoute ; « Kick » se règle ; tout est retenu
+  expect((await vr()).ghostMode).toBe('ecoute');
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('ghostkick'); v.menuPress('ghost'); v.menuPress('ghost'); });
   expect(await page.evaluate(() => [localStorage.getItem('poumtchak.vr.fantome'), localStorage.getItem('poumtchak.vr.fantomekick')])).toEqual(['non', 'non']);
   expect(await vr()).toMatchObject({ ghostOn: false, ghostKick: false });
+  expect(await page.evaluate(() => window.__gm.vr().menuIds())).not.toContain('ghostkick');
   await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('ghost'); v.menuPress('ghostkick'); });
-  expect(await vr()).toMatchObject({ ghostOn: true, ghostKick: true });
+  expect(await vr()).toMatchObject({ ghostOn: true, ghostKick: true, ghostMode: 'ecoute' });
   await page.evaluate(() => window.__gm.vr().menuPress('play'));
   await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(true);
   // pendant l'écoute, au moins une main fantôme est là, et elle descend jusqu'à la surface à l'instant d'un coup
@@ -66,3 +68,31 @@ test('aperçu VR : les mains fantômes jouent pendant l\'écoute, et on peut les
   expect(pied).toBeGreaterThan(0); // le pied appuie sur la pédale aux coups de grosse caisse
 });
 
+
+test('aperçu VR : « Fantôme : avec moi » joue les notes du chant avec moi, et « Mes mains » montre mes mains', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('index.html?vr=apercu');
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  const vr = () => page.evaluate(() => { const v = window.__gm.vr(); return v && v.debug(); });
+  await expect.poll(async () => (await vr())?.placed).toBe(true);
+  expect((await vr()).handVis).toBe('non');
+  await page.evaluate(() => window.__gm.vr().menuPress('myhands'));
+  expect(await vr()).toMatchObject({ handVis: 'oui' });
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('ghost'); v.menuPress('lvl:facile'); v.menuPress('tol:sansechec'); });
+  expect((await vr()).ghostMode).toBe('avec');
+  expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.fantome'))).toBe('avec');
+  await page.evaluate(() => window.__gm.vr().menuPress('play'));
+  await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(true);
+  expect(await page.evaluate(() => window.__gm.chart().kind)).not.toBe('echo');
+  let minLift = 1, vues = 0, anneaux = 0;
+  for (let i = 0; i < 250; i++) {
+    const d = await vr();
+    if (d.ghost.some((h) => h.v)) { vues++; for (const h of d.ghost) if (h.v) { minLift = Math.min(minLift, h.lift); if (h.ring) anneaux++; } }
+    if (vues > 10 && minLift < 0.05 && anneaux) break;
+    await page.waitForTimeout(15);
+  }
+  expect(vues).toBeGreaterThan(3);
+  expect(minLift).toBeLessThan(0.05);
+  expect(anneaux).toBeGreaterThan(0);
+});
