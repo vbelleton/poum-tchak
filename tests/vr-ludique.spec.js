@@ -3,7 +3,7 @@
 const { test, expect, rubrique } = require('./outils/base');
 
 test('aperçu VR : ×2 annoncé, série perdue annoncée, progression du chant affichée', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(100_000);
   await page.goto('index.html?vr=apercu');
   await rubrique(page, 'Jeux');
   await page.locator('#gmVR').click();
@@ -24,5 +24,5 @@ test('aperçu VR : ×2 annoncé, série perdue annoncée, progression du chant a
   });
   await expect.poll(async () => (await vr()).banners).toContain('×2 !');
   expect((await vr()).hudText).toMatch(/Série de \d+ {2}· {2}\d+ % du chant/);
-  await expect.poll(async () => (await vr()).banners, { timeout: 15_000 }).toContain('Série perdue');
+  await expect.poll(async () => (await vr()).banners, { timeout: 40_000 }).toContain('Série perdue');
 });

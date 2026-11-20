@@ -1073,6 +1073,7 @@ function draw(t){
     const l2=[sc.streak>1?'Série de '+sc.streak:'',prog].filter(Boolean).join('  ·  ')||(S.preview?'P : pause':'B/Y : pause');
     const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:l2,size:3.6,color:'#97A1B2'}];
     if(now<gm.firstT-0.2)lines[1]={t:'Prépare-toi…',size:3.6,color:'#F2BB4A'};
+    {const bm=api.bars&&api.bars();if(bm&&bm.ab)lines[1]={t:'Boucle mesures '+(bm.ab.i+1)+'–'+bm.ab.j+'  ·  tour '+(bm.ab.laps+1)+'  ·  pause : finir la boucle',size:3.6,color:'#7BE3A6'};}
     const duo=api.mainsNow&&api.mainsNow();
     if(duo)lines.splice(1,0,{t:'Gauche '+duo.l+'  ·  Droite '+duo.r,size:4.4,color:'#7BE3A6',weight:800});
     const say=api.exoNow&&api.exoNow();
@@ -1109,9 +1110,17 @@ function menuItems(mode){
   const {api}=S,it=[];
   if(mode==='mini'){it.push({id:'open',x:MW/2-16,y:MH-14,w:32,h:10,txt:'☰ Menu',big:true});return it;}
   if(mode==='pause'){
-    it.push({id:'resume',x:20,y:34,w:MW-40,h:13,txt:'Reprendre',big:true});
-    it.push({id:'restart',x:20,y:51,w:(MW-44)/2,h:10,txt:'Recommencer'});
-    it.push({id:'menu',x:24+(MW-44)/2,y:51,w:(MW-44)/2,h:10,txt:'Arrêter (menu)'});
+    it.push({id:'resume',x:20,y:29,w:MW-40,h:12,txt:'Reprendre',big:true});
+    it.push({id:'restart',x:20,y:44,w:(MW-44)/2,h:9,txt:'Recommencer'});
+    it.push({id:'menu',x:24+(MW-44)/2,y:44,w:(MW-44)/2,h:9,txt:'Arrêter (menu)'});
+    /* travailler un passage : reculer, avancer, boucler sur 4 mesures */
+    const bm=api.bars&&api.bars();
+    if(bm){
+      const w=(MW-44)/3;
+      it.push({id:'bar-',x:20,y:56,w:w,h:9,txt:'« 4 mesures'});
+      it.push({id:'loop4',x:22+w,y:56,w:w,h:9,txt:bm.ab?'Fin de boucle':'↺ Boucle 4',on:!!bm.ab});
+      it.push({id:'bar+',x:24+2*w,y:56,w:w,h:9,txt:'4 mesures »'});
+    }
     return it;
   }
   const o=api.opts(),src=api.sources(),i=Math.max(0,src.findIndex(x=>x.id===o.rh));
@@ -1210,7 +1219,7 @@ function drawMenu(mode){
   const hov=[...S.hover.values()].filter(Boolean);
   const R=S.result,nc=S.checked.size;
   let title='Poum Tchak · VR',status=null,foot=[];
-  if(mode==='pause'){title='Pause';status={t:api.title(),c:'#97A1B2'};foot=[{t:'B/Y ou A/X : reprendre · vise un bouton, gâchette pour choisir',c:'#C9D1DC'}];}
+  if(mode==='pause'){const bm=api.bars&&api.bars();title='Pause';status={t:api.title()+(bm?'  ·  mesure '+(bm.i+1)+'/'+bm.n+(bm.ab?'  ·  boucle '+(bm.ab.i+1)+'–'+bm.ab.j+(bm.ab.laps?' ('+bm.ab.laps+' tours)':''):''):''),c:'#97A1B2'};foot=[{t:'B/Y ou A/X : reprendre · vise un bouton, gâchette pour choisir',c:'#C9D1DC'}];}
   else if(mode==='spin'){
     title='Drumstick Spin';
     status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Mets tes mains devant le casque, mains suivies activées',c:'#97A1B2'};
@@ -1294,6 +1303,8 @@ function menuDo(id){
   if(id==='resume'){pause(false);return;}
   if(id==='restart'){pause(false);api.stop();S.result=null;start(S.kind);return;}
   if(id==='menu'){pause(false);api.stop();return;}
+  if(id==='bar-'||id==='bar+'){api.seekBars(id==='bar+'?4:-4);return;}
+  if(id==='loop4'){const was=api.bars().ab;api.loopHere(4);if(!was)pause(false);return;}
   if(id==='open'){S.mini=false;return;}
   S.result=null;S.msg='';S.recalAt=0;
   if(id==='play'){start();return;}

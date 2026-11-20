@@ -4996,6 +4996,7 @@ function gmStart(song,buffer,opt={}){
   gm.hh=gmHHOn()?gmHHChart(c).filter(n=>n.t>=from-0.03):[];gm.hhNext=0;gm.hhPtr=null;gm.hhSc={n:0,ok:0,x:0};gm.hhFlash=-9;
   gm.nextMiss=ns.findIndex(n=>!n.done);
   gm.firstT=ns[gm.nextMiss].t;gm.from=from;
+  gm.ab=null;gm.seeks=0;
   gm.bi=0;gm.cli=0;gm.clipI=0;gm.count=[];gm.sched=[];gm.countBeat=60/gm.curBpm;
   const step=c.ckStep||GM_CK_STEP;
   gm.ckNext=ck?ck.at+step:0;
@@ -5240,6 +5241,44 @@ function gmFfUi(now){
   $('#gmSkip').hidden=!f;$('#gmFast').hidden=!(f&&!f.only||gm.ffOn);
   $('#gmFast').setAttribute('aria-pressed',String(gm.ffOn));
 }
+/* Aller n'importe où dans le chant, en avant ou en arrière : les notes à partir de là redeviennent à jouer. */
+function gmSeekAny(t){
+  const c=gm.chart;t=Math.max(0,Math.min(t,c.dur-0.5));
+  if(t<gmNow()){
+    gm.cli=0;gm.bi=0;gm.clipI=0;
+    for(const n of c.notes)if(n.t>=t-0.001){n.done=false;delete n.res;delete n.at;}
+  }
+  const k=c.notes.findIndex(n=>n.t>=t-0.001);gm.nextMiss=k<0?c.notes.length:k;
+  gm.ended=false;gm.seeks=(gm.seeks||0)+1;
+  gmSeek(t);
+}
+/* Les mesures du chant (instants de début), et celle où l'on est */
+function gmBarsNow(){
+  const c=gm.chart;if(!c||!c.dur||c.dur===Infinity)return null;
+  let b=c.bars&&c.bars.length>1?c.bars:null;
+  if(!b){b=[];for(let t=c.start||0;t<c.dur;t+=c.barDur)b.push(t);b.push(c.dur);}
+  const now=gmNow()+0.1;let i=0;while(i<b.length-2&&b[i+1]<=now)i++;
+  return {b,i,n:b.length-1};
+}
+/* reculer ou avancer de quelques mesures (on repart une mesure avant, pour voir venir les notes) */
+function gmSeekBars(d){
+  const m=gmBarsNow();if(!m)return;
+  const j=Math.max(0,Math.min(m.n-1,m.i+d));
+  gmSeekAny(m.b[j]);
+  if(gm.ab&&(m.b[j]<gm.ab.A-0.01||m.b[j]>=gm.ab.B))gm.ab=null;
+}
+/* boucle sur len mesures à partir de la mesure en cours ; encore une fois : on arrête la boucle */
+function gmLoopHere(len){
+  if(gm.ab){gm.ab=null;return;}
+  const m=gmBarsNow();if(!m)return;
+  const i=m.i,j=Math.min(m.n,i+len),A=m.b[i],B=m.b[j],lead=Math.min(1.5,(B-A)/(j-i));
+  gm.ab={A,B,i,j,lead,laps:0};
+  gmSeekAny(Math.max(0,A-lead));
+}
+function gmLoopCheck(now){
+  if(gm.ab&&now>=gm.ab.B){gm.ab.laps++;gmSeekAny(Math.max(0,gm.ab.A-gm.ab.lead));return true;}
+  return false;
+}
 function gmSkipNow(){const f=gmFf(gmNow());if(f)gmSeek(f.t);}
 $('#gmSkip').addEventListener('click',gmSkipNow);
 $('#gmFast').addEventListener('click',()=>{
@@ -5448,6 +5487,7 @@ function gmVrStep(){
   if(!gm.on||gm.paused)return;
   gmStallCheck();gmTick();
   const now=gmUpdate();
+  if(gmLoopCheck(now))return;
   if(gm.on&&!gm.ended&&now>gm.chart.dur+0.6){gm.ended=true;gmFinish(false);}
 }
 function gmFrame(){
@@ -5837,7 +5877,7 @@ function gmConfetti(n){
 function gmFinish(fell){
   if(!gm.on)return;
   gmHalt(fell?'jauge':'fin');
-  const sc=gm.sc,p=gmPct(sc),n=sc.perfect+sc.good+sc.approx+sc.miss+sc.extra,slowed=gm.minRate<1,key=gmKey()+(slowed?'|lent':''),ckKey=gmCkKey();
+  const sc=gm.sc,p=gmPct(sc),n=sc.perfect+sc.good+sc.approx+sc.miss+sc.extra,slowed=gm.minRate<1,key=gmKey()+(slowed?'|lent':'')+(gm.seeks?'|travail':''),ckKey=gmCkKey();
   if(!fell)gmCkDrop(ckKey);
   const ck=fell?gmCkGet(ckKey):null;
   const before=gmBest(key);
@@ -6059,6 +6099,9 @@ const vrApi={
     gmGrvList().forEach(x=>L.push({id:x.id,label:'Mon groove : '+x.label}));
     return L;
   },
+  bars(){const m=gm.on&&gmBarsNow();return m?{i:m.i,n:m.n,ab:gm.ab?{i:gm.ab.i,j:gm.ab.j,laps:gm.ab.laps}:null}:null;},
+  seekBars(d){if(gm.on)gmSeekBars(d);},
+  loopHere(len){if(gm.on)gmLoopHere(len);},
   pause(on){
     if(!gm.on)return;
     gm.paused=!!on;
