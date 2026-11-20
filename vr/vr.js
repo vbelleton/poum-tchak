@@ -367,9 +367,15 @@ function ghostPlan(chart,mode){
   if(mode==='avec')for(const n of chart.notes)ev.push({t:n.t,p:S.pads[n.lane]});
   ev.sort((a,b)=>a.t-b.t);
   const per={left:[],right:[],kick:ev.filter(e=>e.p&&e.p.P.kick).map(e=>e.t)};let alt=0;
+  /* trop de notes autour : le charleston passe au pied (pédale), les mains gardent le reste */
+  const dense=t=>ev.reduce((n,e)=>n+(e.p&&!e.p.P.kick&&Math.abs(e.t-t)<0.6?1:0),0)>=4;
+  const foot=new Set();
+  if(S.ghostKick)for(const e of ev)if(e.p&&(e.p.P.id==='tss'||e.p.P.id==='tchaa')&&dense(e.t))foot.add(e.t);
+  per.kick=per.kick.concat([...foot]).sort((a,b)=>a-b);
   for(const e of ev){
     const p=e.p,x={t:e.t};
     if(!p||p.P.kick)continue;
+    if(foot.has(e.t)&&(p.P.id==='tss'||p.P.id==='tchaa'))continue;
     const cx=p.P.bx!=null?p.P.x:p.g.position.x;
     const hand=Math.abs(cx)<0.2?(alt++%2?'left':'right'):cx<0?'left':'right';
     per[hand].push({t:x.t,pad:p});
@@ -1707,7 +1713,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,prise:!!SPIN.loadPrise(),fistPrise:[...FISTS].filter(g=>g.parent&&g.userData.prise).length,ghost:S.ghost?S.ghost.hands.map(h=>({grip:h.fist&&h.fist.userData.gripErr,v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,prise:!!SPIN.loadPrise(),pieds:S.ghost&&S.ghost.plan?S.ghost.plan.kick.length:0,fistPrise:[...FISTS].filter(g=>g.parent&&g.userData.prise).length,ghost:S.ghost?S.ghost.hands.map(h=>({grip:h.fist&&h.fist.userData.gripErr,v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
