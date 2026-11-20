@@ -959,6 +959,15 @@ function draw(t){
     }
   }
   for(;k<S.ticks.length;k++)S.ticks[k].visible=false;
+  /* Écoute puis rejoue : pendant l'écoute, chaque coup de la batterie allume son pad */
+  if(on&&gm.chart&&gm.chart.kind==='echo'){
+    const bk=gm.chart.backing;
+    if(S.ebc!==gm.chart||(S.ebi>0&&bk[S.ebi-1].t>now+0.05)){S.ebc=gm.chart;S.ebi=0;while(S.ebi<bk.length&&bk[S.ebi].t<now-0.05)S.ebi++;}
+    while(S.ebi<bk.length&&bk[S.ebi].t<=now){
+      const x=bk[S.ebi++],id=x.id==='tchaa'?'tss':x.id,p=pads.find(q=>q.P.id===id);
+      if(p){p.hitT=performance.now();S.echoFlashes=(S.echoFlashes||0)+1;}
+    }
+  }
   /* éclats : un anneau qui grandit autour du pad touché */
   const bursts=on?gm.bursts.filter(b=>now-b.t>=0&&now-b.t<0.3):[];
   S.rings.forEach((r,i)=>{
@@ -983,6 +992,12 @@ function draw(t){
     const sc=gm.sc,mult=Math.min(4,1+Math.floor(sc.streak/8));
     const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:sc.streak>1?'Série de '+sc.streak:(S.preview?'P : pause':'B/Y : pause'),size:3.6,color:'#97A1B2'}];
     if(now<gm.firstT-0.2)lines[1]={t:'Prépare-toi…',size:3.6,color:'#F2BB4A'};
+    const ec=api.echoNow&&api.echoNow();
+    if(ec){
+      const t=ec.phase==='listen'?'Écoute…  (regarde les pads)':ec.phase==='count'?'Prêt ?':ec.phase==='play'?'À toi !':'Passage suivant…';
+      lines.splice(1,0,{t:t+(ec.i?'  ·  '+ec.i+'/'+ec.of:''),size:4.4,color:ec.phase==='play'?'#7BE3A6':'#F2BB4A',weight:800});
+      S.echoPhase=ec.phase;
+    }
     const duo=api.mainsNow&&api.mainsNow();
     if(duo)lines.splice(1,0,{t:'Gauche '+duo.l+'  ·  Droite '+duo.r,size:4.4,color:'#7BE3A6',weight:800});
     const say=api.exoNow&&api.exoNow();
@@ -1089,8 +1104,10 @@ function menuItems(mode){
   if(o.songBpm)it.push({t:'val',x:30,y:43,w:MW-35,h:H,txt:'Tempo du chant : '+o.songBpm+' BPM'});
   else pm(43,30,MW-35,'bpm',o.bpm+' BPM');
   row(51,'Grosse caisse');seg(51,'kick',KICKS,o.kick);
-  row(59,'Ralentir');
-  it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
+  row(59,'Mode');
+  {const w=(MW-35)/2;
+   it.push({id:'slow',x:30,y:59,w:w-1.5,h:H,txt:o.slow?'✓ Ralentir si ça coince':'Ralentir si ça coince',on:o.slow});
+   it.push({id:'echo',x:30+w,y:59,w:w-1.5,h:H,txt:(o.echo?'✓ ':'')+'Écoute puis rejoue',on:!!o.echo});}
   row(67,'Aller à');
   it.push({id:'kitmenu',x:30,y:67,w:17,h:H,txt:'Batterie ›'});
   it.push({id:'exomenu',x:48.5,y:67,w:19,h:H,txt:'Exercices ›'});
@@ -1234,6 +1251,7 @@ function menuDo(id){
   else if(id==='dist-'||id==='dist+'){setDist(S.dOff+(id==='dist+'?0.1:-0.1));S.msg='';}
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
+  else if(id==='echo')api.set('echo',!o.echo);
   else{
     const [k,v]=id.split(':');
     if(k==='style')setStyle(v);
@@ -1330,7 +1348,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),echoFlashes:S.echoFlashes||0,echoPhase:S.echoPhase||'',shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
