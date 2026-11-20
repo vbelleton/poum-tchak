@@ -1946,9 +1946,10 @@ function gmEchoCut(round,pass,bar,nBars){
 /* Une manche : compte, motif entendu deux fois, compte, deux passages à reproduire, bilan. Les motifs
    les plus simples viennent d'abord. Sur « Peu », seul le rythme compte : une zone, un doigt.
    src : bars (débuts + fin), perBar, notes à reproduire, others (le reste de l'accompagnement). */
-function gmEchoChart(src,lvl,total,keepClick,withSong,len){
+function gmEchoChart(src,lvl,total,keepClick,withSong,len,keepLanes){
   const bars=src.bars,nb=bars.length-1,inBar=(list,a,b)=>list.filter(n=>n.t>=a-0.02&&n.t<b-0.02);
-  const one=lvl==='facile',maxPer=lvl==='moyen'?10:14;
+  /* keepLanes (casque) : chaque note garde son pad, même au niveau facile */
+  const one=lvl==='facile'&&!keepLanes,maxPer=lvl==='moyen'?10:14;
   const sig=(i,n)=>{const a=bars[i],L=bars[i+n]-a;return inBar(src.notes,a,bars[i+n]).map(x=>Math.round((x.t-a)/L*16)+':'+(one?0:x.lane)).join(',');};
   const fits=(i,n)=>{if(i+n>nb)return false;const c=inBar(src.notes,bars[i],bars[i+n]).length;return c>=2&&c<=maxPer*n;};
   const picks=[],seen=new Set();
@@ -4891,6 +4892,13 @@ function gmBuild(song){
     const s=gmSource(),c=gmChart(s.bars,s.meter,gm.bpm,s.swing,'rebonds',gm.lvl,s.bars.length);
     return gmEchoChart({bars:c.bars,perBar:METERS[s.meter].beats,notes:c.notes,others:c.backing},gm.lvl,6,keep,null,gm.eLen);
   }
+  /* casque, « Écoute puis rejoue » : la batterie joue un passage deux fois (les pads s'allument), puis on le rejoue */
+  if(gm.game==='vr'&&vrEcho){
+    const keep=gm.click==='toujours';
+    if(song){const c=gmSongChart(song,'vr',gm.lvl);return gmEchoChart({bars:c.bars,perBar:4,notes:c.notes},gm.lvl,gm.eLen>2?6:10,keep,gm.echoSong,gm.eLen,true);}
+    const s=gmSource(),c=gmChart(s.bars,s.meter,gm.bpm,s.swing,'vr',gm.lvl,s.bars.length);
+    return gmEchoChart({bars:c.bars,perBar:METERS[s.meter].beats,notes:c.notes,others:c.backing},gm.lvl,6,keep,null,gm.eLen,true);
+  }
   if(song)return gmSongChart(song,gm.game,gm.lvl);
   const s=gmSource();return gmChart(s.bars,s.meter,gm.bpm,s.swing,gm.game,gm.lvl);
 }
@@ -5919,7 +5927,8 @@ gmRender();gmLoadSongs().then(gmWhySay);
    ?vr=apercu montre la scène sur un écran d'ordinateur, pour essayer sans casque. */
 gm.vr=false;gm.vrPrev='couloirs';gm.paused=false;
 /* La grosse caisse sans batterie : à la gâchette, jouée toute seule, ou d'un coup de tête. */
-const VR_KICK_KEY='poumtchak.vr.grossecaisse';
+const VR_KICK_KEY='poumtchak.vr.grossecaisse',VR_ECHO_KEY='poumtchak.vr.ecoute';
+let vrEcho=false;try{vrEcho=localStorage.getItem(VR_ECHO_KEY)==='1';}catch(e){}
 /* la gâchette gauche en charleston au pied se cumule avec n'importe quelle grosse caisse (gâchette, automatique, tête).
    L'ancien choix « charley » (exclusif) devient : gâchette + charleston au pied. */
 const VR_HHF_KEY='poumtchak.vr.charleypied';
@@ -6099,6 +6108,13 @@ const vrApi={
     gmGrvList().forEach(x=>L.push({id:x.id,label:'Mon groove : '+x.label}));
     return L;
   },
+  /* Écoute puis rejoue : où en est-on ? écoute (la batterie joue) ou à toi, manche i sur n */
+  echoNow(){
+    const c=gm.chart;if(!gm.on||!c||c.kind!=='echo')return null;
+    const now=gmNow(),k=c.rounds.findIndex(r=>now>=r.t-0.05&&now<r.end+0.3);
+    if(k<0)return {phase:'pause',i:0,of:c.rounds.length};
+    const r=c.rounds[k];return {phase:now<r.count2?'listen':now<r.play?'count':'play',n:r.n,i:k+1,of:c.rounds.length};
+  },
   bars(){const m=gm.on&&gmBarsNow();return m?{i:m.i,n:m.n,ab:gm.ab?{i:gm.ab.i,j:gm.ab.j,laps:gm.ab.laps}:null}:null;},
   seekBars(d){if(gm.on)gmSeekBars(d);},
   loopHere(len){if(gm.on)gmLoopHere(len);},
@@ -6107,7 +6123,7 @@ const vrApi={
     gm.paused=!!on;
     if(on)ctx.suspend().catch(()=>{});else ctx.resume().catch(()=>{});
   },
-  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,hhFoot:vrHHFoot,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,hhFoot:vrHHFoot,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,echo:vrEcho,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
   set(k,v){
     if(gm.on)return;
     if(k==='rh'&&typeof v==='string'){if(v.startsWith('pl:'))plsStart(v.slice(3));else{gm.rh=v;gm.pl=null;}}
@@ -6115,6 +6131,7 @@ const vrApi={
     else if(k==='tol'&&GM_TOL[v])gm.tol=v;
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
     else if(k==='slow')gm.slow=!!v;
+    else if(k==='echo'){vrEcho=!!v;try{localStorage.setItem(VR_ECHO_KEY,vrEcho?'1':'0');}catch(e){}}
     else if(k==='sound'&&SOUNDS[v])setSound(v,true);
     else if(k==='kick'&&['gachette','charley','auto','tete'].includes(v)){if(v==='charley'){v='gachette';vrHHFoot=true;}vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);localStorage.setItem(VR_HHF_KEY,vrHHFoot?'1':'0');}catch(e){}}
     else if(k==='hhFoot'){vrHHFoot=!!v;try{localStorage.setItem(VR_HHF_KEY,vrHHFoot?'1':'0');}catch(e){}}
