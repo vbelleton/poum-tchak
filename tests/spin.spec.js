@@ -125,3 +125,28 @@ test('Drumstick Spin : en aperçu (sans casque), un message dit qu\'il faut un c
   expect(await page.evaluate(() => window.__gm.vr().spinDebug())).toBeNull();
   expect(await page.evaluate(() => window.__gm.vr().state().focus)).toBe('spinstart');
 });
+
+test('Spin › Ma prise : les deux mains immobiles 2 s, la prise est gardée et les mains du jeu la reprennent', async ({ page }) => {
+  test.setTimeout(60_000);
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmTol').getByRole('button', { name: 'Indulgent' }).click();
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await vr(page))?.placed).toBe(true);
+  expect((await vr(page)).prise).toBe(false);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('spinmenu'); v.menuPress('spinprise'); });
+  await expect.poll(async () => (await vr(page))?.spinInfo?.trick).toBe('prise');
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'hand'; });
+  await expect.poll(async () => (await vr(page)).spinInfo.prise, { timeout: 15_000 }).toBe(true);
+  const cap = await page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.vr.prise')));
+  for (const side of ['left', 'right']) {
+    expect(Object.keys(cap[side]).length).toBe(25);
+    // les articulations restent près de la baguette (repère du support, en mètres)
+    for (const v of Object.values(cap[side])) expect(Math.hypot(v[0], v[1], v[2])).toBeLessThan(0.25);
+  }
+  await page.evaluate(() => { window.__dev.primaryInputMode = 'controller'; });
+  await page.waitForTimeout(200);
+  await bouton(page, 'right', 'b-button');
+  await expect.poll(async () => (await vr(page))?.spin).toBe(false);
+  expect((await vr(page)).prise).toBe(true);
+  await expect.poll(async () => (await vr(page)).fistPrise, { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
+});

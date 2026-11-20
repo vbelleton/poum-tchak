@@ -243,6 +243,9 @@ function buildFistShape(side,mat){
   cap(0.028,0.17,0.034,-0.05,0.19,Math.PI/2+0.35,0,0,1,1,0.85);
   return g;
 }
+const FISTS=new Set();
+/* après Spin › Ma prise : les mains déjà là reprennent la nouvelle prise */
+function refreshFists(){for(const g of FISTS){if(!g.parent){FISTS.delete(g);continue;}if(g.userData.apply)g.userData.apply();}}
 function buildFist(holder,side,mat){
   const g=new THREE.Group();g.name='poing';
   const fb=buildFistShape(side,mat);g.add(fb);
@@ -257,6 +260,14 @@ function buildFist(holder,side,mat){
     const w=new THREE.Group();w.matrixAutoUpdate=false;
     g.userData.gripErr=gripPose(m,B,side,w.matrix);
     w.add(m);fb.visible=false;g.add(w);
+    /* ta vraie prise, enregistrée dans Spin › Ma prise : elle remplace la prise calculée */
+    g.userData.apply=()=>{
+      const cap=SPIN.loadPrise(),cp=cap&&cap[side];if(!cp)return;
+      for(const n in cp){const b=B[n],v=cp[n];if(!b)continue;b.position.set(v[0],v[1],v[2]);b.quaternion.set(v[3],v[4],v[5],v[6]);}
+      m.position.set(0,0,0);m.quaternion.identity();m.scale.set(1,1,1);w.matrix.identity();
+      g.userData.prise=true;
+    };
+    g.userData.apply();FISTS.add(g);
   },undefined,()=>{});
   return g;
 }
@@ -1394,8 +1405,8 @@ function menuItems(mode){
   }
   if(mode==='spin'){
     [['spinthumb','Thumb Around'],['spinrev','Reverse Thumb Around'],['spintwirl','Entre les doigts'],['spinmoul','Moulinet'],
-     ['spinreb','Rebond (main ouverte, puis doigts)'],['spinstart','Pratique libre']].forEach(([id,txt],i)=>
-      it.push({id,x:30,y:16+i*8,w:MW-60,h:7,txt,big:id!=='spinstart'}));
+     ['spinreb','Rebond (main ouverte, puis doigts)'],['spinprise','Ma prise (pour les mains du jeu)'],['spinstart','Pratique libre']].forEach(([id,txt],i)=>
+      it.push({id,x:30,y:15+i*7,w:MW-60,h:6,txt,big:id!=='spinstart'}));
     it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
@@ -1567,6 +1578,7 @@ function menuDo(id){
   if(id==='spinreb'||id==='spinrebond'){startSpin('rebond');return;}
   if(id==='spinmoul'){startSpin('moulinet');return;}
   if(id==='spintwirl'){startSpin('twirl');return;}
+  if(id==='spinprise'){startSpin('prise');return;}
   if(id==='back'){subBack();return;}
   if(id==='mplay'){start(true);return;}
   if(id==='mchain'){api.setMains('chain',!api.mainsOpts().chain);return;}
@@ -1612,7 +1624,7 @@ function startSpin(trick){
 }
 function stopSpin(){
   if(!S.spin)return;
-  S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';
+  S.spin.dispose();S.spin=null;S.kit.visible=true;S.focus='play';refreshFists();
   for(const st of S.sticks)if(st.holder)st.holder.visible=true;
   /* un bouton encore enfoncé au retour ne compte pas : il faut le relâcher d'abord */
   for(const st of S.sticks)S.btnPrev.set(st,new Array(16).fill(true));
@@ -1695,7 +1707,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({grip:h.fist&&h.fist.userData.gripErr,v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,prise:!!SPIN.loadPrise(),fistPrise:[...FISTS].filter(g=>g.parent&&g.userData.prise).length,ghost:S.ghost?S.ghost.hands.map(h=>({grip:h.fist&&h.fist.userData.gripErr,v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
