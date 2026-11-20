@@ -6113,6 +6113,13 @@ const vrApi={
     return pr.s.filter(x=>x.g==='jeux'&&x.game===gm.game&&x.rh===gm.rh&&x.lvl===gm.lvl).slice(-12)
       .map(x=>({pct:x.pct,score:x.score,d:x.d,lent:!!x.lent}));
   },
+  /* y a-t-il, tout près de cet instant, une note attendue (pas encore jouée) sur ce couloir ? sert à départager deux pads voisins */
+  expects(lane,at,win){
+    if(!gm.on||!gm.chart||!gm.chart.notes)return false;
+    const ns=gm.chart.notes,w=win||0.18;
+    for(let i=Math.max(0,gm.nextMiss-2);i<ns.length&&ns[i].t<at+w;i++)if(!ns[i].done&&ns[i].lane===lane&&ns[i].t>at-w)return true;
+    return false;
+  },
   /* Écoute puis rejoue : où en est-on ? écoute (la batterie joue) ou à toi, manche i sur n */
   echoNow(){
     const c=gm.chart;if(!gm.on||!c||c.kind!=='echo')return null;
