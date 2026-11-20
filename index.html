@@ -893,6 +893,10 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
 .gm-more[open]>summary::after{transform:rotate(90deg)}
 .gm-more>summary small{display:block;font-weight:500;color:var(--muted);font-size:13px}
 .gm-more>.gm-opts{padding:0 16px 16px}
+/* Bulles d'aide « ? » */
+.qm{appearance:none;flex:none;width:28px;height:28px;padding:0;margin-left:6px;border-radius:50%;border:1px solid var(--line);background:var(--acc-soft);color:var(--acc);font:800 14px/1 var(--f-body);cursor:pointer;touch-action:manipulation;vertical-align:middle}
+.qm[aria-expanded="true"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.qm-txt{display:block;flex-basis:100%;margin:6px 0 8px;padding:10px 12px;border-radius:12px;background:var(--acc-soft);color:var(--ink);font-size:14px;line-height:1.4;max-width:62ch}
 </style>
 </head>
 <body>
@@ -995,7 +999,7 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     <button type="button" class="btn ghost gm-how" id="gmHow"></button>
     <details class="gm-more" id="gmMore"><summary><span>Plus d'options<small>Vitesse, difficulté, droit à l'erreur, batterie électronique…</small></span></summary>
     <div class="gm-opts">
-      <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p><button type="button" class="tog" id="gmHHBtn" aria-pressed="false" style="margin-top:8px">Avec le charley</button><p class="hint" id="gmHHHint" style="margin:6px 0 0"></p></div>
+      <div id="gmCtlRow"><span class="lab" id="lab-gmCtl" data-help="Comment tu joues : avec les doigts sur l'écran, ou avec ta batterie électronique.">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p><button type="button" class="tog" id="gmHHBtn" aria-pressed="false" style="margin-top:8px">Avec le charley</button><p class="hint" id="gmHHHint" style="margin:6px 0 0"></p></div>
       <div><label class="lab" for="gmFree">Chants libres, prêts à jouer</label><select class="sm" id="gmFree" style="width:100%"></select><p class="hint" style="margin:6px 0 0">De vraies chansons d'une minute, sous licence libre, avec leur batterie. Rien à importer. Le tempo est indiqué pour chacune, du plus lent au plus rapide.</p></div>
       <div><span class="lab" id="lab-gmCh">Mes chants</span><input type="search" id="gmChQ" placeholder="Chercher un chant…" autocomplete="off" aria-label="Chercher un chant" style="width:100%;margin:0 0 6px" hidden><p class="hint" id="gmChN" style="margin:0 0 6px" hidden></p><div class="pick gm-ch" id="gmCh" role="group" aria-labelledby="lab-gmCh"></div>
         <div class="row" style="margin-top:8px">
@@ -1013,9 +1017,9 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
         </div>
       </div>
       <div><span class="lab" id="lab-gmRh">Rythmes</span><div class="pick" id="gmRh" role="group" aria-labelledby="lab-gmRh"></div></div>
-      <div><span class="lab" id="lab-gmLv">Difficulté : nombre de notes</span><div class="seg" id="gmLv" role="group" aria-labelledby="lab-gmLv"></div><p class="hint" id="gmLvHint" style="margin:6px 0 0" hidden></p></div>
-      <div><span class="lab" id="lab-gmTol">Droit à l'erreur</span><div class="seg" id="gmTol" role="group" aria-labelledby="lab-gmTol"></div><p class="hint" id="gmTolHint" style="margin:6px 0 0"></p></div>
-      <div id="gmTempoRow"><span class="lab" id="lab-gmBpm">Vitesse</span><div class="gm-tempo" role="group" aria-labelledby="lab-gmBpm">
+      <div><span class="lab" id="lab-gmLv" data-help="Peu de notes, c'est plus facile. Beaucoup de notes, c'est le rythme complet.">Difficulté : nombre de notes</span><div class="seg" id="gmLv" role="group" aria-labelledby="lab-gmLv"></div><p class="hint" id="gmLvHint" style="margin:6px 0 0" hidden></p></div>
+      <div><span class="lab" id="lab-gmTol" data-help="Combien d'erreurs avant que la jauge se vide. « Sans échec » : la partie ne s'arrête jamais.">Droit à l'erreur</span><div class="seg" id="gmTol" role="group" aria-labelledby="lab-gmTol"></div><p class="hint" id="gmTolHint" style="margin:6px 0 0"></p></div>
+      <div id="gmTempoRow"><span class="lab" id="lab-gmBpm" data-help="BPM veut dire « battements par minute » : plus le nombre est grand, plus ça va vite. 60 BPM, c'est un battement par seconde.">Vitesse</span><div class="gm-tempo" role="group" aria-labelledby="lab-gmBpm">
         <button type="button" id="gmDown" aria-label="Ralentir">−</button><output id="gmBpm"></output><button type="button" id="gmUp" aria-label="Accélérer">+</button>
       </div></div>
       <div id="gmEchoSongRow"><span class="lab" id="lab-gmEchoSong">Chant pendant que tu rejoues</span><div class="seg" id="gmEchoSong" role="group" aria-labelledby="lab-gmEchoSong"></div><p class="hint" id="gmEchoSongHint" style="margin:6px 0 0"></p></div>
@@ -1023,7 +1027,7 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
       <div id="gmEPRow"><div class="gm-opts" id="gmEPBox" style="margin:0"></div><p class="hint" style="margin:6px 0 0" id="gmEPHint"></p></div>
       <div id="gmClickRow"><span class="lab" id="lab-gmClick">Métronome</span><div class="seg" id="gmClick" role="group" aria-labelledby="lab-gmClick"></div><p class="hint" id="gmClickHint" style="margin:6px 0 0"></p></div>
       <div><button type="button" class="tog" id="gmSlowBtn" aria-pressed="false">Ralentir quand ça coince</button><p class="hint" style="margin:6px 0 0">Si tu rates plusieurs coups, la partie ralentit par paliers, jusqu'à 70 %, puis revient quand tu suis. Sur un chant, le son descend un peu avec la vitesse. Les points comptent à part pour les records.</p></div>
-      <div><button type="button" class="tog" id="gmMidi" aria-pressed="false">Batterie MIDI</button></div>
+      <div><button type="button" class="tog" id="gmMidi" aria-pressed="false" data-help="Si tu as une batterie électronique, branche-la au téléphone avec un câble USB, puis allume ce bouton : tes vraies frappes comptent.">Batterie électronique (MIDI)</button></div>
     </div>
     </details>
     <div class="gm-cta">
@@ -1031,7 +1035,7 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
       <button type="button" class="btn gm-resume" id="gmResume" hidden></button>
       <button type="button" class="btn gm-go" id="gmGo">Jouer</button>
       <button type="button" class="btn ghost gm-go" id="gmVR" hidden>Jouer en VR</button>
-      <p class="hint" id="gmVRHint" hidden>Dans un casque (Meta Quest) : une batterie en 3D, les manettes sont tes baguettes et la gâchette fait la grosse caisse. Avec « Batterie MIDI » allumé, ta vraie batterie compte aussi, pédale comprise. Le chant ou le rythme choisi ici, au nombre de notes choisi.</p>
+      <p class="hint" id="gmVRHint" hidden>Dans un casque (Meta Quest) : une batterie en 3D, les manettes sont tes baguettes et la gâchette fait la grosse caisse. Avec « Batterie électronique (MIDI) » allumé, ta vraie batterie compte aussi, pédale comprise. Le chant ou le rythme choisi ici, au nombre de notes choisi.</p>
       <p class="msg" id="gmMsg" role="status"></p>
     </div>
   </section>
@@ -1042,8 +1046,8 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     <p class="hint first">Touche les cases pour écrire ton rythme, ou pioche un modèle, puis appuie sur lecture en bas de l'écran.</p>
     <div id="slot-rythme"><div id="rhythmCtl">
     <div class="ctrl">
-      <div class="seg" id="meterSeg" role="group" aria-label="Mesure"></div>
-      <div class="seg" id="swingSeg" role="group" aria-label="Balancement">
+      <div class="seg" id="meterSeg" role="group" aria-label="Mesure" data-help="La mesure, c'est le nombre de temps d'un petit bout de rythme. 4/4 : quatre temps, le plus courant, comme « 1, 2, 3, 4 »."></div>
+      <div class="seg" id="swingSeg" role="group" aria-label="Balancement" data-help="Droit : les notes sont bien régulières. Ternaire : un petit balancement, comme dans le shuffle ou le blues.">
         <button type="button" data-v="0">Droit</button>
         <button type="button" data-v="1">Ternaire</button>
       </div>
@@ -1111,12 +1115,12 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     <p class="hint">Choisis un chant et une mesure de départ : le passage tourne jusqu'à ce que tu quittes, sans jauge d'erreurs. Après chaque tour, tu vois ta précision.</p>
     <div class="gm-opts" id="lpBox">
       <div><label class="lab" for="lpSong">Chant</label><select class="sm" id="lpSong"></select></div>
-      <div id="lpStartRow"><label class="lab" for="lpBar">Mesure de départ</label><div class="lp-bar">
+      <div id="lpStartRow"><label class="lab" for="lpBar">Commencer à la mesure</label><div class="lp-bar">
         <button type="button" id="lpDown" aria-label="Mesure précédente">−</button><input type="number" id="lpBar" inputmode="numeric" min="1" step="1"><button type="button" id="lpUp" aria-label="Mesure suivante">+</button></div>
         <p class="hint" id="lpWhere" style="margin:6px 0 0"></p></div>
-      <div><span class="lab" id="lab-lpLen">Longueur de la boucle</span><div class="seg" id="lpLen" role="group" aria-labelledby="lab-lpLen"></div></div>
-      <div><span class="lab" id="lab-lpLv">Nombre de notes</span><div class="seg" id="lpLv" role="group" aria-labelledby="lab-lpLv"></div></div>
-      <div class="row"><button type="button" class="tog" id="lpMidi" aria-pressed="false">Batterie MIDI</button><button type="button" class="tog" id="lpSlowBtn" aria-pressed="false">Ralentir quand ça coince</button></div>
+      <div><span class="lab" id="lab-lpLen" data-help="Combien de mesures tournent en boucle avant de recommencer.">Combien de mesures répéter</span><div class="seg" id="lpLen" role="group" aria-labelledby="lab-lpLen"></div></div>
+      <div><span class="lab" id="lab-lpLv" data-help="Peu de notes, c'est plus facile. Beaucoup de notes, c'est le rythme complet.">Difficulté : nombre de notes</span><div class="seg" id="lpLv" role="group" aria-labelledby="lab-lpLv"></div></div>
+      <div class="row"><button type="button" class="tog" id="lpMidi" aria-pressed="false" data-help="Si tu as une batterie électronique, branche-la au téléphone avec un câble USB, puis allume ce bouton : tes vraies frappes comptent.">Batterie électronique (MIDI)</button><button type="button" class="tog" id="lpSlowBtn" aria-pressed="false">Ralentir quand ça coince</button></div>
       <div class="row"><button type="button" class="btn" id="lpGo">Boucler ce passage</button><button type="button" class="btn ghost" id="lpImp">Importer des chants</button></div>
     </div>
     <p class="msg" id="lpMsg" role="status"></p>
@@ -1131,7 +1135,7 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     </ol>
     <p class="msg" id="drillMsg" role="status"></p>
 
-    <h3>Tempo progressif</h3>
+    <h3 data-help="Le tempo monte tout seul un peu à chaque tour : idéal pour apprendre à aller plus vite sans stress.">Accélérer petit à petit</h3>
     <label class="chk"><input type="checkbox" id="rampOn"><span>Accélérer tout seul pendant la lecture</span></label>
     <div class="row opts">
       <span class="opt"><label for="rampAdd">Monter de</label>
@@ -1141,7 +1145,7 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     </div>
     <p class="hint">À l'arrêt, le tempo revient à sa valeur de départ. Il ne dépasse pas 220 BPM.</p>
 
-    <h3>Mesures muettes</h3>
+    <h3 data-help="Le son se coupe de temps en temps : tu continues dans ta tête, pour travailler ton horloge intérieure.">Mesures muettes (silence)</h3>
     <label class="chk"><input type="checkbox" id="silOn"><span>Couper le son par moments pour tester ton horloge interne</span></label>
     <div class="row opts">
       <span class="opt"><label for="silEvery">Couper</label>
@@ -1181,7 +1185,7 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     </div>
     <p class="hint" id="mnViewTxt"></p>
     <div class="ctrl">
-      <div class="seg" id="mnWay" role="group" aria-label="Façon de travailler">
+      <div class="seg" id="mnWay" role="group" aria-label="Façon de travailler" data-help="Ensemble : les deux mains jouent. Une main, puis l'autre : tu travailles chaque main seule, puis les deux. Main ancre : une main garde un rythme simple pendant que l'autre varie.">
         <button type="button" data-v="ensemble">Ensemble</button>
         <button type="button" data-v="empiler">Une main, puis l'autre</button>
         <button type="button" data-v="ancre">Main ancre</button>
@@ -1189,12 +1193,12 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     </div>
     <p class="hint mn-way" id="mnWayTxt"></p>
     <div class="ctrl">
-      <div class="seg" id="mnModel" role="group" aria-label="Ce que joue l'appli">
+      <div class="seg" id="mnModel" role="group" aria-label="Ce que joue l'appli" data-help="Modèle + clic : l'appli joue le rythme et le clic. Clic seul : c'est toi qui fais le son. Sans son : silence complet.">
         <button type="button" data-v="tout">Modèle + clic</button>
         <button type="button" data-v="clic">Clic seul</button>
         <button type="button" data-v="rien">Sans son</button>
       </div>
-      <button type="button" class="btn ghost" id="mnMidi" aria-pressed="false">Batterie MIDI</button>
+      <button type="button" class="btn ghost" id="mnMidi" aria-pressed="false" data-help="Si tu as une batterie électronique, branche-la au téléphone avec un câble USB, puis allume ce bouton : tes vraies frappes comptent.">Batterie électronique (MIDI)</button>
       <button type="button" class="btn ghost" id="mnCal">Caler</button>
     </div>
     <label class="chk"><input type="checkbox" id="mnWalk"><span>Enchaîner les 16 duos (de 1 contre 1 à 4 contre 4), 2 mesures chacun</span></label>
@@ -1354,8 +1358,8 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     <div class="seg" id="rgSound" role="group" aria-label="Son de la batterie">
       <button type="button" data-v="synth">Synthé</button><button type="button" data-v="kit">Batterie</button><button type="button" data-v="rock">Rock</button><button type="button" data-v="jazz">Jazz</button><button type="button" data-v="electro">Électro</button>
     </div>
-    <h3 class="rg-h">Batterie électronique</h3>
-    <p class="hint">Tu as une batterie électronique ? Branche-la au téléphone avec un câble USB, puis touche « Batterie MIDI » dans le jeu ou l'exercice que tu lances.</p>
+    <h3 class="rg-h">Batterie électronique (MIDI)</h3>
+    <p class="hint">Tu as une batterie électronique ? Branche-la au téléphone avec un câble USB. Ensuite, dans le jeu ou l'exercice que tu lances, allume « Batterie électronique (MIDI) » : c'est le même bouton partout. Sur iPhone, ouvre l'appli dans le navigateur « Web MIDI Browser ».</p>
     <h3 class="rg-h">Message de bienvenue</h3>
     <div class="row"><button type="button" class="btn ghost" id="rgHello">Le revoir sur l'accueil</button></div>
   </section>
@@ -7846,6 +7850,16 @@ document.querySelectorAll('.ac-tile').forEach(b=>b.addEventListener('click',()=>
   more.open=o;
   more.addEventListener('toggle',()=>{try{localStorage.setItem('poumtchak.jeux.plus',more.open?'1':'0');}catch(e){}});
 }
+/* Bulles d'aide : chaque [data-help] reçoit un petit « ? » qui explique le mot en une phrase. */
+document.querySelectorAll('[data-help]').forEach(e=>{
+  const b=document.createElement('button');b.type='button';b.className='qm';b.textContent='?';b.setAttribute('aria-expanded','false');
+  b.setAttribute('aria-label','Explication : '+(e.getAttribute('aria-label')||e.textContent.trim()));
+  const inside=e.tagName==='H3'||e.classList.contains('lab');
+  if(inside)e.appendChild(b);else e.after(b);
+  const p=document.createElement('p');p.className='qm-txt';p.setAttribute('role','note');p.hidden=true;p.textContent=e.dataset.help;
+  (inside?e:b).after(p);
+  b.addEventListener('click',()=>{p.hidden=!p.hidden;b.setAttribute('aria-expanded',String(!p.hidden));});
+});
 $('#rgSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
 acRender();
 fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();renderCal();
