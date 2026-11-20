@@ -329,3 +329,24 @@ test('casque Quest 2 simulé : voir mes mains autour des baguettes (Ma batterie)
   await page.evaluate(() => window.__gm.vr().menuPress('hv:non'));
   expect((await vr(page)).fists).toBe(0);
 });
+
+test('casque Quest 2 simulé : pendant un chant, la batterie ne bouge pas (poignées, sticks)', async ({ page }) => {
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await vr(page))?.placed).toBe(true);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('lvl:facile'); v.menuPress('tol:sansechec'); v.menuPress('play'); });
+  await expect.poll(async () => (await vr(page)).kitLocked).toBe(true);
+  const avant = await vr(page);
+  // les deux poignées serrées en levant les mains : en jeu, la hauteur ne suit pas
+  await page.evaluate(() => { for (const m of ['left', 'right']) window.__dev.controllers[m].updateButtonValue('squeeze', 1); });
+  await page.waitForTimeout(150);
+  await page.evaluate(() => { for (const m of ['left', 'right']) { const p = window.__dev.controllers[m].position; p.set(p.x, p.y + 0.2, p.z); } });
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { for (const m of ['left', 'right']) window.__dev.controllers[m].updateButtonValue('squeeze', 0); });
+  // les sticks ne déplacent ni ne tournent la batterie
+  await page.evaluate(() => { window.__dev.controllers.left.updateAxes('thumbstick', 0, -1); window.__dev.controllers.right.updateAxes('thumbstick', 1, 0); });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { window.__dev.controllers.left.updateAxes('thumbstick', 0, 0); window.__dev.controllers.right.updateAxes('thumbstick', 0, 0); });
+  const apres = await vr(page);
+  expect([apres.hOff, apres.moved, apres.turns]).toEqual([avant.hOff, avant.moved, avant.turns]);
+});

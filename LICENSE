@@ -22,6 +22,11 @@ accord écrit :
 
 Ces éléments restent sous leur propre licence, que cette page ne change pas :
 - vr/three.module.min.js : three.js, licence MIT (voir vr/three-LICENSE.txt).
+- vr/hands/af-left.glb et vr/hands/af-right.glb : modèles de main du projet
+  A-Frame (dépôt aframevr/assets, controllers/hands/*HandHigh.glb), diffusés
+  avec A-Frame (licence MIT, https://github.com/aframevr/aframe).
+- vr/hands/left.glb et vr/hands/right.glb : modèle « generic-hand » de
+  WebXR Input Profiles (immersive-web), licence MIT.
 - Les sons de batterie intégrés à index.html (window.__KIT) : Web Audio
   Samples, équipe Chrome Web Audio, licence Apache 2.0
   (https://www.apache.org/licenses/LICENSE-2.0). Le charleston ouvert et le
