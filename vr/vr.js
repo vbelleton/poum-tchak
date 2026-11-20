@@ -247,79 +247,16 @@ function buildFist(holder,side,mat){
   const g=new THREE.Group();g.name='poing';
   const fb=buildFistShape(side,mat);g.add(fb);
   g.visible=!!mat||S.handVis==='oui';holder.add(g);
-  /* la main : modèle de main en poing (celui des exemples A-Frame, vr/hands/af-*.glb), la baguette passe dans le poing */
-  new GLTFLoader().load('./vr/hands/af-'+(side==='left'?'left':'right')+'.glb',gl=>{
+  /* la main : une vraie main texturée (avatar Microsoft Rocketbox, licence MIT), avec la manche, préparée
+     une fois pour toutes les doigts refermés sur une baguette (vr/hands/rb-*.glb, déjà dans le repère de la baguette) */
+  new GLTFLoader().load('./vr/hands/rb-'+(side==='left'?'left':'right')+'.glb',gl=>{
     if(!g.parent)return;
-    const m=gl.scene,hm=mat?mat.clone():handSkin();if(mat)hm.depthWrite=true;
-    m.traverse(o=>{if(o.isMesh){o.material=hm;o.frustumCulled=false;}});
-    const clip=gl.animations.find(c=>c.name===HAND_FIST.clip)||gl.animations[0];
-    if(clip){const mx=new THREE.AnimationMixer(m),act=mx.clipAction(clip);act.play();mx.setTime(clip.duration*0.999);}
-    const w=new THREE.Group();w.matrixAutoUpdate=false;
-    g.userData.gripErr=fistPose(m,side,w.matrix);
-    addForearm(m,hm);
-    w.add(m);fb.visible=false;g.add(w);
+    const m=gl.scene;
+    m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.userData.orig=o.material;if(mat){const gm=mat.clone();gm.depthWrite=true;o.material=gm;}}});
+    g.userData.model=true;
+    fb.visible=false;g.add(m);
   },undefined,()=>{});
   return g;
-}
-/* Le modèle s'arrête juste après le poignet : on prolonge la coupe par un avant-bras de la même forme,
-   pour qu'on ne voie pas le bout coupé depuis ses propres yeux. */
-function addForearm(m,mat){
-  m.updateMatrixWorld(true);
-  let sk=null;const B={};m.traverse(o=>{if(o.isSkinnedMesh)sk=o;if(o.isBone)B[o.name]=o;});
-  const P=nm=>B[nm]?B[nm].getWorldPosition(new THREE.Vector3()):null;
-  const K=new THREE.Vector3(),ks=['F1a','F2a','F3a','F4a'].map(P).filter(Boolean);if(!sk||!ks.length)return;
-  ks.forEach(v=>K.add(v));K.multiplyScalar(1/ks.length);
-  /* les sommets les plus loin des jointures forment la coupe */
-  const pos=sk.geometry.attributes.position,v=new THREE.Vector3(),pts=[];
-  sk.updateMatrixWorld(true);
-  for(let i=0;i<pos.count;i++){sk.getVertexPosition(i,v);v.applyMatrix4(sk.matrixWorld);pts.push(v.clone());}
-  /* l'avant-bras du modèle suit son axe le plus long ; on prend le bout le plus loin des jointures */
-  const bb=new THREE.Box3().setFromPoints(pts),sz=bb.getSize(new THREE.Vector3());
-  const u=sz.z>=sz.x&&sz.z>=sz.y?new THREE.Vector3(0,0,1):sz.x>=sz.y?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0);
-  {const mid=bb.getCenter(new THREE.Vector3());if(mid.clone().sub(K).dot(u)<0)u.negate();}
-  let tMax=-1e9;for(const p of pts)tMax=Math.max(tMax,p.clone().sub(K).dot(u));
-  const ring=pts.filter(p=>p.clone().sub(K).dot(u)>tMax-0.006);
-  const c=new THREE.Vector3();ring.forEach(p=>c.add(p));c.multiplyScalar(1/ring.length);
-  /* largeur et épaisseur de la coupe */
-  let ax=null,rw=0;for(const p of ring){const q=p.clone().sub(c);q.addScaledVector(u,-q.dot(u));if(q.length()>rw){rw=q.length();ax=q.clone().normalize();}}
-  const th=new THREE.Vector3().crossVectors(u,ax).normalize();let rt=0;for(const p of ring)rt=Math.max(rt,Math.abs(p.clone().sub(c).dot(th)));
-  const L0=0.24,arm=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1,L0,24,1,true),mat);
-  arm.matrixAutoUpdate=false;arm.matrix.makeBasis(ax.clone().multiplyScalar(rw*1.06),u,th.clone().multiplyScalar(rt*1.06+0.002)).setPosition(c.clone().addScaledVector(u,L0/2-0.012));
-  arm.frustumCulled=false;m.add(arm);
-}
-/* Place le poing sur la baguette. Dans le poing fermé, chaque doigt forme une boucle : le centre de chaque boucle
-   (milieu de ses trois phalanges) donne le tunnel où passe la baguette. Le dos de la main (les jointures) va vers le haut,
-   un peu vers l'extérieur ; le côté de l'index vers le bout de la baguette (-z). */
-const HAND_FIST={clip:'Fist',scale:1,roll:0.35,z:0.0,lift:0,diag:1.2};
-function fistPose(m,side,M){
-  m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.set(1,1,1);m.updateMatrixWorld(true);
-  const B={};m.traverse(o=>{if(o.isBone)B[o.name]=o;});
-  const P=nm=>B[nm]?B[nm].getWorldPosition(new THREE.Vector3()):null;
-  /* fin de la dernière phalange : prolongée de la longueur de la précédente */
-  const ctr=[],kn=[];
-  for(const f of ['F1','F2','F3','F4']){
-    const a=P(f+'a'),b=P(f+'b'),c=P(f+'c');if(!a||!b||!c)continue;
-    const e=c.clone().add(c.clone().sub(b).multiplyScalar(0.8));
-    ctr.push(a.clone().add(b).add(c).add(e).multiplyScalar(0.25));kn.push(a);
-  }
-  if(ctr.length<2)return 0;
-  const C=new THREE.Vector3();ctr.forEach(v=>C.add(v));C.multiplyScalar(1/ctr.length);
-  /* axe : de l'auriculaire vers l'index (le doigt le plus près du pouce) */
-  const T=P('Ta')||P('Tb');
-  let d=ctr[0].clone().sub(ctr[ctr.length-1]).normalize();
-  if(T&&T.clone().sub(C).dot(d)<0)d.negate();
-  const K=new THREE.Vector3();kn.forEach(v=>K.add(v));K.multiplyScalar(1/kn.length);
-  let err=0;for(const v of ctr){const q=v.clone().sub(C);err=Math.max(err,q.addScaledVector(d,-q.dot(d)).length());}
-  /* un batteur ne tient pas la baguette en travers du poing (comme un marteau) : elle sort en diagonale,
-     entre le pouce et l'index, vers l'avant de la main. On penche l'axe vers l'avant (poignet → jointures). */
-  const Wr=P('Palm')||P('Wrist');
-  if(Wr){const hf=K.clone().sub(Wr);hf.addScaledVector(d,-hf.dot(d)).normalize();d.multiplyScalar(Math.cos(HAND_FIST.diag)).addScaledVector(hf,Math.sin(HAND_FIST.diag)).normalize();}
-  const up=K.clone().sub(C);up.addScaledVector(d,-up.dot(d)).normalize();
-  const e3=new THREE.Vector3().crossVectors(d,up);
-  const s=side==='left'?1:-1,f1=new THREE.Vector3(0,0,-1),f2=new THREE.Vector3(-s*Math.sin(HAND_FIST.roll),Math.cos(HAND_FIST.roll),0),f3=new THREE.Vector3().crossVectors(f1,f2);
-  const E=new THREE.Matrix4().makeBasis(d,up,e3),F=new THREE.Matrix4().makeBasis(f1,f2,f3);
-  M.makeTranslation(0,HAND_FIST.lift,HAND_FIST.z).multiply(F).multiply(E.transpose()).multiply(new THREE.Matrix4().makeScale(HAND_FIST.scale,HAND_FIST.scale,HAND_FIST.scale)).multiply(new THREE.Matrix4().makeTranslation(-C.x,-C.y,-C.z));
-  return +(err*1000).toFixed(1); /* écart des boucles des doigts à l'axe de la baguette, en mm */
 }
 let skinMat=null;
 const handSkin=()=>skinMat||(skinMat=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65}));
@@ -1703,7 +1640,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,hOff:+S.hOff.toFixed(3),kitLocked:kitLocked(),cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({grip:h.fist&&h.fist.userData.gripErr,v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,hOff:+S.hOff.toFixed(3),kitLocked:kitLocked(),cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({model:!!(h.fist&&h.fist.userData.model),v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
@@ -1718,3 +1655,4 @@ export function simLook(i,dx,dy,dz){
   const p=new THREE.Vector3();G.hands[i].g.getWorldPosition(p);
   S.camera.position.set(p.x+(dx||0.2),p.y+(dy||0.15),p.z+(dz||0.35));S.camera.lookAt(p);return true;
 }
+

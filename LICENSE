@@ -22,9 +22,12 @@ accord écrit :
 
 Ces éléments restent sous leur propre licence, que cette page ne change pas :
 - vr/three.module.min.js : three.js, licence MIT (voir vr/three-LICENSE.txt).
-- vr/hands/af-left.glb et vr/hands/af-right.glb : modèles de main du projet
-  A-Frame (dépôt aframevr/assets, controllers/hands/*HandHigh.glb), diffusés
-  avec A-Frame (licence MIT, https://github.com/aframevr/aframe).
+- vr/hands/rb-left.glb et vr/hands/rb-right.glb : mains et avant-bras tirés de
+  l'avatar Male_Adult_01 de la Microsoft Rocketbox Avatar Library
+  (https://github.com/microsoft/Microsoft-Rocketbox), licence MIT,
+  Copyright (c) 2020 Microsoft (voir vr/hands/ROCKETBOX-LICENSE.txt).
+  Modifiés : doigts repliés sur une baguette,
+  seuls la main et l'avant-bras sont gardés, texture recadrée.
 - vr/hands/left.glb et vr/hands/right.glb : modèle « generic-hand » de
   WebXR Input Profiles (immersive-web), licence MIT.
 - Les sons de batterie intégrés à index.html (window.__KIT) : Web Audio
