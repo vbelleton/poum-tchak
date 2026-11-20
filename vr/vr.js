@@ -329,7 +329,13 @@ function drawPanel(p,lines,opt={}){
     cx.fill();cx.strokeStyle=opt.line||'#39414F';cx.lineWidth=3;cx.stroke();
   }
   cx.textAlign='center';cx.textBaseline='middle';
-  const tot=lines.reduce((s,l)=>s+l.size*1.3,0)*k;let y=(H-tot)/2;
+  const tot=lines.reduce((s,l)=>s+l.size*1.3,0)*k;let y=opt.spark?H*0.06:(H-tot)/2;
+  if(opt.spark){ /* une barre par partie (justesse en %), la dernière en vert vif */
+    const v=opt.spark,top=H*0.06+tot+H*0.04,bh=H-top-H*0.08,gap=W*0.012,bw=Math.min(W*0.06,(W*0.8-gap*(v.length-1))/v.length);
+    const x0=(W-(bw*v.length+gap*(v.length-1)))/2;
+    v.forEach((p,i)=>{const h=Math.max(3,bh*Math.max(0,Math.min(100,p))/100);
+      cx.fillStyle=i===v.length-1?'#7BE3A6':'#4A5466';cx.fillRect(x0+i*(bw+gap),top+bh-h,bw,h);});
+  }
   for(const l of lines){
     const px=l.size*k;y+=px*0.65;
     cx.font=(l.weight||600)+' '+px+'px '+FONT;cx.fillStyle=l.color||'#E8ECF2';
@@ -514,7 +520,8 @@ function buildWorld(){
   /* bannière au-dessus du score : multiplicateur gagné, série perdue */
   S.banner=new THREE.Mesh(new THREE.PlaneGeometry(0.64,0.2),new THREE.MeshBasicMaterial({map:popTexture('×2 !','ok'),transparent:true,depthWrite:false}));
   S.banner.visible=false;S.banner.renderOrder=6;kit.add(S.banner);S.bannerT=-1e9;S.banners=[];
-  S.menu=panel(MW/100,MH/100,700);S.ui=new THREE.Group();scene.add(S.ui);S.ui.add(S.menu.mesh);S.menuMoved=false;S.items=[];S.hover=new Map();
+  S.menu=panel(MW/100,MH/100,700);S.ui=new THREE.Group();scene.add(S.ui);S.ui.add(S.menu.mesh);
+  S.histP=panel(0.9,0.3);S.histP.mesh.visible=false;S.ui.add(S.histP.mesh);S.menuMoved=false;S.items=[];S.hover=new Map();
 }
 
 /* Pose la batterie à la hauteur et dans la direction du joueur. head : position de la tête. */
@@ -995,7 +1002,19 @@ function finished(){
   const p=S.api.pct(),fell=gm.gauge<=0;
   const pn=S.api.plNow&&S.api.plNow();if(pn&&pn.next)S.focus='plnext';
   S.result={hands:S.api.hands?S.api.hands():null,p,stars:fell?0:S.api.stars(p),pts:sc.pts,fell,best:sc.best,n:sc.perfect+sc.good+sc.approx,miss:sc.miss,extra:sc.extra,quit:!fell&&!gm.ended};
+  S.hist=S.result.quit||!S.api.history?null:S.api.history();
   for(const n of S.notes.values()){n.visible=false;S.pool.push(n);}S.notes.clear();
+}
+/* Après une partie : la courbe des dernières parties sur ce chant, au-dessus de la batterie */
+function histLines(h){
+  const n=h.length,last=h[n-1].pct,best=Math.max(...h.map(x=>x.pct));
+  const lines=[{t:'Tes progrès sur ce chant',size:4.2,weight:800}];
+  if(n<2)lines.push({t:'Première partie notée : rejoue-le pour voir ta courbe',size:3.2,color:'#97A1B2'});
+  else{
+    const d=last-h[n-2].pct,k=Math.min(3,n>>1),avg=a=>a.reduce((s,x)=>s+x.pct,0)/a.length,trend=Math.round(avg(h.slice(-k))-avg(h.slice(0,k)));
+    lines.push({t:(d>0?'+'+d+' %':d<0?d+' %':'pareil')+' depuis la dernière fois  ·  record '+best+' %'+(n>=4?'  ·  '+(trend>0?'+':'')+trend+' % sur '+n+' parties':''),size:3.2,color:d>=0?'#7BE3A6':'#F2BB4A',weight:700});
+  }
+  return lines;
 }
 
 function draw(t){
@@ -1072,6 +1091,15 @@ function draw(t){
   });
   /* score et jauge */
   S.hud.mesh.visible=!!on;
+  /* après une partie : le panneau des progrès, à droite du menu, tourné comme lui */
+  const hist=!on&&S.result&&S.hist&&S.hist.length&&S.menu.mesh.visible?S.hist:null;
+  S.histP.mesh.visible=!!hist;
+  if(hist){
+    const m=S.menu.mesh,L=histLines(hist);S.histText=L.map(l=>l.t).join(' | ');
+    drawPanel(S.histP,L,{spark:hist.map(x=>x.pct)});
+    S.histP.mesh.quaternion.copy(m.quaternion);S.histP.mesh.scale.copy(m.scale);
+    S.histP.mesh.position.set(MW/200+0.47,0,0).multiply(m.scale).applyQuaternion(m.quaternion).add(m.position);
+  }
   if(on){
     const sc=gm.sc,mult=Math.min(4,1+Math.floor(sc.streak/8));
     /* multiplicateur gagné : bannière + double vibration ; série d'au moins 8 perdue : bannière rouge */
@@ -1471,7 +1499,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,echoPhase:S.echoPhase||'',shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}

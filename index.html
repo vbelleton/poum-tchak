@@ -6108,6 +6108,11 @@ const vrApi={
     gmGrvList().forEach(x=>L.push({id:x.id,label:'Mon groove : '+x.label}));
     return L;
   },
+  /* les dernières parties de ce chant (même jeu, même niveau de notes), la plus récente à la fin */
+  history(){
+    return pr.s.filter(x=>x.g==='jeux'&&x.game===gm.game&&x.rh===gm.rh&&x.lvl===gm.lvl).slice(-12)
+      .map(x=>({pct:x.pct,score:x.score,d:x.d,lent:!!x.lent}));
+  },
   /* Écoute puis rejoue : où en est-on ? écoute (la batterie joue) ou à toi, manche i sur n */
   echoNow(){
     const c=gm.chart;if(!gm.on||!c||c.kind!=='echo')return null;
