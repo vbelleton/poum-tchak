@@ -256,6 +256,23 @@ function buildFist(holder,side,mat){
     m.traverse(o=>{if(o.isMesh){o.material=hm;o.frustumCulled=false;}if(o.name)B[o.name]=o;});
     const w=new THREE.Group();w.matrixAutoUpdate=false;
     g.userData.gripErr=gripPose(m,B,side,w.matrix);
+    /* le modèle s'arrête au poignet : on prolonge la coupe par un avant-bras de la même forme */
+    {m.updateMatrixWorld(true);const P=nm=>B[nm].getWorldPosition(new THREE.Vector3());
+     const Wp=P('wrist'),u=Wp.clone().sub(P('middle-finger-phalanx-proximal')).normalize();
+     let sk=null;m.traverse(o=>{if(o.isSkinnedMesh)sk=o;});
+     const ring=[];
+     if(sk){const pos=sk.geometry.attributes.position,v=new THREE.Vector3();let tMax=-1;const ts=[];
+       for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i).applyMatrix4(sk.matrixWorld);const t=v.clone().sub(Wp).dot(u);ts.push([t,v.clone()]);if(t>tMax)tMax=t;}
+       for(const [t,p] of ts)if(t>tMax-0.006)ring.push(p);}
+     const c=new THREE.Vector3();ring.forEach(p=>c.add(p));if(ring.length)c.multiplyScalar(1/ring.length);else c.copy(Wp).addScaledVector(u,0.02);
+     const wx=P('pinky-finger-phalanx-proximal').sub(P('index-finger-phalanx-proximal'));wx.addScaledVector(u,-wx.dot(u)).normalize();
+     const th=new THREE.Vector3().crossVectors(wx,u);
+     let rw=0.03,rt=0.02;if(ring.length){rw=0;rt=0;for(const p of ring){const q=p.clone().sub(c);rw=Math.max(rw,Math.abs(q.dot(wx)));rt=Math.max(rt,Math.abs(q.dot(th)));}}
+     const L0=0.22,arm=new THREE.Mesh(new THREE.CylinderGeometry(1.08,1,L0,20,1,true),hm);
+     arm.matrixAutoUpdate=false;arm.matrix.makeBasis(wx.clone().multiplyScalar(rw),u,th.clone().multiplyScalar(rt)).setPosition(c.clone().addScaledVector(u,L0/2-0.002));
+     const cap=new THREE.Mesh(new THREE.CircleGeometry(1.08,20),hm);cap.matrixAutoUpdate=false;
+     cap.matrix.makeBasis(wx.clone().multiplyScalar(rw),th.clone().multiplyScalar(rt),u.clone()).setPosition(c.clone().addScaledVector(u,L0-0.002));
+     arm.frustumCulled=cap.frustumCulled=false;m.add(arm,cap);g.userData.arm={rw:+rw.toFixed(3),rt:+rt.toFixed(3),n:ring.length};}
     w.add(m);fb.visible=false;g.add(w);
   },undefined,()=>{});
   return g;
@@ -263,7 +280,7 @@ function buildFist(holder,side,mat){
 /* La prise : la baguette traverse la paume en diagonale (de l'index au talon de la main), les doigts se referment
    autour, le pouce se pose dessus. Les angles ne sont pas devinés : pour chaque doigt on cherche celui qui colle
    le mieux les phalanges à la baguette. M reçoit la place de la main dans le support de la baguette (-z = vers le bout). */
-const GRIP={r:0.0085,fing:0.0085,off:0.02,scale:1.05,z:0.005};
+const GRIP={r:0.0085,off:0.024,fulc:0.5,heel:0.5,scale:1.05,z:0.005};
 function gripPose(m,B,side,M){
   m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.set(1,1,1);m.updateMatrixWorld(true);
   for(const k in B){B[k].userData.q0=B[k].quaternion.clone();B[k].userData.p0=B[k].position.clone();}
@@ -281,36 +298,52 @@ function gripTry(B,side,M,sg){
   const V=()=>new THREE.Vector3(),toM=p=>p.clone().applyMatrix4(A),L=nm=>B[nm].userData.p0;
   const W=toM(L('wrist')),IK=toM(L('index-finger-phalanx-proximal')),PK=toM(L('pinky-finger-phalanx-proximal')),PM=toM(L('pinky-finger-metacarpal'));
   const n=V().subVectors(IK,W).cross(V().subVectors(PK,W)).normalize().multiplyScalar((side==='left'?-1:1)*sg);
-  const heel=V().lerpVectors(W,PM,0.55),d=V().subVectors(IK,heel).normalize();
+  /* la baguette : du milieu de la première phalange de l'index (le point d'appui, avec le pouce)
+     jusqu'au talon de la main côté auriculaire, juste sous la paume */
+  const IP=toM(L('index-finger-phalanx-intermediate')),FA=V().lerpVectors(IK,IP,GRIP.fulc);
+  const heel=V().lerpVectors(W,PM,0.6).addScaledVector(V().subVectors(PK,IK),GRIP.heel),d=V().subVectors(FA,heel).normalize();
   n.addScaledVector(d,-n.dot(d)).normalize();
-  const P0=V().lerpVectors(heel,IK,0.5).addScaledVector(n,GRIP.off);
+  const P0=V().lerpVectors(heel,FA,0.5).addScaledVector(n,GRIP.off);
   const dist=pl=>{const q=toM(pl).sub(P0);return q.addScaledVector(d,-q.dot(d)).length();};
-  const want=GRIP.r+GRIP.fing;
   /* pose d'une chaîne : on plie aux articulations js, d'angles angs, autour de l'axe ax (repère du modèle) */
   const pose=(ch,js,ax,angs)=>{
     const p=ch.map(nm=>L(nm).clone()),q=ch.map(nm=>B[nm].userData.q0.clone());
     const a=ax.clone().transformDirection(Ai);
-    js.forEach((j,i)=>{const R=new THREE.Quaternion().setFromAxisAngle(a,angs[i]);
+    js.forEach((j,i)=>{if(!angs[i])return;const R=new THREE.Quaternion().setFromAxisAngle(a,angs[i]);
       for(let k=j;k<ch.length;k++){q[k].premultiply(R);if(k>j)p[k].sub(p[j]).applyQuaternion(R).add(p[j]);}
       a.applyQuaternion(R);});
     return {p,q};
   };
-  const cost=(p,ks)=>{let c=0;for(const k of ks){const e=dist(p[k])-want;c+=e<0?e*e*9:e*e;}return c/ks.length;};
+  /* les points de contact : chaque articulation et le milieu de chaque phalange, avec l'épaisseur du doigt à cet endroit.
+     Un doigt qui rentre dans la baguette coûte cher ; un doigt qui flotte coûte un peu. */
+  const cost=(p,from,th,wt)=>{let c=0,k=0;
+    for(let j=from;j<p.length;j++){
+      const pts=j>from?[V().lerpVectors(p[j-1],p[j],0.5),p[j]]:[p[j]];
+      for(const pt of pts){const e=dist(pt)-(GRIP.r+th[Math.min(k,th.length-1)]),w=wt[Math.min(k,wt.length-1)];c+=w*(e<0?25*e*e:e*e);k++;}
+    }
+    return c;};
   const set=[];let err=0;
-  const solve=(ch,js,ks,axes,lo,hi,k)=>{
+  const solve=(ch,js,from,th,wt,axes,ga,gb,mix)=>{
     let best=null;
-    for(const ax of axes)for(let t=lo;t<=hi;t+=0.03){const r=pose(ch,js,ax,k.map(x=>x*t)),c=cost(r.p,ks);if(!best||c<best.c)best={c,r};}
-    ch.forEach((nm,i)=>set.push([nm,best.r.p[i],best.r.q[i]]));err=Math.max(err,Math.sqrt(best.c));
+    for(const ax of axes)for(let a=ga[0];a<=ga[1];a+=0.05)for(let b=gb[0];b<=gb[1];b+=0.05){
+      const r=pose(ch,js,ax,mix(a,b)),c=cost(r.p,from,th,wt)+1e-7*(Math.abs(a)+Math.abs(b));
+      if(!best||c<best.c)best={c,r};}
+    ch.forEach((nm,i)=>set.push([nm,best.r.p[i],best.r.q[i]]));
+    let worst=0;const r=best.r;for(let j=from+1;j<r.p.length;j++)worst=Math.max(worst,Math.abs(dist(r.p[j])-GRIP.r-0.009));
+    err=Math.max(err,worst);
   };
-  for(const f of ['index','middle','ring','pinky']){
+  /* doigts : l'articulation de la base (a) et celle du milieu (b), la dernière suit (3/4 de b), comme une vraie main */
+  const FING={index:[0,1.5],middle:[0.2,1.7],ring:[0.3,1.8],pinky:[0.4,1.9]};
+  for(const f in FING){
     const ch=['metacarpal','phalanx-proximal','phalanx-intermediate','phalanx-distal','tip'].map(x=>f+'-finger-'+x);
     const dir=toM(L(ch[4])).sub(toM(L(ch[1]))).normalize(),ax=V().crossVectors(dir,n).normalize();
-    solve(ch,[1,2,3],[2,3,4],[ax,ax.clone().negate()],0,2.4,[1,1.1,0.8]);
+    solve(ch,[1,2,3],1,[0.0105,0.01,0.0095,0.009,0.0088,0.0085,0.008],[0.2,0.4,1,1,1,1,1.2],[ax,ax.clone().negate()],FING[f],[0,1.9],(a,b)=>[a,b,0.75*b]);
   }
+  /* pouce : posé sur la baguette, en face de l'index */
   {const ch=['thumb-metacarpal','thumb-phalanx-proximal','thumb-phalanx-distal','thumb-tip'];
    const dir=toM(L(ch[3])).sub(toM(L(ch[1]))).normalize(),c1=V().crossVectors(dir,n).normalize(),c2=V().crossVectors(dir,c1);
    const axes=[];for(const w of [c1,n.clone(),c2])axes.push(w,w.clone().negate());
-   solve(ch,[0,1,2],[2,3],axes,0,1.2,[0.5,1,0.8]);}
+   solve(ch,[0,1,2],1,[0.012,0.0115,0.011,0.0105,0.01],[0.3,0.6,1,1,1.2],axes,[-0.4,1.0],[0,0.9],(a,b)=>[0.5*a,a,b]);}
   /* la main va sur la baguette : d vers le bout (-z), le côté paume vers le bas, un peu vers l'intérieur */
   const e3=V().crossVectors(d,n);
   const f1=new THREE.Vector3(0,0,-1),f2=new THREE.Vector3(side==='left'?0.35:-0.35,-1,0).normalize(),f3=V().crossVectors(f1,f2);
@@ -1710,3 +1743,4 @@ export function simLook(i,dx,dy,dz){
   const p=new THREE.Vector3();G.hands[i].g.getWorldPosition(p);
   S.camera.position.set(p.x+(dx||0.2),p.y+(dy||0.15),p.z+(dz||0.35));S.camera.lookAt(p);return true;
 }
+
