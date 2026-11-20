@@ -5920,7 +5920,12 @@ gmRender();gmLoadSongs().then(gmWhySay);
 gm.vr=false;gm.vrPrev='couloirs';gm.paused=false;
 /* La grosse caisse sans batterie : à la gâchette, jouée toute seule, ou d'un coup de tête. */
 const VR_KICK_KEY='poumtchak.vr.grossecaisse';
-let vrKick='gachette';try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','charley','auto','tete'].includes(k))vrKick=k;}catch(e){}
+/* la gâchette gauche en charleston au pied se cumule avec n'importe quelle grosse caisse (gâchette, automatique, tête).
+   L'ancien choix « charley » (exclusif) devient : gâchette + charleston au pied. */
+const VR_HHF_KEY='poumtchak.vr.charleypied';
+let vrKick='gachette',vrHHFoot=false;
+try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','auto','tete'].includes(k))vrKick=k;else if(k==='charley'){vrHHFoot=true;localStorage.setItem(VR_KICK_KEY,'gachette');localStorage.setItem(VR_HHF_KEY,'1');}
+  if(localStorage.getItem(VR_HHF_KEY)==='1')vrHHFoot=true;}catch(e){}
 function vrAutoKick(c,song){
   const k=c.notes.filter(n=>n.lane===0);if(!k.length)return;
   c.notes=c.notes.filter(n=>n.lane!==0);
@@ -6102,7 +6107,7 @@ const vrApi={
     gm.paused=!!on;
     if(on)ctx.suspend().catch(()=>{});else ctx.resume().catch(()=>{});
   },
-  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,hhFoot:vrHHFoot,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
   set(k,v){
     if(gm.on)return;
     if(k==='rh'&&typeof v==='string'){if(v.startsWith('pl:'))plsStart(v.slice(3));else{gm.rh=v;gm.pl=null;}}
@@ -6111,7 +6116,8 @@ const vrApi={
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
     else if(k==='slow')gm.slow=!!v;
     else if(k==='sound'&&SOUNDS[v])setSound(v,true);
-    else if(k==='kick'&&['gachette','charley','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
+    else if(k==='kick'&&['gachette','charley','auto','tete'].includes(v)){if(v==='charley'){v='gachette';vrHHFoot=true;}vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);localStorage.setItem(VR_HHF_KEY,vrHHFoot?'1':'0');}catch(e){}}
+    else if(k==='hhFoot'){vrHHFoot=!!v;try{localStorage.setItem(VR_HHF_KEY,vrHHFoot?'1':'0');}catch(e){}}
     gmSave();
   },
   /* « + Mes chants » dans le casque : on sort de la VR et la page montre où ajouter les chants */
