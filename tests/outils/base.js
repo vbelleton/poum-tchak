@@ -8,7 +8,8 @@ const test = base.test.extend({
     page.on('pageerror', (e) => erreurs.push(e.message));
     await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
     await page.goto('index.html');
-    await page.evaluate(() => localStorage.clear());
+    // Mémoire vide, sauf « Plus d'options » des Jeux ouvert : les tests règlent vitesse, tolérance, MIDI…
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('poumtchak.jeux.plus', '1'); });
     await page.reload();
     await page.locator('#grid .cell').first().waitFor({ state: 'attached' });
     // L'appli s'ouvre sur l'accueil ; la plupart des tests partent de la grille, comme avant.

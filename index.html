@@ -75,7 +75,7 @@ button{font:inherit;color:inherit}
 /* Scène */
 /* Le menu reste au même endroit partout. La batterie aussi : elle ne disparaît plus d'une rubrique à
    l'autre, garde sa hauteur quoi qu'il s'affiche, et ne reste collée que là où on joue en la regardant. */
-:root{--nav-h:104px}
+:root{--nav-h:52px}
 .navbar{position:sticky;top:0;z-index:6;background:var(--bg);padding-top:env(safe-area-inset-top,0px);border-bottom:1px solid var(--line)}
 .navbar .in{padding-block:0;padding-inline:6px}
 .stage{position:relative;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
@@ -129,7 +129,7 @@ body[data-tab="rythme"] .stage,body[data-tab="pratique"] .stage,body[data-tab="e
 .ac-help{margin-top:14px}
 .rg-h{font:800 17px var(--f-display);margin:18px 0 4px}
 .rg-h:first-of-type{margin-top:4px}
-body[data-tab="accueil"] .stage,body[data-tab="reglages"] .stage{display:none}
+body[data-tab="accueil"] .stage,body[data-tab="reglages"] .stage,body[data-tab="jeux"] .stage{display:none}
 body:not([data-tab="reglages"]) .foot{display:none}
 .panel{margin:0}
 .panel>.first{margin-top:4px}
@@ -822,6 +822,77 @@ body.gm-live{overflow:hidden}
 .gm-gauge.low{animation:gm-pulse .7s ease-in-out infinite alternate}
 @keyframes gm-pulse{to{border-color:#FF8A70;box-shadow:0 0 10px #FF8A70}}
 @media (prefers-reduced-motion:reduce){.gm-gauge.low{animation:none}.gm-gauge i{transition:none}}
+
+/* ---------- Look 2026 : couleurs vives, cartes douces, menu en bas comme les applis du téléphone ---------- */
+:root{--acc:#5B3DF5;--acc-ink:#FFFFFF;--acc-soft:#ECE8FF;--grad:linear-gradient(135deg,#5B3DF5 0%,#8E2DB8 55%,#A42A86 100%);
+  --sh:0 1px 2px rgba(35,25,80,.06),0 8px 24px -12px rgba(35,25,80,.22);--bnav-h:68px}
+:root:not([data-theme="dark"]){--bg:#F4F2FA;--line:#E2DEEE;--cell-a:#ECE9F5;--cell-b:#E0DCEC}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--acc:#A594FF;--acc-ink:#140F2A;--acc-soft:#2A2352;--bg:#0F0D18;--surface:#1A1727;--line:#2D2942;--cell-a:#231F33;--cell-b:#2C2740;--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--acc:#A594FF;--acc-ink:#140F2A;--acc-soft:#2A2352;--bg:#0F0D18;--surface:#1A1727;--line:#2D2942;--cell-a:#231F33;--cell-b:#2C2740;--sh:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6)}
+body{padding-bottom:calc(110px + var(--bnav-h))}
+body[data-tab="parcours"],body[data-tab="mots"],body[data-tab="jeux"],body[data-tab="accueil"],body[data-tab="reglages"]{padding-bottom:calc(24px + var(--bnav-h))}
+.navbar{background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px)}
+.tabs{border-top:0;height:var(--nav-h)}
+.tabs [role=tab]{border-color:transparent;background:var(--surface);box-shadow:var(--sh)}
+.tabs [role=tab][aria-selected=true]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.bnav .groups{max-width:560px;margin:0 auto;height:auto}
+.grp{height:56px;background:transparent!important;color:var(--muted);font-size:12.5px;gap:4px}
+.grp svg{width:56px;height:30px;padding:3px 16px;border-radius:999px;box-sizing:border-box;transition:background .15s}
+.grp[aria-current=page]{color:var(--ink)}
+.grp[aria-current=page] svg{background:var(--acc-soft);color:var(--acc)}
+@media (min-width:700px){.grp{flex-direction:column;font-size:13px}}
+@media (max-height:520px){.bnav .groups{height:auto}.grp{height:40px}.grp svg{display:none}:root{--bnav-h:52px;--nav-h:44px}}
+body.mn-live .bnav{display:none}
+.dock{bottom:var(--bnav-h);bottom:calc(var(--bnav-h) + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -8px 24px -16px rgba(35,25,80,.3);padding-bottom:10px}
+body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.gm-cta{bottom:calc(var(--bnav-h) + env(safe-area-inset-bottom,0px));padding-bottom:8px;border-top:0}
+.pr-toast{bottom:calc(96px + var(--bnav-h) + env(safe-area-inset-bottom,0px))}
+.card,.gm-game,.ac-tile,.pc-steps button,.pc-sk{border-radius:18px;border-color:var(--line);box-shadow:var(--sh)}
+.btn{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);border-radius:999px;font-weight:700;padding:9px 18px}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn.xl,.gm-go{border-radius:16px}
+.gm-go:not(.ghost){background:var(--grad);border:0;color:#fff;box-shadow:0 10px 24px -10px rgba(91,61,245,.7)}
+.seg{border:0;border-radius:20px;background:var(--cell-a);padding:3px;gap:2px;overflow:visible;flex-wrap:wrap;max-width:100%}
+.seg button{border-radius:999px;color:var(--ink)}
+.seg button+button{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--acc);box-shadow:0 1px 3px rgba(35,25,80,.18)}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:var(--ink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:var(--ink)}}
+.chip{border-color:var(--line)}
+.chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.tog{border-color:var(--line);border-radius:999px;background:var(--surface)}
+.tog[aria-pressed="true"]{border-color:var(--acc);background:var(--acc-soft)}
+.tog[aria-pressed="true"]::before{background:var(--acc);border-color:var(--acc)}
+.tapb,.bpm button{border-radius:14px;border-color:var(--line)}
+.bpm button{min-width:34px;flex:none}
+.play{background:var(--grad);color:#fff;border-radius:16px}
+.gm-game[aria-pressed="true"]{border:2px solid var(--acc);box-shadow:0 0 0 4px var(--acc-soft)}
+.ac-cont{background:var(--grad);color:#fff;border-radius:22px;box-shadow:0 14px 30px -14px rgba(91,61,245,.8);padding:20px}
+.ac-cont::after{content:"Continuer  ›";align-self:flex-start;margin-top:10px;background:rgba(255,255,255,.2);border-radius:999px;padding:7px 14px;font-weight:800;font-size:14px}
+.ac-tile{border:1px solid var(--line);border-radius:20px}
+.ac-tile svg{width:46px;height:46px;padding:10px;border-radius:14px;box-sizing:border-box;color:#fff;margin-bottom:8px}
+.ac-tile:nth-child(1) svg{background:var(--c-tchak)}
+.ac-tile:nth-child(2) svg{background:var(--c-poum)}
+.ac-tile:nth-child(3) svg{background:var(--c-doum)}
+.ac-tile:nth-child(4) svg{background:var(--c-toum)}
+:root[data-theme="dark"] .ac-tile svg{color:#140F2A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ac-tile svg{color:#140F2A}}
+.ac-tile:active,.gm-game:active,.ac-cont:active,.btn:active{transform:scale(.97)}
+.ac-tile,.gm-game,.ac-cont,.btn{transition:transform .08s}
+#p-accueil .ac-h{font-size:26px}
+/* Jeux en trois étapes */
+.gm-step{display:flex;align-items:center;gap:10px;font:800 19px/1.2 var(--f-display);margin:18px 0 10px;color:var(--ink)}
+.gm-step:first-of-type{margin-top:6px}
+.gm-step i{font-style:normal;flex:none;width:28px;height:28px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-size:15px}
+.gm-music{display:flex;flex-direction:column;gap:14px}
+.gm-more{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh)}
+.gm-more>summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:800;display:flex;align-items:center;justify-content:space-between}
+.gm-more>summary::-webkit-details-marker{display:none}
+.gm-more>summary::after{content:"›";font-size:22px;line-height:1;transition:transform .15s;color:var(--muted)}
+.gm-more[open]>summary::after{transform:rotate(90deg)}
+.gm-more>summary small{display:block;font-weight:500;color:var(--muted);font-size:13px}
+.gm-more>.gm-opts{padding:0 16px 16px}
 </style>
 </head>
 <body>
@@ -843,12 +914,6 @@ body.gm-live{overflow:hidden}
 </svg>
 
 <nav class="navbar" aria-label="Menu"><div class="in">
-<div class="groups">
-  <button type="button" class="grp" id="g-jouer" data-g="jouer"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg><span>Jouer</span></button>
-  <button type="button" class="grp" id="g-apprendre" data-g="apprendre"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2.5 4 2.5 4H6"/></svg><span>Apprendre</span></button>
-  <button type="button" class="grp" id="g-creer" data-g="creer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18M9 5v14M15 5v14"/></svg><span>Créer</span></button>
-  <button type="button" class="grp" id="g-reglages" data-g="reglages"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Réglages</span></button>
-</div>
 <div class="tabs" role="tablist" aria-label="Pages">
   <button type="button" role="tab" id="t-accueil" data-g="jouer" aria-controls="p-accueil" aria-selected="false" tabindex="-1"><span>Accueil</span></button>
   <button type="button" role="tab" id="t-jeux" data-g="jouer" aria-controls="p-jeux" aria-selected="false" tabindex="-1"><span>Jeux</span></button>
@@ -861,10 +926,15 @@ body.gm-live{overflow:hidden}
   <button type="button" role="tab" id="t-reglages" data-g="reglages" aria-controls="p-reglages" aria-selected="false" tabindex="-1"><span>Réglages</span></button>
 </div>
 </div></nav>
+<nav class="bnav" aria-label="Parties de l'appli"><div class="groups">
+  <button type="button" class="grp" id="g-jouer" data-g="jouer"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg><span>Jouer</span></button>
+  <button type="button" class="grp" id="g-apprendre" data-g="apprendre"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2.5 4 2.5 4H6"/></svg><span>Apprendre</span></button>
+  <button type="button" class="grp" id="g-creer" data-g="creer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18M9 5v14M15 5v14"/></svg><span>Créer</span></button>
+  <button type="button" class="grp" id="g-reglages" data-g="reglages"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Réglages</span></button>
+</div></nav>
 
 <header class="stage">
   <div class="in">
-    <h1 class="sr">Poum Tchak : apprendre la batterie</h1>
     <div class="top">
       <div class="wordbox"><div class="word" id="word">Poum Tchak</div><div class="wsub" id="wsub"></div></div>
       <div class="tempo-read" id="tempoRead"></div>
@@ -874,6 +944,7 @@ body.gm-live{overflow:hidden}
 </header>
 
 <main class="in wrap" id="main" tabindex="-1">
+  <h1 class="sr">Poum Tchak : apprendre la batterie</h1>
   <div class="pc-bar" id="pcBar" hidden role="region" aria-label="Étape du parcours">
     <p class="pc-bt" id="pcBarTxt" aria-live="polite"></p>
     <div class="pc-bb" id="pcBarBtns"></div>
@@ -915,10 +986,14 @@ body.gm-live{overflow:hidden}
   <!-- Jeux : les rythmes en jeux d'arcade -->
   <section class="panel" role="tabpanel" id="p-jeux" aria-labelledby="t-jeux" hidden>
     <h2 class="sr">Jeux</h2>
-    <p class="hint first">Tes rythmes et tes chants deviennent des jeux. Choisis, joue, recommence ! Une jauge se vide quand tu rates, et tu peux toujours reprendre où tu en étais.</p>
+    <p class="hint first">Choisis une musique, puis un jeu, et appuie sur Jouer. Une jauge se vide quand tu rates : tu peux toujours reprendre où tu en étais.</p>
+    <h3 class="gm-step"><i>1</i>Choisis ta musique</h3>
+    <div class="gm-music" id="gmMusic"></div>
+    <h3 class="gm-step"><i>2</i>Choisis ton jeu</h3>
     <div class="gm-games" id="gmGames" role="group" aria-label="Choisir un jeu"></div>
     <p class="hint" id="gmGameTxt"></p>
     <button type="button" class="btn ghost gm-how" id="gmHow"></button>
+    <details class="gm-more" id="gmMore"><summary><span>Plus d'options<small>Vitesse, difficulté, droit à l'erreur, batterie électronique…</small></span></summary>
     <div class="gm-opts">
       <div id="gmCtlRow"><span class="lab" id="lab-gmCtl">Commande</span><div class="seg" id="gmCtl" role="group" aria-labelledby="lab-gmCtl"></div><p class="hint" id="gmCtlHint" style="margin:6px 0 0"></p><button type="button" class="tog" id="gmHHBtn" aria-pressed="false" style="margin-top:8px">Avec le charley</button><p class="hint" id="gmHHHint" style="margin:6px 0 0"></p></div>
       <div><label class="lab" for="gmFree">Chants libres, prêts à jouer</label><select class="sm" id="gmFree" style="width:100%"></select><p class="hint" style="margin:6px 0 0">De vraies chansons d'une minute, sous licence libre, avec leur batterie. Rien à importer. Le tempo est indiqué pour chacune, du plus lent au plus rapide.</p></div>
@@ -938,9 +1013,9 @@ body.gm-live{overflow:hidden}
         </div>
       </div>
       <div><span class="lab" id="lab-gmRh">Rythmes</span><div class="pick" id="gmRh" role="group" aria-labelledby="lab-gmRh"></div></div>
-      <div><span class="lab" id="lab-gmLv">Nombre de notes</span><div class="seg" id="gmLv" role="group" aria-labelledby="lab-gmLv"></div><p class="hint" id="gmLvHint" style="margin:6px 0 0" hidden></p></div>
-      <div><span class="lab" id="lab-gmTol">Tolérance aux erreurs</span><div class="seg" id="gmTol" role="group" aria-labelledby="lab-gmTol"></div><p class="hint" id="gmTolHint" style="margin:6px 0 0"></p></div>
-      <div id="gmTempoRow"><span class="lab" id="lab-gmBpm">Tempo</span><div class="gm-tempo" role="group" aria-labelledby="lab-gmBpm">
+      <div><span class="lab" id="lab-gmLv">Difficulté : nombre de notes</span><div class="seg" id="gmLv" role="group" aria-labelledby="lab-gmLv"></div><p class="hint" id="gmLvHint" style="margin:6px 0 0" hidden></p></div>
+      <div><span class="lab" id="lab-gmTol">Droit à l'erreur</span><div class="seg" id="gmTol" role="group" aria-labelledby="lab-gmTol"></div><p class="hint" id="gmTolHint" style="margin:6px 0 0"></p></div>
+      <div id="gmTempoRow"><span class="lab" id="lab-gmBpm">Vitesse</span><div class="gm-tempo" role="group" aria-labelledby="lab-gmBpm">
         <button type="button" id="gmDown" aria-label="Ralentir">−</button><output id="gmBpm"></output><button type="button" id="gmUp" aria-label="Accélérer">+</button>
       </div></div>
       <div id="gmEchoSongRow"><span class="lab" id="lab-gmEchoSong">Chant pendant que tu rejoues</span><div class="seg" id="gmEchoSong" role="group" aria-labelledby="lab-gmEchoSong"></div><p class="hint" id="gmEchoSongHint" style="margin:6px 0 0"></p></div>
@@ -950,6 +1025,7 @@ body.gm-live{overflow:hidden}
       <div><button type="button" class="tog" id="gmSlowBtn" aria-pressed="false">Ralentir quand ça coince</button><p class="hint" style="margin:6px 0 0">Si tu rates plusieurs coups, la partie ralentit par paliers, jusqu'à 70 %, puis revient quand tu suis. Sur un chant, le son descend un peu avec la vitesse. Les points comptent à part pour les records.</p></div>
       <div><button type="button" class="tog" id="gmMidi" aria-pressed="false">Batterie MIDI</button></div>
     </div>
+    </details>
     <div class="gm-cta">
       <p class="gm-sum" id="gmSum"></p>
       <button type="button" class="btn gm-resume" id="gmResume" hidden></button>
@@ -7762,6 +7838,14 @@ document.querySelectorAll('.ac-tile').forEach(b=>b.addEventListener('click',()=>
   const v=b.dataset.go;
   if(v==='kit'){showTab('pratique');$('#kitBtn').click();}else showTab(v);
 }));
+{
+  /* Jeux : la musique d'abord (chants libres, mes chants, playlists, rythmes), puis le jeu. */
+  const mu=$('#gmMusic');
+  ['#gmFree','#lab-gmCh','#lab-gmPl','#lab-gmRh'].forEach(q=>{const d=$(q).closest('.gm-opts>div');if(d)mu.appendChild(d);});
+  const more=$('#gmMore');let o=false;try{o=localStorage.getItem('poumtchak.jeux.plus')==='1';}catch(e){}
+  more.open=o;
+  more.addEventListener('toggle',()=>{try{localStorage.setItem('poumtchak.jeux.plus',more.open?'1':'0');}catch(e){}});
+}
 $('#rgSound').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSound(b.dataset.v);});
 acRender();
 fillDrumSelect();renderPick();renderDict();renderGrooves();updateWork();renderCal();

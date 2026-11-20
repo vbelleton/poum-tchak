@@ -120,7 +120,8 @@ test.describe('Menu et batterie du haut', () => {
 
   test('rien ne bouge d\'une rubrique à l\'autre, et chacune s\'ouvre par son début', async ({ page }) => {
     const depart = await places(page);
-    for (const nom of ['Parcours', 'Pratique', 'Jeux', 'Mains', 'Écoute', 'Mots', 'Rythme']) {
+    // Jeux, Accueil et Réglages n'ont pas la batterie du haut : place aux choix.
+    for (const nom of ['Parcours', 'Pratique', 'Mains', 'Écoute', 'Mots', 'Rythme']) {
       await rubrique(page, nom);
       expect(await places(page)).toEqual(depart);
     }
