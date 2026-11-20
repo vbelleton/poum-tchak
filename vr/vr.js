@@ -344,12 +344,19 @@ function drawPanel(p,lines,opt={}){
 }
 /* Les petits mots qui s'envolent (Parfait, Raté…) : une texture par mot, gardée. */
 const popTex=new Map();
-function popTexture(txt,kind){
-  const key=txt+'|'+kind;if(popTex.has(key))return popTex.get(key);
-  const cv=document.createElement('canvas');cv.width=512;cv.height=128;const cx=cv.getContext('2d');
+/* « en retard de 37 ms » (page) → « tard · 40 ms » : arrondi à 10 ms, pour garder peu de textures */
+function popSub(sub){
+  const m=/(avance|retard) de (\d+)/.exec(sub||'');if(!m)return '';
+  const ms=Math.round(+m[2]/10)*10;return ms<10?'':(m[1]==='avance'?'◀ tôt · ':'tard ▶ · ')+ms+' ms';
+}
+function popTexture(txt,kind,sub){
+  const key=txt+'|'+kind+'|'+(sub||'');if(popTex.has(key))return popTex.get(key);
+  const cv=document.createElement('canvas');cv.width=512;cv.height=160;const cx=cv.getContext('2d');
   cx.font='800 76px '+FONT;cx.textAlign='center';cx.textBaseline='middle';
-  cx.lineWidth=12;cx.strokeStyle='rgba(11,14,20,0.9)';cx.strokeText(txt,256,66,500);
-  cx.fillStyle=POP[kind]||'#fff';cx.fillText(txt,256,66,500);
+  cx.lineWidth=12;cx.strokeStyle='rgba(11,14,20,0.9)';cx.strokeText(txt,256,58,500);
+  cx.fillStyle=POP[kind]||'#fff';cx.fillText(txt,256,58,500);
+  /* en dessous, en petit : en avance ou en retard, et de combien */
+  if(sub){cx.font='700 40px '+FONT;cx.lineWidth=9;cx.strokeText(sub,256,128,500);cx.fillStyle='#E8ECF2';cx.fillText(sub,256,128,500);}
   const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;popTex.set(key,tex);return tex;
 }
 
@@ -500,10 +507,13 @@ function buildWorld(){
   /* éclats de frappe et mots qui s'envolent */
   const ringGeo=new THREE.TorusGeometry(1,0.06,8,40);
   for(let i=0;i<10;i++){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,depthWrite:false}));m.visible=false;kit.add(m);S.rings.push(m);}
-  const popGeo=new THREE.PlaneGeometry(0.28,0.07);
+  const popGeo=new THREE.PlaneGeometry(0.28,0.0875);
   for(let i=0;i<10;i++){const m=new THREE.Mesh(popGeo,new THREE.MeshBasicMaterial({map:popTexture('Bien','ok'),transparent:true,depthWrite:false}));m.visible=false;m.renderOrder=5;kit.add(m);S.pops.push(m);}
   /* score au-dessus de la batterie, menu devant */
   S.hud=panel(0.9,0.2);kit.add(S.hud.mesh);
+  /* bannière au-dessus du score : multiplicateur gagné, série perdue */
+  S.banner=new THREE.Mesh(new THREE.PlaneGeometry(0.64,0.2),new THREE.MeshBasicMaterial({map:popTexture('×2 !','ok'),transparent:true,depthWrite:false}));
+  S.banner.visible=false;S.banner.renderOrder=6;kit.add(S.banner);S.bannerT=-1e9;S.banners=[];
   S.menu=panel(MW/100,MH/100,700);S.ui=new THREE.Group();scene.add(S.ui);S.ui.add(S.menu.mesh);S.menuMoved=false;S.items=[];S.hover=new Map();
 }
 
@@ -716,6 +726,12 @@ function pulse(st,v,ms){
   if(h&&h.pulse)try{h.pulse(Math.max(0.1,Math.min(1,v)),ms);}catch(e){}
 }
 
+function banner(txt,kind,buzz){
+  S.banner.material.map=popTexture(txt,kind);S.banner.material.needsUpdate=true;
+  S.bannerT=performance.now();S.banners.push(txt);
+  if(buzz)for(const st of S.sticks){pulse(st,0.6,40);setTimeout(()=>{if(S)pulse(st,0.9,60);},110);}
+  else for(const st of S.sticks)pulse(st,0.3,120);
+}
 /* Une frappe sur un pad : notée si son couloir a des notes dans la partie, sinon juste le son. */
 function strike(p,at,force){
   if(!p)return;
@@ -1041,7 +1057,7 @@ function draw(t){
   S.pops.forEach((m,i)=>{
     const x=pops[pops.length-1-i];m.visible=!!x;if(!x)return;
     const p=pads[x.lane],a=(now-x.t)/0.7;
-    m.material.map=popTexture(x.txt,x.kind);m.material.opacity=1-a*a;
+    m.material.map=popTexture(x.txt,x.kind,popSub(x.sub));m.material.opacity=1-a*a;
     m.position.copy(p.g.position);m.position.y+=(p.P.kick?p.P.r+0.12:0.16)+0.08*a;
     if(p.P.kick)m.position.z+=0.2;
   });
@@ -1049,14 +1065,24 @@ function draw(t){
   S.hud.mesh.visible=!!on;
   if(on){
     const sc=gm.sc,mult=Math.min(4,1+Math.floor(sc.streak/8));
-    const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:sc.streak>1?'Série de '+sc.streak:(S.preview?'P : pause':'B/Y : pause'),size:3.6,color:'#97A1B2'}];
+    /* multiplicateur gagné : bannière + double vibration ; série d'au moins 8 perdue : bannière rouge */
+    if(S.lastMult!=null&&mult>S.lastMult)banner('×'+mult+' !','ok',true);
+    else if((S.lastStreak||0)>=8&&sc.streak===0)banner('Série perdue','bad',false);
+    S.lastMult=mult;S.lastStreak=sc.streak;
+    const prog=gm.loop||!gm.chart.dur?'':Math.max(0,Math.min(100,Math.round(now/gm.chart.dur*100)))+' % du chant';
+    const l2=[sc.streak>1?'Série de '+sc.streak:'',prog].filter(Boolean).join('  ·  ')||(S.preview?'P : pause':'B/Y : pause');
+    const lines=[{t:sc.pts+' points'+(mult>1?'  ×'+mult:''),size:6,weight:800},{t:l2,size:3.6,color:'#97A1B2'}];
     if(now<gm.firstT-0.2)lines[1]={t:'Prépare-toi…',size:3.6,color:'#F2BB4A'};
     const duo=api.mainsNow&&api.mainsNow();
     if(duo)lines.splice(1,0,{t:'Gauche '+duo.l+'  ·  Droite '+duo.r,size:4.4,color:'#7BE3A6',weight:800});
     const say=api.exoNow&&api.exoNow();
     if(say)lines.splice(1,0,{t:say,size:4.4,color:'#F2BB4A',weight:800});
+    S.hudText=lines.map(l=>l.t).join(' | ');
     drawPanel(S.hud,lines,{bar:gm.loop||api.noFail()?null:gm.gauge});
   }
+  {const a=(performance.now()-S.bannerT)/900;S.banner.visible=!!on&&a>=0&&a<1;
+   if(S.banner.visible){S.banner.position.copy(S.hud.mesh.position);S.banner.position.y+=0.2+0.05*a;S.banner.material.opacity=1-a*a;S.banner.scale.setScalar(1+0.25*Math.min(1,a*4));}}
+  if(!on){S.lastMult=null;S.lastStreak=0;}
   /* menu : hors partie, ou en pause */
   const mode=S.spin?null:menuMode();
   S.menu.mesh.visible=!!mode;
@@ -1416,7 +1442,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
