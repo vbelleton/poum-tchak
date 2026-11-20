@@ -581,7 +581,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),handVis:loadPick(HV_KEY,HANDVIS,'non'),ghostMode:loadGhostMode(),ghostOn:loadGhostMode()!=='non',ghostKick:(()=>{try{return localStorage.getItem(GHOST_KEY+'kick')!=='non';}catch(e){return true;}})(),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),handVis:loadPick(HV_KEY,HANDVIS,'non'),ghostMode:loadGhostMode(),ghostOn:loadGhostMode()!=='non',ghostKick:(()=>{try{return localStorage.getItem(GHOST_KEY+'kick')!=='non';}catch(e){return true;}})(),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,jeux:jeuxOpt(),cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();buildGhost();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
@@ -694,6 +694,7 @@ function buildWorld(){
     /* le mot du pad (poum, tchak…), posé derrière lui, tourné vers le joueur */
     const lab=panel(0.26,0.08,600);
     drawPanel(lab,[{t:S.api.word(P.id),size:4.6,color:COL[P.id],weight:800}],{bg:false});
+    lab.mesh.userData.word=true;lab.mesh.visible=!S.jeux||S.jeux.words!=='non';
     lab.mesh.position.set(0,P.kick?P.r+0.07:0.07,P.kick?0.19:-P.r-0.02);
     if(!P.kick)lab.mesh.rotation.x=-0.5;
     g.add(lab.mesh);
@@ -931,6 +932,22 @@ function pulse(st,v,ms){
   if(h&&h.pulse)try{h.pulse(Math.max(0.1,Math.min(1,v)),ms);}catch(e){}
 }
 
+/* Réglages partagés avec la version téléphone (clé poumtchak.jeux) : mots sur les pads, endroit des verdicts */
+const JEUX_KEY='poumtchak.jeux';
+function jeuxOpt(){
+  const d={words:'oui',popAt:'pads'};
+  try{return Object.assign(d,JSON.parse(localStorage.getItem(JEUX_KEY)||'{}'));}catch(e){return d;}
+}
+function setJeux(k,v){
+  const o=jeuxOpt();o[k]=v;
+  try{localStorage.setItem(JEUX_KEY,JSON.stringify(o));}catch(e){}
+  S.jeux=jeuxOpt();applyJeux();
+}
+/* les mots des pads (poum, tchak…) se cachent ou se montrent d'un coup */
+function applyJeux(){
+  if(!S||!S.kit)return;
+  S.kit.traverse(o=>{if(o.userData&&o.userData.word)o.visible=S.jeux.words!=='non';});
+}
 function banner(txt,kind,buzz){
   S.banner.material.map=popTexture(txt,kind);S.banner.material.needsUpdate=true;
   S.bannerT=performance.now();S.banners.push(txt);
@@ -1290,11 +1307,12 @@ function draw(t){
     r.scale.setScalar(p.P.r*(1+0.6*a));r.material.color.set(COL[b.id]||'#fff');r.material.opacity=1-a;
   });
   /* mots : Parfait, Bien, Raté… au-dessus du pad */
-  const pops=on?gm.pops.filter(x=>now-x.t>=0&&now-x.t<0.7&&pads[x.lane]):[];
+  const pops=on&&S.jeux.popAt!=='cache'?gm.pops.filter(x=>now-x.t>=0&&now-x.t<0.7&&pads[x.lane]):[];
   S.pops.forEach((m,i)=>{
     const x=pops[pops.length-1-i];m.visible=!!x;if(!x)return;
     const p=pads[x.lane],a=(now-x.t)/0.7;
     m.material.map=popTexture(x.txt,x.kind,popSub(x.sub));m.material.opacity=1-a*a;
+    if(S.jeux.popAt==='haut'){m.position.copy(S.hud.mesh.position);m.position.y+=0.25+0.05*a;return;}
     m.position.copy(p.g.position);m.position.y+=(p.P.kick?p.P.r+0.12:0.16)+0.08*a;
     if(p.P.kick)m.position.z+=0.2;
   });
@@ -1357,7 +1375,7 @@ const MW=124,MH=108;
 const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
 const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
 function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub||'main';}
-function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':S.sub==='spin'?'spinmenu':'kitmenu';S.sub=false;}
+function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':S.sub==='spin'?'spinmenu':S.sub==='aff'?'affmenu':'kitmenu';S.sub=false;}
 function menuItems(mode){
   const {api}=S,it=[];
   if(mode==='mini'){it.push({id:'open',x:MW/2-16,y:MH-14,w:32,h:10,txt:'☰ Menu',big:true});return it;}
@@ -1416,6 +1434,12 @@ function menuItems(mode){
     it.push({id:'back',x:30,y:65,w:MW-60,h:8,txt:'‹ Retour'});
     return it;
   }
+  if(mode==='aff'){
+    row(19,'Mots');seg(19,'words',{oui:'Oui',non:'Non'},S.jeux.words);
+    row(30,'Verdicts');seg(30,'popAt',{pads:'Sur les pads',haut:'En haut',cache:'Cachés'},S.jeux.popAt);
+    it.push({id:'back',x:30,y:87,w:MW-60,h:9,txt:'‹ Retour',big:true});
+    return it;
+  }
   if(mode==='kit'){
     row(19,'Sons');seg(19,'sound',o.sounds,o.sound);
     row(26.5,'Style');seg(26.5,'style',STYLES,S.style);
@@ -1456,11 +1480,13 @@ function menuItems(mode){
   it.push({id:'kitmenu',x:30,y:67,w:17,h:H,txt:'Batterie ›'});
   it.push({id:'exomenu',x:48.5,y:67,w:19,h:H,txt:'Exercices ›'});
   it.push({id:'mainsmenu',x:68.5,y:67,w:14,h:H,txt:'Mains ›'});
-  it.push({id:'spinmenu',x:83.5,y:67,w:16,h:H,txt:'Spin ›'});
-  it.push({id:'import',x:101,y:67,w:MW-106,h:H,txt:'+ Chants'});
+  it.push({id:'spinmenu',x:83.5,y:67,w:14,h:H,txt:'Spin ›'});
+  it.push({id:'affmenu',x:98.5,y:67,w:14,h:H,txt:'Affichage ›'});
+  it.push({id:'import',x:113,y:67,w:MW-118,h:H,txt:'+ Chants'});
   it.push({id:'play',x:30,y:76,w:22,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
   const pn=api.plNow&&api.plNow();
   if(pn&&pn.next)it.push({id:'plnext',x:54,y:76,w:20,h:10,txt:'Suivant ›',big:pn.done});
+  if(pn&&pn.prev)it.push({id:'plprev',x:30,y:87,w:22,h:9,txt:'‹ Précédent'});
   else it.push({id:'rec',x:54,y:76,w:20,h:10,txt:api.rec()?'■ Garder':'● Écrire',on:api.rec()});
   it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
@@ -1578,6 +1604,8 @@ function menuDo(id){
   if(id==='exnew'){api.setExo('new');return;}
   if(/^rep:/.test(id)){api.setExo('rep',+id.slice(4));return;}
   if(id==='spinmenu'){S.sub='spin';S.focus='spinstart';return;}
+  if(id==='affmenu'){S.sub='aff';S.focus='back';return;}
+  if(id==='plprev'){if(api.plBack&&api.plBack())start();return;}
   if(id==='spinstart'){startSpin(null);return;}
   if(id==='spinthumb'){startSpin('thumb');return;}
   if(id==='spinrev'){startSpin('reverse');return;}
@@ -1605,7 +1633,8 @@ function menuDo(id){
   else if(id==='hhfoot')api.set('hhFoot',!o.hhFoot);
   else{
     const [k,v]=id.split(':');
-    if(k==='style')setStyle(v);
+    if(k==='words'||k==='popAt')setJeux(k,v);
+    else if(k==='style')setStyle(v);
     else if(k==='cal')setCal(v);
     else if(k==='decor')setDecor(v);
     else if(k==='lay')setLayout(v);
