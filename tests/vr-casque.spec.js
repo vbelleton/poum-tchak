@@ -316,4 +316,15 @@ test('l\'ancien réglage « + Charley pied » devient gâchette + charleston au 
   await page.reload();
   await page.locator('#grid .cell').first().waitFor();
   expect(await page.evaluate(() => { const o = window.__gm.vrApi.opts(); return [o.kick, o.hhFoot]; })).toEqual(['gachette', true]);
+
+test('casque Quest 2 simulé : voir mes mains autour des baguettes (Ma batterie)', async ({ page }) => {
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await vr(page))?.placed).toBe(true);
+  expect((await vr(page)).fists).toBe(0);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kitmenu'); v.menuPress('hv:oui'); });
+  await expect.poll(async () => (await vr(page)).fists).toBe(2);
+  expect(await page.evaluate(() => localStorage.getItem('poumtchak.vr.mainsvisibles'))).toBe('oui');
+  await page.evaluate(() => window.__gm.vr().menuPress('hv:non'));
+  expect((await vr(page)).fists).toBe(0);
 });
