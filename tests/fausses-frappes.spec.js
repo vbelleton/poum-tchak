@@ -45,3 +45,30 @@ test('VR : un vrai coup sonne une fois, les gestes parasites ne sonnent pas', as
   expect(await chemin(page, 1, [[0, 0.04, 0, 0], [0, -0.02, 0, 15], [ex, ey + 0.1, ez, 60], [ex, ey + 0.03, ez, 90], [ex, ey - 0.03, ez, 105], [ex, ey + 0.2, ez, 160]])).toEqual(['tchak', 'doum']);
   expect((await page.evaluate(() => window.__gm.vr().debug())).rejected).toBeGreaterThan(0);
 });
+
+test('VR : un coup entre deux pads va à celui que le chant attend', async ({ page }) => {
+  test.setTimeout(60_000);
+  await ouvrir(page);
+  const tchak = await page.evaluate(() => window.__gm.vr().padAt(1));
+  const tss = await page.evaluate(() => window.__gm.vr().padAt(2));
+  // un point à 55 % du chemin de la caisse claire au charleston : un peu plus près du charleston, mais dans la zone des deux
+  const dx = (tss.x - tchak.x) * 0.55, dz = (tss.z - tchak.z) * 0.55;
+  const coup = () => chemin(page, 1, [[dx, 0.2, dz, 0], [dx, -0.03, dz, 30], [dx, 0.3, dz, 120]]);
+  // hors partie, rien n'est attendu : le plus proche, le charleston
+  expect(await coup()).toEqual(['tss']);
+  // en partie, au moment d'une note de caisse claire (couloir 1) : la caisse claire
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('lvl:facile'); v.menuPress('tol:sansechec'); v.menuPress('play'); });
+  await expect.poll(() => page.evaluate(() => window.__gm.on())).toBe(true);
+  // le coup doit tomber dans les 0,18 s autour d'une note de caisse claire : sur une machine chargée,
+  // on réessaie avec la note suivante (au plus 4 fois)
+  let rep = [];
+  for (let k = 0; k < 4 && rep[0] !== 'tchak'; k++) {
+    await page.evaluate(async () => {
+      const g = window.__gm, n = g.notes().find((x) => x.lane === 1 && x.t > g.now() + 0.8);
+      while (g.on() && g.now() < n.t - 0.22) await new Promise((f) => setTimeout(f, 2));
+    });
+    rep = await coup();
+  }
+  expect(rep).toEqual(['tchak']);
+  expect((await page.evaluate(() => window.__gm.vr().debug())).swapped).toBeGreaterThan(0);
+});
