@@ -897,6 +897,18 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
 .qm{appearance:none;flex:none;width:28px;height:28px;padding:0;margin-left:6px;border-radius:50%;border:1px solid var(--line);background:var(--acc-soft);color:var(--acc);font:800 14px/1 var(--f-body);cursor:pointer;touch-action:manipulation;vertical-align:middle}
 .qm[aria-expanded="true"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
 .qm-txt{display:block;flex-basis:100%;margin:6px 0 8px;padding:10px 12px;border-radius:12px;background:var(--acc-soft);color:var(--ink);font-size:14px;line-height:1.4;max-width:62ch}
+.gm-plnav{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.gm-plnav p{flex:1;margin:0;text-align:center;font-weight:700;font-size:14px;line-height:1.25}
+.gm-plnav p small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.gm-plnav .btn{min-width:46px;font-size:20px;padding:6px}
+.gm-plpos{position:absolute;z-index:1;left:12px;top:calc(62px + env(safe-area-inset-top,0px));margin:0;font:700 12px var(--f-mono);color:#D5DBE5;pointer-events:none}
+.gm-ambi{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;display:grid;place-items:start center;padding-top:calc(110px + env(safe-area-inset-top,0px))}
+.gm-ambi b{font:800 26px var(--f-display);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.gm-ambi.yay{animation:gm-yay 1.4s ease-out}
+.gm-ambi.yay{background:radial-gradient(120% 60% at 50% 100%,rgba(255,200,80,.35),transparent 70%)}
+.gm-ambi.oh{animation:gm-yay 1.2s ease-out;background:radial-gradient(140% 90% at 50% 50%,transparent 55%,rgba(255,90,70,.35))}
+@keyframes gm-yay{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.gm-ambi.yay,.gm-ambi.oh{animation-duration:.01s}}
 </style>
 </head>
 <body>
@@ -1027,10 +1039,15 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
       <div id="gmEPRow"><div class="gm-opts" id="gmEPBox" style="margin:0"></div><p class="hint" style="margin:6px 0 0" id="gmEPHint"></p></div>
       <div id="gmClickRow"><span class="lab" id="lab-gmClick">Métronome</span><div class="seg" id="gmClick" role="group" aria-labelledby="lab-gmClick"></div><p class="hint" id="gmClickHint" style="margin:6px 0 0"></p></div>
       <div><button type="button" class="tog" id="gmSlowBtn" aria-pressed="false">Ralentir quand ça coince</button><p class="hint" style="margin:6px 0 0">Si tu rates plusieurs coups, la partie ralentit par paliers, jusqu'à 70 %, puis revient quand tu suis. Sur un chant, le son descend un peu avec la vitesse. Les points comptent à part pour les records.</p></div>
+      <div><span class="lab" id="lab-gmWords" data-help="Les mots (poum, tchak…) écrits sur les notes qui tombent et sous les pads. Cachés, il ne reste que les couleurs.">Mots sur les notes et les pads</span><div class="seg" id="gmWords" role="group" aria-labelledby="lab-gmWords"><button type="button" data-v="oui">Affichés</button><button type="button" data-v="non">Cachés</button></div></div>
+      <div><span class="lab" id="lab-gmPopAt" data-help="Où s'écrivent Parfait, Bien, Raté… : au-dessus du pad frappé, toujours au même endroit en haut, ou nulle part.">Verdicts (Parfait, Raté…)</span><div class="seg" id="gmPopAt" role="group" aria-labelledby="lab-gmPopAt"><button type="button" data-v="pads">Sur les pads</button><button type="button" data-v="haut">En haut</button><button type="button" data-v="cache">Cachés</button></div></div>
+      <div><span class="lab" id="lab-gmAmbi" data-help="Un public qui réagit : il applaudit tes séries et soupire quand ça rate plusieurs fois de suite. Ça ne change ni la vitesse ni les notes.">Ambiance</span><div class="seg" id="gmAmbi" role="group" aria-labelledby="lab-gmAmbi"><button type="button" data-v="rien">Rien</button><button type="button" data-v="visuel">Visuelle</button><button type="button" data-v="sons">Visuelle + sons</button></div></div>
+      <div><button type="button" class="tog" id="gmThinBtn" aria-pressed="false">Alléger les notes quand ça coince</button><p class="hint" style="margin:6px 0 0">Si tu rates plusieurs coups, les notes les plus serrées des mesures suivantes sont jouées pour toi (elles passent en transparent). Dès que tu suis, tout revient. Marche dans Couloirs.</p></div>
       <div><button type="button" class="tog" id="gmMidi" aria-pressed="false" data-help="Si tu as une batterie électronique, branche-la au téléphone avec un câble USB, puis allume ce bouton : tes vraies frappes comptent.">Batterie électronique (MIDI)</button></div>
     </div>
     </details>
     <div class="gm-cta">
+      <div class="gm-plnav" id="gmPlNav" hidden><button type="button" class="btn ghost" id="gmPlPrev" aria-label="Chant précédent de la playlist">‹</button><p id="gmPlPos"></p><button type="button" class="btn ghost" id="gmPlNext" aria-label="Chant suivant de la playlist">›</button></div>
       <p class="gm-sum" id="gmSum"></p>
       <button type="button" class="btn gm-resume" id="gmResume" hidden></button>
       <button type="button" class="btn gm-go" id="gmGo">Jouer</button>
@@ -1452,7 +1469,9 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
 <section class="gm-play" id="gm" hidden aria-label="Partie en cours">
   <div class="gm-prog" aria-hidden="true"><i id="gmProg"></i></div>
   <div class="gm-top"><button type="button" class="btn" id="gmQuit">Quitter</button><div class="gm-gauge" id="gmGauge" role="meter" aria-label="Jauge d'erreurs : la partie s'arrête quand elle est vide" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="gmGaugeFill"></i></div><div class="gm-score" aria-hidden="true"><span id="gmPts">0</span><small id="gmCombo"></small></div></div>
-  <div class="gm-ff"><button type="button" class="btn" id="gmFast" aria-pressed="false" hidden>Accélérer ⏩</button><button type="button" class="btn" id="gmSkip" hidden>Passer ⏭</button></div>
+  <div class="gm-ff"><button type="button" class="btn" id="gmFast" aria-pressed="false" hidden>Accélérer ⏩</button><button type="button" class="btn" id="gmSkip" hidden>Passer ⏭</button><button type="button" class="btn" id="gmPlLive" hidden>Chant suivant ⏭</button></div>
+  <p class="gm-plpos" id="gmPlTop" hidden></p>
+  <div class="gm-ambi" id="gmAmbiFx" aria-hidden="true"><b id="gmAmbiTxt"></b></div>
   <p class="sr" id="gmSay" role="status"></p>
   <canvas id="gmCv" tabindex="0" role="application" aria-label="Zone de jeu : tape au moment où les notes arrivent"></canvas>
 </section>
@@ -4629,7 +4648,7 @@ const GM_CTL={glisser:'Glisser',incliner:'Incliner',frappe:'Frapper'};
 const GM_CTL_HINT={glisser:'Glisse le doigt pour amener la balle sur la tuile. Le coup sonne quand elle atterrit.',
   incliner:'Incline le téléphone à gauche ou à droite. Le coup sonne quand la balle atterrit.',
   frappe:'Tape à gauche (poum) ou à droite (tchak) au bon moment : c\'est le mode qui travaille le placement.'};
-const gm={on:false,midi:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,ctl:'glisser',tol:'normal',click:'coupe',echoSong:'toujours',eLen:2,drop:null,hhOn:false,hh:[],hhNext:0,hhPtr:null,hhSc:null,slow:false,rate:1,slowRate:1,minRate:1,g0:0,c0:0,recent:[],ffOn:false,ffTo:0,ffUi:'',startCtx:0,srcGain:null,from:0,firstT:0,sched:[],clipI:0,clipSrcs:[],ckNext:0,ckFrom:null,loop:null,taps:[],sx:0,vx:0,tilt0:null,tiltSeen:false,tiltOk:false,
+const gm={on:false,midi:false,words:'oui',popAt:'pads',ambi:'rien',thin:false,game:'couloirs',rh:'rock',lvl:'facile',bpm:90,ctl:'glisser',tol:'normal',click:'coupe',echoSong:'toujours',eLen:2,drop:null,hhOn:false,hh:[],hhNext:0,hhPtr:null,hhSc:null,slow:false,rate:1,slowRate:1,minRate:1,g0:0,c0:0,recent:[],ffOn:false,ffTo:0,ffUi:'',startCtx:0,srcGain:null,from:0,firstT:0,sched:[],clipI:0,clipSrcs:[],ckNext:0,ckFrom:null,loop:null,taps:[],sx:0,vx:0,tilt0:null,tiltSeen:false,tiltOk:false,
   songs:[],song:null,src:null,curBpm:90,count:[],busy:false,chart:null,t0:0,bi:0,cli:0,timer:0,raf:0,sc:null,gauge:1,flash:[],bursts:[],pops:[],nextMiss:0,ended:false,w:0,h:0,dpr:1,col:{}};
 try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
   if(GM_INFO[o.game]&&o.game!=='vr')gm.game=o.game;
@@ -4643,8 +4662,12 @@ try{const o=JSON.parse(localStorage.getItem(GM_KEY)||'null');if(o){
   if([1,2,4].includes(o.eLen))gm.eLen=o.eLen;
   if(GM_ECHO_SONG[o.echoSong])gm.echoSong=o.echoSong;
   if(+o.bpm>=40&&+o.bpm<=220)gm.bpm=Math.round(+o.bpm);
+  if(['oui','non'].includes(o.words))gm.words=o.words;
+  if(['pads','haut','cache'].includes(o.popAt))gm.popAt=o.popAt;
+  if(['rien','visuel','sons'].includes(o.ambi))gm.ambi=o.ambi;
+  gm.thin=o.thin===true;
 }}catch(e){}
-function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.vr?gm.vrPrev:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl,tol:gm.tol,click:gm.click,slow:gm.slow,echoSong:gm.echoSong,hhOn:gm.hhOn,eLen:gm.eLen}));}catch(e){}}
+function gmSave(){try{localStorage.setItem(GM_KEY,JSON.stringify({game:gm.vr?gm.vrPrev:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,ctl:gm.ctl,tol:gm.tol,click:gm.click,slow:gm.slow,echoSong:gm.echoSong,hhOn:gm.hhOn,eLen:gm.eLen,words:gm.words,popAt:gm.popAt,ambi:gm.ambi,thin:gm.thin}));}catch(e){}}
 /* Reprise : par jeu, rythme ou chant, et nombre de notes. Le score d'alors est gardé avec le point de
    contrôle, et la mesure compte en numéro plutôt qu'en secondes pour survivre à un changement de tempo. */
 const GM_CK_KEY='poumtchak.jeux.reprises';
@@ -4859,6 +4882,9 @@ function gmRender(){
   $('#gmGo').textContent=ck?'Recommencer du début':'Jouer';
   $('#gmGo').classList.toggle('ghost',!!ck);
   ['#gmSlowBtn','#lpSlowBtn'].forEach(q=>$(q).setAttribute('aria-pressed',String(gm.slow)));
+  $('#gmThinBtn').setAttribute('aria-pressed',String(gm.thin));
+  [['#gmWords','words'],['#gmPopAt','popAt'],['#gmAmbi','ambi']].forEach(([q,k])=>[...$(q).children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===gm[k]))));
+  plsNavRender();
   $('#gmHHBtn').setAttribute('aria-pressed',String(gm.hhOn));
   $('#gmHHHint').textContent=gm.ctl==='frappe'?'Le charley se joue en mode Glisser ou Incliner : une main (ou le téléphone) dirige la balle, l\'autre frappe le charley.':
     'Une main dirige la balle, l\'autre frappe le pad du charley, sur chaque temps (Peu) ou chaque croche (Moyen, Beaucoup)'+(gm.ctl==='incliner'?' : en mode Incliner, tape n\'importe où.':'. Pour le déplacer : garde le doigt dessus une demi-seconde, puis glisse. Au clavier : barre d\'espace.');
@@ -4881,6 +4907,18 @@ $('#gmLv').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(
 $('#gmTol').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.tol=b.dataset.v;gmSave();gmRender();});
 $('#gmHHBtn').addEventListener('click',()=>{gm.hhOn=!gm.hhOn;gmSave();gmRender();});
 ['#gmSlowBtn','#lpSlowBtn'].forEach(q=>$(q).addEventListener('click',()=>{gm.slow=!gm.slow;gmSave();gmRender();}));
+$('#gmThinBtn').addEventListener('click',()=>{gm.thin=!gm.thin;gmSave();gmRender();});
+[['#gmWords','words'],['#gmPopAt','popAt'],['#gmAmbi','ambi']].forEach(([q,k])=>$(q).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;gm[k]=b.dataset.v;gmSave();gmRender();if(k==='ambi'&&gm.ambi==='sons'){ensureAudio();gmCheer(1);}}));
+/* Playlist : où on en est, et passer au chant d'avant ou d'après. */
+function plsGo(d){const c=plsCur();if(!c)return false;const j=c.i+d;if(j<0||j>=c.L.length)return false;gm.pl.i=j;gm.pl.done=false;gm.rh=c.L[j];gmSave();gmRender();return true;}
+function plsNavRender(){
+  const c=plsCur(),nav=$('#gmPlNav');nav.hidden=!c;if(!c)return;
+  $('#gmPlPos').innerHTML='Chant '+(c.i+1)+' sur '+c.L.length+'<small>'+plsEsc(c.pl.name)+' · '+plsEsc(plsTitle(c.L[c.i]))+'</small>';
+  $('#gmPlPrev').disabled=c.i<=0;$('#gmPlNext').disabled=c.i+1>=c.L.length;
+}
+$('#gmPlPrev').addEventListener('click',()=>plsGo(-1));
+$('#gmPlNext').addEventListener('click',()=>plsGo(1));
+$('#gmPlLive').addEventListener('click',()=>{gmHalt();if(plsGo(1))gmLaunch(null);});
 $('#gmELen').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.eLen=+b.dataset.v;gmSave();gmRender();});
 $('#gmEchoSong').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.echoSong=b.dataset.v;gmSave();gmRender();});
 $('#gmClick').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;gm.click=b.dataset.v;gmSave();gmRender();});
@@ -5138,7 +5176,8 @@ function gmStart(song,buffer,opt={}){
   let ck=opt.ck&&opt.ck.at<nCk&&ns[ns.length-1].t>=c.bars[opt.ck.at]?opt.ck:null;
   const from=ck?c.bars[ck.at]:0;
   gm.ckFrom=ck?gmCkLabel(ck):null;
-  ns.forEach(n=>{n.done=n.t<from-0.03;n.res=n.done?'old':'';n.at=null;});
+  ns.forEach(n=>{n.done=n.t<from-0.03;n.res=n.done?'old':'';n.at=null;n.light=false;n.lp=0;});
+  gm.thinOn=false;gm.thinR=[];gm.missRun=0;gm.ambiAt=-99;gmPlLiveRender();
   gm.sc={perfect:0,good:0,approx:0,miss:0,extra:0,streak:0,best:0,pts:0,offs:[]};
   if(ck)Object.assign(gm.sc,ck.sc,{streak:0,offs:(ck.sc.offs||[]).slice()});
   gm.sx=0;gm.vx=0;gm.tilt0=null;gm.tiltSeen=false;gm.fallAt=null;
@@ -5297,6 +5336,7 @@ function gmTick(){
   const c=gm.chart,lim=ctx.currentTime+0.12;
   while(gm.cli<gm.sched.length&&gmToCtx(gm.sched[gm.cli].t)<lim){const b=gm.sched[gm.cli++];if(!b.mute)clickSound(Math.max(ctx.currentTime,gmToCtx(b.t)),b.accent);}
   while(gm.bi<c.backing.length&&gmToCtx(c.backing[gm.bi].t)<lim){const b=c.backing[gm.bi++];voice(b.id,Math.max(ctx.currentTime,gmToCtx(b.t)),VEL[b.vel]);}
+  if(gm.thinOn)for(let i=gm.nextMiss;i<c.notes.length;i++){const n=c.notes[i],ct=gmToCtx(n.t);if(ct>=lim)break;if(n.light&&!n.lp){n.lp=1;if(!gm.song)voice(n.id,Math.max(ctx.currentTime,ct),VEL[n.vel]||0.8);}}
   while(gm.buffer&&c.clips&&gm.clipI<c.clips.length&&gmToCtx(c.clips[gm.clipI].t)<ctx.currentTime+0.2)gmClip(c.clips[gm.clipI++]);
 }
 /* Écoute puis rejoue : un morceau du chant, avec un fondu très court pour éviter le clac. */
@@ -5337,6 +5377,7 @@ function gmFaster(){
   gm.slowRate=Math.round((gm.slowRate+0.1)*10)/10;gmRateNow();
 }
 function gmAdapt(kind){
+  gmThinCheck(kind);
   if(!gm.slow||gm.chart.kind==='echo'||gm.ended)return;
   const R=gm.recent;R.push(kind==='miss'||kind==='extra'?0:1);
   if(R.length>12)R.shift();
@@ -5396,7 +5437,7 @@ function gmSeekAny(t){
   const c=gm.chart;t=Math.max(0,Math.min(t,c.dur-0.5));
   if(t<gmNow()){
     gm.cli=0;gm.bi=0;gm.clipI=0;
-    for(const n of c.notes)if(n.t>=t-0.001){n.done=false;delete n.res;delete n.at;}
+    for(const n of c.notes)if(n.t>=t-0.001){n.done=false;delete n.res;delete n.at;n.light=false;n.lp=0;}
   }
   const k=c.notes.findIndex(n=>n.t>=t-0.001);gm.nextMiss=k<0?c.notes.length:k;
   gm.ended=false;gm.seeks=(gm.seeks||0)+1;
@@ -5465,7 +5506,7 @@ function gmHit(lane,at,withSound){
   const win=gmWin();let best=null,bd=1e9;
   for(const n of gm.chart.notes){
     if(n.t-at>win)break;
-    if(n.done||n.lane!==lane)continue;
+    if(n.done||n.light||n.lane!==lane)continue;
     const d=at-n.t;
     if(Math.abs(d)<Math.abs(bd)){bd=d;best=n;}
   }
@@ -5476,6 +5517,8 @@ function gmHit(lane,at,withSound){
     best.done=true;best.res=v.k;best.at=at;
     sc[v.k]++;sc.offs.push(bd*1000);gmGaugeMove(v.k);
     if(v.k!=='approx')sc.streak++;
+    gm.missRun=0;
+    if([10,25,50,100].includes(sc.streak)){gmCheer(sc.streak>=25?2:1);}
     if([10,25,50,100].includes(sc.streak))gm.pops.push({t:gmNow()+0.1,lane:gm.chart.nLanes>>1,txt:'Série de '+sc.streak+' !',kind:'ok'});
     const gain=v.pts*Math.min(4,1+Math.floor(sc.streak/8));
     sc.pts+=gain;if(sc.streak>sc.best)sc.best=sc.streak;
@@ -5490,7 +5533,7 @@ function gmHit(lane,at,withSound){
       if(!r)return;
       gm.taps.push({t:at,lane,r:gm.chart.rounds.indexOf(r)});
     }
-    sc.extra++;sc.streak=0;gmGaugeMove('extra');
+    sc.extra++;sc.streak=0;gmMissRun();gmGaugeMove('extra');
     gm.pops.push({t:gmNow(),lane,txt:'En trop',kind:'bad'});
   }
   if(gm.pops.length>12)gm.pops.shift();
@@ -5502,7 +5545,8 @@ function gmMisses(now){
   while(gm.nextMiss<ns.length&&ns[gm.nextMiss].t+win<now){
     const n=ns[gm.nextMiss++];
     if(n.done)continue;
-    n.done=true;n.res='miss';gm.sc.miss++;gm.sc.streak=0;
+    if(n.light){n.done=true;n.res='auto';continue;}
+    n.done=true;n.res='miss';gm.sc.miss++;gm.sc.streak=0;gmMissRun();
     gm.pops.push({t:now,lane:n.lane,txt:'Raté',kind:'bad'});
     if(gm.game==='rebonds')gmDrop(n.lane===0?-0.5:0.5);
     gmGaugeMove('miss');gmScore();
@@ -5658,6 +5702,8 @@ function gmFrame(){
 }
 const GM_POP={ok:'#7BE3A6',warn:'#F2BB4A',bad:'#FF8A70'};
 function gmRound(cx,x,y,w,h,r){cx.beginPath();if(cx.roundRect)cx.roundRect(x,y,w,h,r);else cx.rect(x,y,w,h);}
+/* Les mots sur les notes et les pads, si on ne les a pas cachés. */
+const gmW=id=>gm.words==='non'?'':singleWord(dict,id);
 function gmDrawLanes(cx,now){
   const W=gm.w,H=gm.h,n=gm.chart.nLanes,lw=W/n,hitY=H*0.8,beat=60/gm.curBpm;
   const fall=Math.max(1.1,2.4*beat),speed=(hitY-60)/fall,noteH=Math.max(16,Math.min(26,H*0.03));
@@ -5681,10 +5727,10 @@ function gmDrawLanes(cx,now){
     if(y<-noteH)break;
     if(y>H+noteH||(nt.done&&nt.res!=='miss'))continue;
     const x=nt.lane*lw+5,w=lw-10;
-    cx.globalAlpha=nt.res==='miss'?0.28:1;
+    cx.globalAlpha=nt.res==='miss'?0.28:nt.light?0.22:1;
     cx.fillStyle=nt.res==='miss'?'#6F7A8C':gm.col[nt.id]||'#fff';
     gmRound(cx,x,y-noteH/2,w,noteH,5);cx.fill();
-    if(nt.res!=='miss'){cx.fillStyle='#0B0E14';cx.fillText(singleWord(dict,nt.id),x+w/2,y+1);}
+    if(nt.res!=='miss'){cx.fillStyle='#0B0E14';cx.fillText(gmW(nt.id),x+w/2,y+1);}
     cx.globalAlpha=1;
   }
   cx.fillStyle='#fff';cx.fillRect(0,hitY-1.5,W,3);
@@ -5699,13 +5745,15 @@ function gmDrawLanes(cx,now){
   for(let i=0;i<n;i++){
     const id=lanes[i].ids[0],x=(i+0.5)*lw;
     cx.fillStyle=gm.col[id]||'#fff';cx.font='800 '+Math.min(17,lw*0.19)+'px "Bricolage Grotesque",system-ui,sans-serif';
-    cx.fillText(singleWord(dict,id),x,hitY+(H-hitY)*0.42);
+    cx.fillText(gmW(id),x,hitY+(H-hitY)*0.42);
     if(matchMedia('(hover:hover)').matches){cx.fillStyle='#97A1B2';cx.font='500 12px "IBM Plex Mono",monospace';cx.fillText('DFJK'[i],x,hitY+(H-hitY)*0.68);}
   }
   gmDrawPops(cx,now,i=>(i+0.5)*lw,hitY-44,lw);
   gmDrawCount(cx,now);
 }
 function gmDrawPops(cx,now,xOf,y,lw,one){
+  if(gm.popAt==='cache')return;
+  if(gm.popAt==='haut'){xOf=()=>gm.w/2;y=gm.h*0.24;lw=Math.max(lw,110);one=true;}
   cx.textAlign='center';
   for(const p of one?gm.pops.slice(-1):gm.pops){
     const a=now-p.t,life=p.sub?0.9:0.55;if(a<0||a>life)continue;
@@ -5762,7 +5810,7 @@ function gmDrawHops(cx,now){
     const edge=Math.max(2,10*b.p);
     cx.fillStyle=col;cx.fillRect(b.x-hw*unit*b.p,b.y,2*hw*unit*b.p,edge);
     cx.fillStyle='rgba(0,0,0,.38)';cx.fillRect(b.x-hw*unit*b.p,b.y,2*hw*unit*b.p,edge);
-    if(n.res!=='miss'&&b.p>0.4&&b.y-a.y>16){cx.fillStyle='#0B0E14';cx.font='800 '+Math.round(11+9*Math.min(1,b.p))+'px "Bricolage Grotesque",system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(singleWord(dict,n.id),(a.x+b.x)/2,(a.y+b.y)/2);}
+    if(n.res!=='miss'&&b.p>0.4&&b.y-a.y>16){cx.fillStyle='#0B0E14';cx.font='800 '+Math.round(11+9*Math.min(1,b.p))+'px "Bricolage Grotesque",system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(gmW(n.id),(a.x+b.x)/2,(a.y+b.y)/2);}
     /* Glisser, Incliner : le point où la balle a rebondi, en couleur (vert centré, ambre à côté, rouge raté) */
     if(n.dx!=null){
       const q=proj(z,X+Math.max(-0.75,Math.min(0.75,n.dx))),ad=Math.abs(n.dx);
@@ -5813,7 +5861,7 @@ function gmDrawHops(cx,now){
     const age=now-gm.flash[k],x=k*W/2;
     if(age>=0&&age<0.14){cx.fillStyle='rgba(255,255,255,'+(0.16*(1-age/0.14)).toFixed(3)+')';cx.fillRect(x,0,W/2,H);}
     cx.fillStyle=gm.col[id];cx.font='800 21px "Bricolage Grotesque",system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';
-    cx.fillText(singleWord(dict,id),x+W/4,zone);
+    cx.fillText(gmW(id),x+W/4,zone);
     if(matchMedia('(hover:hover)').matches){cx.fillStyle='#97A1B2';cx.font='500 12px "IBM Plex Mono",monospace';cx.fillText('FJ'[k],x+W/4,zone+24);}
   });
   if(!gmSteers()){cx.fillStyle='rgba(255,255,255,.14)';cx.fillRect(W/2-0.5,zone-24,1,48);}
@@ -5933,7 +5981,7 @@ function gmDrawEcho(cx,now){
   if(zones===1){small(matchMedia('(hover:hover)').matches?'Tape partout, ou F et J':'Tape partout : seul le rythme compte',H*0.82);return;}
   [['poum',0],['tchak',1]].forEach(([id,k])=>{
     const x=k*W/2+W/4,y=H*0.82;
-    cx.fillStyle=gm.col[id];cx.font='800 21px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(singleWord(dict,id),x,y);
+    cx.fillStyle=gm.col[id];cx.font='800 21px "Bricolage Grotesque",system-ui,sans-serif';cx.fillText(gmW(id),x,y);
     if(matchMedia('(hover:hover)').matches){cx.fillStyle='#97A1B2';cx.font='500 12px "IBM Plex Mono",monospace';cx.fillText('FJ'[k],x,y+24);}
   });
 }
@@ -5981,7 +6029,7 @@ function gmDrawEchoRes(cx,i,r){
     cx.fillText(p?(P.cuts.some(Boolean)?'Second passage, clic coupé':'Second passage'):'Premier passage',14,y-2);
     (gm.chart.nLanes===1?[['',0]]:[['poum',0],['tchak',1]]).forEach(([id,lane])=>{
       cx.fillStyle='#262D39';cx.fillRect(x0,y+18+lane*26,w,1);
-      if(id){cx.fillStyle=gm.col[id];cx.font='700 12px "Hanken Grotesk",system-ui,sans-serif';cx.fillText(singleWord(dict,id),14,y+18+lane*26);}
+      if(id){cx.fillStyle=gm.col[id];cx.font='700 12px "Hanken Grotesk",system-ui,sans-serif';cx.fillText(gmW(id),14,y+18+lane*26);}
     });
     const X=t=>x0+Math.max(0,Math.min(1,(t-P.t)/r.L))*w;
     ns.filter(n=>n.p===p).forEach(n=>{
@@ -6024,6 +6072,65 @@ function gmConfetti(n){
   }
   document.body.appendChild(box);setTimeout(()=>box.remove(),2800);
 }
+/* Ambiance : un public qui applaudit les séries et soupire quand ça rate. Rien ne change dans le jeu. */
+function gmAmbiFx(kind,txt){
+  const fx=$('#gmAmbiFx');fx.className='gm-ambi';void fx.offsetWidth;fx.className='gm-ambi '+kind;$('#gmAmbiTxt').textContent=txt||'';
+}
+let gmClapBuf=null;
+/* Des applaudissements : des centaines de claquements de mains très courts, à des instants au hasard,
+   sur un léger souffle de foule. C'est la recette classique des bruitages, sans fichier à télécharger. */
+function gmApplause(){
+  if(gmClapBuf)return gmClapBuf;
+  const sr=ctx.sampleRate,dur=2.6,N=Math.floor(sr*dur),L=new Float32Array(N),R=new Float32Array(N);
+  for(let c=0;c<420;c++){
+    const u=Math.random(),t=dur*(u<0.25?u*1.2:0.3+Math.pow(Math.random(),1.6)*2.1),i0=Math.floor(t*sr),len=Math.floor(sr*(0.006+Math.random()*0.012));
+    const amp=(0.25+Math.random()*0.5)*Math.min(1,t/0.25),pan=Math.random(),f=0.55+Math.random()*0.35;
+    let y=0,prev=0;
+    for(let k=0;k<len&&i0+k<N;k++){const x=Math.random()*2-1;y=f*(x-prev)+(1-f)*y;prev=x;const v=y*amp*Math.exp(-k/(len*0.35));L[i0+k]+=v*(1-pan*0.6);R[i0+k]+=v*(0.4+pan*0.6);}
+  }
+  let lp=0;for(let i=0;i<N;i++){const t=i/sr,env=Math.min(1,t/0.3)*Math.max(0,1-Math.max(0,t-1.4)/1.2);lp+=0.02*((Math.random()*2-1)-lp);L[i]+=lp*1.4*env;R[i]+=lp*1.4*env;}
+  gmClapBuf=ctx.createBuffer(2,N,sr);gmClapBuf.copyToChannel(L,0);gmClapBuf.copyToChannel(R,1);
+  return gmClapBuf;
+}
+function gmCheer(size){
+  if(gm.ambi==='rien'||!ctx)return;
+  gmAmbiFx('yay',size>1?'Le public est debout !':'Bravo !');
+  if(gm.ambi!=='sons')return;
+  const src=ctx.createBufferSource(),g=ctx.createGain();src.buffer=gmApplause();
+  g.gain.value=size>1?0.5:0.32;src.connect(g);g.connect(master||ctx.destination);src.start(ctx.currentTime+0.02);
+}
+/* Une déception, discrète : deux notes douces qui descendent, comme dans les jeux télé. */
+function gmAww(){
+  if(gm.ambi==='rien'||!ctx)return;
+  gmAmbiFx('oh','Oh…');
+  if(gm.ambi!=='sons')return;
+  const t=ctx.currentTime+0.02;
+  [[392,0],[311.1,0.22]].forEach(([f,d])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.setValueAtTime(f,t+d);o.frequency.linearRampToValueAtTime(f*0.97,t+d+0.35);
+    g.gain.setValueAtTime(0.0001,t+d);g.gain.exponentialRampToValueAtTime(0.16,t+d+0.03);g.gain.exponentialRampToValueAtTime(0.0001,t+d+0.42);o.connect(g);g.connect(master||ctx.destination);o.start(t+d);o.stop(t+d+0.45);});
+}
+function gmMissRun(){
+  gm.missRun=(gm.missRun||0)+1;
+  if(gm.missRun===4&&gmNow()-gm.ambiAt>8){gm.ambiAt=gmNow();gmAww();}
+}
+/* Alléger quand ça coince (Couloirs) : 4 ratés sur les 6 derniers coups, et dans les 4 mesures
+   suivantes, chaque couloir ne garde qu'une note par temps. Les autres sont jouées par l'appli. */
+function gmThinCheck(kind){
+  if(!gm.thin||gm.game!=='couloirs'||gm.chart.kind==='echo'||gm.loop)return;
+  const R=gm.thinR||(gm.thinR=[]);R.push(kind==='miss'||kind==='extra'?0:1);if(R.length>8)R.shift();
+  if(R.slice(-6).filter(x=>!x).length<4)return;
+  R.length=0;
+  const now=gmNow(),from=now+0.9,to=from+4*gm.chart.barDur,beat=60/gm.curBpm*0.98,last={};
+  let k=0;
+  for(const n of gm.chart.notes){
+    if(n.t<from||n.done)continue;if(n.t>to)break;
+    if(last[n.lane]!=null&&n.t-last[n.lane]<beat){if(!n.light){n.light=true;k++;}}else last[n.lane]=n.t;
+  }
+  if(k){gm.thinOn=true;gm.pops.push({t:now,lane:gm.chart.nLanes>>1,txt:'Moins de notes',kind:'warn'});}
+}
+function gmPlLiveRender(){
+  const c=plsCur();$('#gmPlTop').hidden=!c;$('#gmPlLive').hidden=!c||c.i+1>=c.L.length||gm.game==='vr';
+  if(c)$('#gmPlTop').textContent='Playlist · chant '+(c.i+1)+'/'+c.L.length;
+}
 function gmFinish(fell){
   if(!gm.on)return;
   gmHalt(fell?'jauge':'fin');
@@ -6056,6 +6163,7 @@ function gmFinish(fell){
   h+='<div class="row pr-btns">'+(plN?'<button type="button" class="btn" id="gmResNext">Chant suivant : '+plsEsc(plsTitle(plN))+'</button>':'')+(ck?'<button type="button" class="btn" id="gmResCk">Reprendre à la '+gmCkLabel(ck)+'</button>':'')+'<button type="button" class="btn'+(ck?' ghost':'')+'" id="gmResGo">'+(next!==gm.bpm?'Rejouer à '+next+' BPM':ck?'Rejouer du début':'Rejouer')+'</button><button type="button" class="btn ghost" id="gmResBack">Choisir un autre</button></div>';
   sheetOpen(h);
   if(!fell)gmConfetti(before&&sc.pts>before?Math.max(stars,2):stars);
+  if(!fell&&stars>=2)gmCheer(stars>=3?2:1);
   if(ck)$('#gmResCk').addEventListener('click',()=>{sheetClose();gmLaunch(ck);});
   $('#gmResGo').addEventListener('click',()=>{sheetClose();gmSetBpm(next);$('#gmGo').click();});
   $('#gmResBack').addEventListener('click',sheetClose);
@@ -6226,7 +6334,7 @@ const vrApi={
   /* chaque main : la part de ses coups joués à temps */
   hands(){
     if(!vrMains||!gm.chart||!gm.chart.mains)return null;
-    const pc=lane=>{const ns=gm.chart.notes.filter(n=>n.lane===lane&&n.done&&n.res!=='old');return ns.length?Math.round(100*ns.filter(n=>n.res!=='miss').length/ns.length):0;};
+    const pc=lane=>{const ns=gm.chart.notes.filter(n=>n.lane===lane&&n.done&&n.res!=='old'&&n.res!=='auto');return ns.length?Math.round(100*ns.filter(n=>n.res!=='miss').length/ns.length):0;};
     return {l:pc(1),r:pc(4)};
   },
   pct:()=>gmPct(gm.sc),
@@ -6388,7 +6496,7 @@ $('#gmVR').addEventListener('click',async()=>{
   }catch(e){say('Impossible d\'entrer en VR'+(e&&e.message?' : '+e.message:'')+'.');}
 });
 /* Tests automatiques : lire la partie en cours. */
-if(navigator.webdriver)window.__gm={now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
+if(navigator.webdriver)window.__gm={legeres:()=>gm.on?gm.chart.notes.filter(n=>n.light).length:0,now:()=>gm.on?gmNow():null,notes:()=>gm.on?gm.chart.notes.map(n=>({t:n.t,lane:n.lane})):[],on:()=>gm.on,sc:()=>gm.sc,gauge:()=>gm.gauge,voies:()=>gm.chart.nLanes,loop:()=>gm.loop,reste:()=>gm.on?gm.chart.notes.filter(n=>!n.done).length:0,
   debut:()=>gm.from,chart:()=>gm.chart,taps:()=>gm.taps,clics:()=>gm.chart.beats.map(b=>({t:b.t,mute:!!b.mute})),sons:()=>gm.clipSrcs.length,crete:()=>{const d=gm.buffer?gm.buffer.getChannelData(0):[];let m=0;for(let i=0;i<d.length;i+=50)m=Math.max(m,Math.abs(d[i]));return m;},vitesse:()=>gm.rate,pops:()=>gm.pops,bloquerSon:(figé)=>{if(figé)ctx.resume=()=>Promise.resolve();return ctx.suspend();},charley:()=>gm.hh.map(n=>n.t),aides:()=>gmEPref(),impacts:()=>gm.chart.notes.filter(n=>n.dx!=null).map(n=>n.dx),padCharley:()=>gmHHPad(),hhSc:()=>gm.hhSc,chute:()=>!!gm.drop,vr:()=>vrMod,vrApi,
   pls:{start:id=>plsStart(id),fin:()=>gmFinish(false),rh:()=>gm.rh,sel:()=>gm.plSel,render:()=>gmRender()}};
 /* ---------- Test du jour : ta forme, pour régler la séance ----------
