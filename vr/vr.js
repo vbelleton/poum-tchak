@@ -214,6 +214,32 @@ function updateDecor(t){
   }
   S.renderer.setClearColor(S.scene.background,1);
 }
+/* Mains visibles en jouant : un poing simple (paume, quatre doigts enroulés, pouce) autour de chaque baguette.
+   Le Quest 2 ne suit pas les doigts quand on tient les manettes : le poing est dessiné, pas suivi. */
+const HV_KEY='poumtchak.vr.mainsvisibles',HANDVIS={non:'Non',oui:'Oui'};
+let fistMat=null;
+function buildFist(holder,side){
+  fistMat=fistMat||new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.7});
+  const g=new THREE.Group();g.name='poing';
+  /* la baguette suit -z dans le support ; le dos de la main est vers l'extérieur (x) */
+  const sx=1;if(side==='left')g.scale.x=-1;
+  const palm=new THREE.Mesh(new THREE.BoxGeometry(0.026,0.075,0.085),fistMat);palm.position.set(0.026*sx,-0.012,0.005);g.add(palm);
+  const fing=new THREE.TorusGeometry(0.017,0.0085,8,14,Math.PI*1.35);
+  [0.034,0.013,-0.008,-0.027].forEach((z,i)=>{
+    const f=new THREE.Mesh(fing,fistMat);f.position.set(0,0,z);
+    /* l'anneau fait le tour de la baguette, sauf au-dessus où se pose le pouce */
+    f.rotation.z=Math.PI*0.825;
+    f.scale.setScalar(i===3?0.9:1);g.add(f);
+  });
+  const th=new THREE.Mesh(new THREE.CapsuleGeometry(0.0095,0.04,4,8),fistMat);
+  th.rotation.x=Math.PI/2;th.position.set(0.006*sx,0.018,-0.03);g.add(th);
+  g.visible=S.handVis==='oui';holder.add(g);return g;
+}
+function setHandVis(v){
+  if(!HANDVIS[v])return;
+  S.handVis=v;try{localStorage.setItem(HV_KEY,v);}catch(e){}
+  for(const st of S.sticks)if(st.fist)st.fist.visible=v==='oui';
+}
 function setLayout(v){
   if(!LAYOUTS[v])return;
   S.layout=v;try{localStorage.setItem(L_KEY,v);}catch(e){}
@@ -344,7 +370,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),handVis:loadPick(HV_KEY,HANDVIS,'non'),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
@@ -671,8 +697,12 @@ function addController(i){
   const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.009,STICK,10),wood);
   stick.rotation.x=-Math.PI/2;stick.position.z=-STICK/2+0.05;holder.add(stick);
   const tipM=new THREE.Mesh(new THREE.SphereGeometry(0.012,10,8),wood);tipM.position.z=-STICK+0.05;holder.add(tipM);
-  const st={grip,holder,tip:tipM,src:null,prev:null,prevT:0,armed:new Map(),hand:''};
-  grip.addEventListener('connected',e=>{st.src=e.data;st.hand=e.data.handedness||'';});
+  const st={grip,holder,tip:tipM,src:null,prev:null,prevT:0,armed:new Map(),hand:'',fist:null};
+  grip.addEventListener('connected',e=>{
+    st.src=e.data;st.hand=e.data.handedness||'';
+    if(st.fist){holder.remove(st.fist);st.fist=null;}
+    if(!e.data.hand)st.fist=buildFist(holder,st.hand);
+  });
   grip.addEventListener('disconnected',()=>{st.src=null;st.prev=null;});
   S.sticks.push(st);addRay(st,i);
 }
@@ -1114,7 +1144,8 @@ function menuItems(mode){
     row(71.5,'Caler sur');
     {const w=(MW-35)/3;Object.keys(CALS).forEach((k,j)=>it.push({id:'cal:'+k,x:30+j*w,y:71.5,w:w-1.5,h:H,txt:CALS[k],on:k===S.cal}));
      it.push({id:'recal',x:30+2*w,y:71.5,w:w-1.5,h:H,txt:'Recaler'});}
-    it.push({id:'back',x:30,y:79.5,w:MW-60,h:9,txt:'‹ Retour',big:true});
+    row(79,'Voir mes mains');seg(79,'hv',HANDVIS,S.handVis);
+    it.push({id:'back',x:30,y:87,w:MW-60,h:9,txt:'‹ Retour',big:true});
     return it;
   }
   row(19,'Chant');
@@ -1278,6 +1309,7 @@ function menuDo(id){
     else if(k==='cal')setCal(v);
     else if(k==='decor')setDecor(v);
     else if(k==='lay')setLayout(v);
+    else if(k==='hv')setHandVis(v);
     else{api.set(k,v);if(k==='sound')api.play('tchak',1);}
   }
 }
@@ -1381,7 +1413,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
