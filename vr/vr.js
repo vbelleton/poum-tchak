@@ -218,49 +218,70 @@ function updateDecor(t){
    Le Quest 2 ne suit pas les doigts quand on tient les manettes : le poing est dessiné, pas suivi. */
 const HV_KEY='poumtchak.vr.mainsvisibles',HANDVIS={non:'Non',oui:'Oui'};
 let fistMat=null;
-function buildFist(holder,side){
-  fistMat=fistMat||new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.7});
-  const g=new THREE.Group();g.name='poing';
-  /* la baguette suit -z dans le support ; le dos de la main est vers l'extérieur (x) */
-  const sx=1;if(side==='left')g.scale.x=-1;
-  const palm=new THREE.Mesh(new THREE.BoxGeometry(0.026,0.075,0.085),fistMat);palm.position.set(0.026*sx,-0.012,0.005);g.add(palm);
-  const fing=new THREE.TorusGeometry(0.017,0.0085,8,14,Math.PI*1.35);
-  [0.034,0.013,-0.008,-0.027].forEach((z,i)=>{
-    const f=new THREE.Mesh(fing,fistMat);f.position.set(0,0,z);
-    /* l'anneau fait le tour de la baguette, sauf au-dessus où se pose le pouce */
-    f.rotation.z=Math.PI*0.825;
-    f.scale.setScalar(i===3?0.9:1);g.add(f);
+/* Un poing qui tient la baguette : paume arrondie, quatre doigts enroulés avec leurs jointures, pouce posé
+   sur la baguette, poignet et avant-bras. mat : la matière (peau, ou celle du fantôme). */
+function buildFist(holder,side,mat){
+  fistMat=fistMat||new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65});
+  const m=mat||fistMat,g=new THREE.Group();g.name='poing';
+  /* la baguette suit -z dans le support ; le dos de la main est vers l'extérieur (x), en miroir pour la gauche */
+  if(side==='left')g.scale.x=-1;
+  const cap=(r,l,x,y,z,rx,ry,rz,sx,sy,sz)=>{const c=new THREE.Mesh(new THREE.CapsuleGeometry(r,l,6,12),m);c.position.set(x,y,z);c.rotation.set(rx||0,ry||0,rz||0);if(sx)c.scale.set(sx,sy,sz);g.add(c);return c;};
+  /* paume : une capsule couchée le long de la baguette, aplatie */
+  cap(0.024,0.055,0.026,-0.006,0.006,Math.PI/2,0,0,0.75,1,1);
+  /* doigts : un anneau par doigt autour de la baguette (ouvert au-dessus, où se pose le pouce), une jointure ronde */
+  const ring=new THREE.TorusGeometry(0.0165,0.0088,10,18,Math.PI*1.35),kn=new THREE.SphereGeometry(0.0098,12,10);
+  [0.032,0.012,-0.008,-0.026].forEach((z,i)=>{
+    const sc=[1,1.04,1,0.86][i];
+    const f=new THREE.Mesh(ring,m);f.position.set(0,0,z);f.rotation.z=Math.PI*0.825;f.scale.setScalar(sc);g.add(f);
+    const k=new THREE.Mesh(kn,m);k.position.set(0.021*sc,-0.012*sc,z);k.scale.setScalar(sc);g.add(k);
   });
-  const th=new THREE.Mesh(new THREE.CapsuleGeometry(0.0095,0.04,4,8),fistMat);
-  th.rotation.x=Math.PI/2;th.position.set(0.006*sx,0.018,-0.03);g.add(th);
-  g.visible=S.handVis==='oui';holder.add(g);return g;
+  /* pouce : couché sur la baguette, vers l'avant */
+  cap(0.0092,0.036,0.007,0.018,-0.022,Math.PI/2,0,0.15);
+  /* poignet et avant-bras, vers l'arrière et un peu vers le bas */
+  cap(0.024,0.03,0.03,-0.012,0.07,Math.PI/2+0.25,0,0);
+  cap(0.028,0.17,0.034,-0.05,0.19,Math.PI/2+0.35,0,0,1,1,0.85);
+  g.visible=!!mat||S.handVis==='oui';holder.add(g);return g;
 }
 /* Les mains du batteur fantôme : pendant l'écoute de « Écoute puis rejoue », deux mains tiennent des baguettes
    et jouent chaque coup de la batterie, une main par côté (la caisse claire en alternance). */
 const GHOST_KEY='poumtchak.vr.fantome';
 const GH_REST=0.13,GH_UP=0.12,GH_DOWN=0.14;
 function buildGhost(){
-  const mat=new THREE.MeshStandardMaterial({color:0x9BD8FF,emissive:0x1E4B66,transparent:true,opacity:0.7,roughness:0.6});
+  const mat=new THREE.MeshStandardMaterial({color:0xBDEBFF,emissive:0x2C8FD6,emissiveIntensity:0.55,transparent:true,opacity:0.55,roughness:0.35,metalness:0.1,depthWrite:false});
+  /* un halo : la même forme, un peu plus grande, vue de l'intérieur, en lumière additive */
+  const aura=new THREE.MeshBasicMaterial({color:0x6FD3FF,transparent:true,opacity:0.16,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false});
+  const glow=new THREE.MeshBasicMaterial({color:0xE8FBFF,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false});
+  const ringMat=new THREE.MeshBasicMaterial({color:0x8FDDFF,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
   const hands=['left','right'].map(side=>{
     const g=new THREE.Group(),holder=new THREE.Group();holder.rotation.x=-0.5;g.add(holder);
     const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.009,STICK,10),mat);
     stick.rotation.x=-Math.PI/2;stick.position.z=-STICK/2+0.05;holder.add(stick);
-    const fist=buildFist(holder,side);fist.visible=true;
-    g.traverse(o=>{if(o.isMesh)o.material=mat;});
-    g.visible=false;g.renderOrder=4;S.kit.add(g);
-    return {g,i:0,side};
+    buildFist(holder,side,mat);
+    const halo=buildFist(holder,side,aura);halo.scale.multiplyScalar(1.18);
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(0.016,12,10),glow);tip.position.z=-STICK+0.05;holder.add(tip);
+    g.visible=false;g.traverse(o=>{o.renderOrder=4;});S.kit.add(g);
+    /* l'onde bleue sur le pad à chaque coup du fantôme */
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1,0.05,8,40),ringMat.clone());ring.rotation.x=Math.PI/2;ring.visible=false;S.kit.add(ring);
+    return {g,i:0,side,ring};
   });
-  /* le pied : une pédale posée au sol devant soi, et une chaussure qui appuie à chaque coup de grosse caisse */
+  /* le pied : une pédale au sol devant soi, et une chaussure qui appuie à chaque coup de grosse caisse */
   const pedal=new THREE.Group(),plate=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.015,0.27),mat);plate.position.set(0,0.008,0);pedal.add(plate);
-  const shoe=new THREE.Group(),sole=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.06,0.28),mat);sole.position.set(0,0.045,0);shoe.add(sole);
+  const shoe=new THREE.Group();
+  const sole=new THREE.Mesh(new THREE.CapsuleGeometry(0.045,0.17,6,12),mat);sole.rotation.x=Math.PI/2;sole.scale.set(1,1,0.6);sole.position.set(0,0.035,0);shoe.add(sole);
+  const ankle=new THREE.Mesh(new THREE.CapsuleGeometry(0.04,0.14,6,12),mat);ankle.position.set(0,0.13,0.1);ankle.rotation.x=-0.25;shoe.add(ankle);
   shoe.position.set(0,0.015,0.13);pedal.add(shoe);pedal.position.set(0.18,0,-0.2);pedal.visible=false;S.kit.add(pedal);
   S.ghost={hands,pedal,shoe,chart:null,hits:[],kicks:[],ki:0,press:0};
 }
 /* les coups à jouer pour chaque main : [{t, pad}], dans l'ordre */
-function ghostPlan(chart){
-  const per={left:[],right:[],kick:chart.backing.filter(x=>x.id==='poum').map(x=>x.t)};let alt=0;
-  for(const x of chart.backing){
-    const id=x.id==='tchaa'?'tss':x.id,p=S.pads.find(q=>q.P.id===id);
+function ghostPlan(chart,mode){
+  /* écoute : ce que joue la batterie (accompagnement) ; avec moi : aussi les notes à jouer */
+  const ev=[];
+  if(chart.kind==='echo')for(const x of chart.backing){const id=x.id==='tchaa'?'tss':x.id;ev.push({t:x.t,p:S.pads.find(q=>q.P.id===id)});}
+  if(mode==='avec')for(const n of chart.notes)ev.push({t:n.t,p:S.pads[n.lane]});
+  ev.sort((a,b)=>a.t-b.t);
+  const per={left:[],right:[],kick:ev.filter(e=>e.p&&e.p.P.kick).map(e=>e.t)};let alt=0;
+  for(const e of ev){
+    const p=e.p,x={t:e.t};
     if(!p||p.P.kick)continue;
     const cx=p.P.bx!=null?p.P.x:p.g.position.x;
     const hand=Math.abs(cx)<0.2?(alt++%2?'left':'right'):cx<0?'left':'right';
@@ -271,8 +292,11 @@ function ghostPlan(chart){
 const _gsm=t=>t<=0?0:t>=1?1:t*t*(3-2*t);
 function updateGhost(now,show){
   const G=S.ghost;if(!G)return;
-  if(!show){for(const h of G.hands)h.g.visible=false;G.pedal.visible=false;return;}
-  if(G.chart!==S.ebc||!G.plan){G.chart=S.ebc;G.plan=ghostPlan(S.ebc);G.hands.forEach(h=>{h.i=0;});G.ki=0;}
+  if(!show){for(const h of G.hands){h.g.visible=false;h.ring.visible=false;}G.pedal.visible=false;return;}
+  const ch=S.api.gm.chart;
+  if(G.chart!==ch||G.mode!==S.ghostMode||!G.plan){G.chart=ch;G.mode=S.ghostMode;G.plan=ghostPlan(ch,S.ghostMode);G.hands.forEach(h=>{h.i=0;});G.ki=0;}
+  if(G.lastNow!=null&&now<G.lastNow-0.05){G.hands.forEach(h=>{h.i=0;});G.ki=0;} /* retour en arrière (boucle) */
+  G.lastNow=now;
   /* le pied : enfoncé de 80 ms avant le coup jusqu'à 60 ms après */
   {const ks=G.plan.kick;let near=false,press=0;
    while(G.ki<ks.length&&ks[G.ki]<now-0.2)G.ki++;
@@ -282,13 +306,13 @@ function updateGhost(now,show){
    G.shoe.rotation.x=-0.32*press;}
   for(const h of G.hands){
     const hits=G.plan[h.side];
-    if(!hits.length){h.g.visible=false;continue;}
+    if(!hits.length){h.g.visible=false;h.ring.visible=false;continue;}
     while(h.i<hits.length&&hits[h.i].t<now-0.12)h.i++;
     const prev=h.i>0?hits[h.i-1]:null,next=hits[h.i]||null;
     const ref=next||prev;
     /* loin de tout coup (plus de 3 s) : la main se retire */
     const near=(next&&next.t-now<3)||(prev&&now-prev.t<1.5);
-    h.g.visible=!!near;if(!near)continue;
+    h.g.visible=!!near;if(!near){h.ring.visible=false;continue;}
     const a=prev||next,b=next||prev,span=Math.max(0.05,b.t-a.t);
     const k=prev&&next?_gsm((now-prev.t-0.04)/Math.max(0.05,span-0.08)):1;
     const pa=a.pad.g.position,pb=b.pad.g.position;
@@ -300,10 +324,18 @@ function updateGhost(now,show){
     /* le bout de la baguette est à 0,35 m devant la poignée, inclinée de 0,5 rad vers le bas */
     h.g.position.set(x,topY+lift+Math.sin(0.5)*(STICK-0.05),z+Math.cos(0.5)*(STICK-0.05));
     h.lift=lift;
+    /* l'onde : 0,3 s après chaque coup, sur le pad frappé */
+    const ra=prev?(now-prev.t)/0.3:2;h.ring.visible=ra>=0&&ra<1;
+    if(h.ring.visible){const pp=prev.pad;h.ring.position.set(pp.g.position.x,pp.g.position.y+0.035,pp.g.position.z);h.ring.scale.setScalar(pp.P.r*(0.9+0.5*ra));h.ring.material.opacity=0.8*(1-ra);}
   }
 }
+/* Fantôme : non ; écoute (il joue pendant l'écoute de « Écoute puis rejoue ») ; avec moi (il joue aussi
+   les notes à jouer, en même temps que toi, dans toutes les parties) */
+const GHOST_MODES={non:'non',ecoute:'écoute',avec:'avec moi'};
+function loadGhostMode(){try{const v=localStorage.getItem(GHOST_KEY);return v==='non'||v==='avec'?v:'ecoute';}catch(e){return 'ecoute';}}
 function setGhost(v){
-  S.ghostOn=v==='oui';try{localStorage.setItem(GHOST_KEY,v);}catch(e){}
+  if(!GHOST_MODES[v])v=v==='oui'?'ecoute':'non';
+  S.ghostMode=v;S.ghostOn=v!=='non';try{localStorage.setItem(GHOST_KEY,v);}catch(e){}
 }
 function setGhostKick(v){
   S.ghostKick=v==='oui';try{localStorage.setItem(GHOST_KEY+'kick',v);}catch(e){}
@@ -456,7 +488,7 @@ export async function enter(api,{preview=false}={}){
   const camera=new THREE.PerspectiveCamera(70,1,0.03,40);
   S={api,renderer,scene,camera,session,preview,kit:new THREE.Group(),sticks:[],srcs:[],pads:[],notes:new Map(),
      pool:[],ticks:[],rings:[],pops:[],placed:false,padH:0.78,floorY:0,lastT:0,wasOn:false,result:null,msg:'',
-     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),handVis:loadPick(HV_KEY,HANDVIS,'non'),ghostOn:(()=>{try{return localStorage.getItem(GHOST_KEY)!=='non';}catch(e){return true;}})(),ghostKick:(()=>{try{return localStorage.getItem(GHOST_KEY+'kick')!=='non';}catch(e){return true;}})(),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
+     busy:false,active:new Set(),checked:new Set(),tilt:loadTilt(),hOff:loadHeight(),dOff:loadDist(),pitch:loadPitch(),roll:loadRoll(),layout:loadPick(L_KEY,LAYOUTS,'standard'),decor:loadPick(DC_KEY,DECORS,'chapelle'),handVis:loadPick(HV_KEY,HANDVIS,'non'),ghostMode:loadGhostMode(),ghostOn:loadGhostMode()!=='non',ghostKick:(()=>{try{return localStorage.getItem(GHOST_KEY+'kick')!=='non';}catch(e){return true;}})(),style:loadPick(ST_KEY,STYLES,'pads'),sub:false,head:null,cal:loadPick(CAL_KEY,CALS,'mains'),fit:null,recalAt:0,paused:false,mini:false,focus:'play',btnPrev:new Map(),simQueue:[],keyH:null,ptrH:null,resizeH:null,canvas:renderer.domElement};
   scene.add(S.kit);
   buildWorld();buildGhost();buildDecors();applyLayout();applyStyle();applyDecor();
   if(preview){
@@ -1154,7 +1186,7 @@ function draw(t){
     }
   }
   {const ec2=on&&gm.chart&&gm.chart.kind==='echo'?api.echoNow():null;
-   updateGhost(now,!!ec2&&ec2.phase==='listen'&&S.ghostOn);}
+   updateGhost(now,S.ghostMode==='avec'?!!on&&!S.paused:!!ec2&&ec2.phase==='listen'&&S.ghostMode==='ecoute');}
   /* éclats : un anneau qui grandit autour du pad touché */
   const bursts=on?gm.bursts.filter(b=>now-b.t>=0&&now-b.t<0.3):[];
   S.rings.forEach((r,i)=>{
@@ -1323,12 +1355,10 @@ function menuItems(mode){
   {const ks=Object.keys(KICKS),w=(MW-35-24)/ks.length;ks.forEach((k,j)=>it.push({id:'kick:'+k,x:30+j*w,y:51,w:w-1.5,h:H,txt:KICKS[k],on:k===o.kick}));
    it.push({id:'hhfoot',x:MW-29,y:51,w:24,h:H,txt:(o.hhFoot?'✓ ':'+ ')+'Charley pied',on:!!o.hhFoot});}
   row(59,'Mode');
-  if(!o.echo){const w=(MW-35)/2;
-   it.push({id:'slow',x:30,y:59,w:w-1.5,h:H,txt:o.slow?'✓ Ralentir si ça coince':'Ralentir si ça coince',on:o.slow});
-   it.push({id:'echo',x:30+w,y:59,w:w-1.5,h:H,txt:'Écoute puis rejoue',on:false});}
-  else{const W=[19,31,19,18.5];let x=30;
-   [['slow',o.slow?'✓ Ralentir':'Ralentir',o.slow],['echo','✓ Écoute+rejoue',true],['ghost',(S.ghostOn?'✓ ':'')+'Mains',S.ghostOn],['ghostkick',(S.ghostKick?'✓ ':'')+'Kick',S.ghostKick]]
-     .forEach(([id,txt,on],j)=>{it.push({id,x,y:59,w:W[j]-1.5,h:H,txt,on:!!on});x+=W[j];});}
+  {const gm2=S.ghostMode,B=[['slow',(o.slow?'✓ ':'')+'Ralentir',o.slow,16],['echo',(o.echo?'✓ ':'')+'Écoute+rejoue',!!o.echo,21],['myhands',(S.handVis==='oui'?'✓ ':'')+'Mes mains',S.handVis==='oui',16],
+     ['ghost','Fantôme : '+GHOST_MODES[gm2],gm2!=='non',gm2==='non'?36:23]];
+   if(gm2!=='non')B.push(['ghostkick',(S.ghostKick?'✓ ':'')+'Kick',S.ghostKick,13]);
+   let x=30;B.forEach(([id,txt,on,w])=>{it.push({id,x,y:59,w:w-1.5,h:H,txt,on:!!on});x+=w;});}
   row(67,'Aller à');
   it.push({id:'kitmenu',x:30,y:67,w:17,h:H,txt:'Batterie ›'});
   it.push({id:'exomenu',x:48.5,y:67,w:19,h:H,txt:'Exercices ›'});
@@ -1475,7 +1505,8 @@ function menuDo(id){
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
   else if(id==='echo')api.set('echo',!o.echo);
-  else if(id==='ghost')setGhost(S.ghostOn?'non':'oui');
+  else if(id==='ghost')setGhost({non:'ecoute',ecoute:'avec',avec:'non'}[S.ghostMode]);
+  else if(id==='myhands')setHandVis(S.handVis==='oui'?'non':'oui');
   else if(id==='ghostkick')setGhostKick(S.ghostKick?'non':'oui');
   else if(id==='hhfoot')api.set('hhFoot',!o.hhFoot);
   else{
@@ -1588,7 +1619,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({v:h.g.visible,lift:+(h.lift||0).toFixed(3)})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
