@@ -2002,9 +2002,10 @@ function gmEchoCut(round,pass,bar,nBars){
 /* Une manche : compte, motif entendu deux fois, compte, deux passages à reproduire, bilan. Les motifs
    les plus simples viennent d'abord. Sur « Peu », seul le rythme compte : une zone, un doigt.
    src : bars (débuts + fin), perBar, notes à reproduire, others (le reste de l'accompagnement). */
-function gmEchoChart(src,lvl,total,keepClick,withSong,len){
+function gmEchoChart(src,lvl,total,keepClick,withSong,len,keepLanes){
   const bars=src.bars,nb=bars.length-1,inBar=(list,a,b)=>list.filter(n=>n.t>=a-0.02&&n.t<b-0.02);
-  const one=lvl==='facile',maxPer=lvl==='moyen'?10:14;
+  /* keepLanes (casque) : chaque note garde son pad, même au niveau facile */
+  const one=lvl==='facile'&&!keepLanes,maxPer=lvl==='moyen'?10:14;
   const sig=(i,n)=>{const a=bars[i],L=bars[i+n]-a;return inBar(src.notes,a,bars[i+n]).map(x=>Math.round((x.t-a)/L*16)+':'+(one?0:x.lane)).join(',');};
   const fits=(i,n)=>{if(i+n>nb)return false;const c=inBar(src.notes,bars[i],bars[i+n]).length;return c>=2&&c<=maxPer*n;};
   const picks=[],seen=new Set();
@@ -4953,6 +4954,13 @@ function gmBuild(song){
     const s=gmSource(),c=gmChart(s.bars,s.meter,gm.bpm,s.swing,'rebonds',gm.lvl,s.bars.length);
     return gmEchoChart({bars:c.bars,perBar:METERS[s.meter].beats,notes:c.notes,others:c.backing},gm.lvl,6,keep,null,gm.eLen);
   }
+  /* casque, « Écoute puis rejoue » : la batterie joue un passage deux fois (les pads s'allument), puis on le rejoue */
+  if(gm.game==='vr'&&vrEcho){
+    const keep=gm.click==='toujours';
+    if(song){const c=gmSongChart(song,'vr',gm.lvl);return gmEchoChart({bars:c.bars,perBar:4,notes:c.notes},gm.lvl,gm.eLen>2?6:10,keep,gm.echoSong,gm.eLen,true);}
+    const s=gmSource(),c=gmChart(s.bars,s.meter,gm.bpm,s.swing,'vr',gm.lvl,s.bars.length);
+    return gmEchoChart({bars:c.bars,perBar:METERS[s.meter].beats,notes:c.notes,others:c.backing},gm.lvl,6,keep,null,gm.eLen,true);
+  }
   if(song)return gmSongChart(song,gm.game,gm.lvl);
   const s=gmSource();return gmChart(s.bars,s.meter,gm.bpm,s.swing,gm.game,gm.lvl);
 }
@@ -5058,6 +5066,7 @@ function gmStart(song,buffer,opt={}){
   gm.hh=gmHHOn()?gmHHChart(c).filter(n=>n.t>=from-0.03):[];gm.hhNext=0;gm.hhPtr=null;gm.hhSc={n:0,ok:0,x:0};gm.hhFlash=-9;
   gm.nextMiss=ns.findIndex(n=>!n.done);
   gm.firstT=ns[gm.nextMiss].t;gm.from=from;
+  gm.ab=null;gm.seeks=0;
   gm.bi=0;gm.cli=0;gm.clipI=0;gm.count=[];gm.sched=[];gm.countBeat=60/gm.curBpm;
   const step=c.ckStep||GM_CK_STEP;
   gm.ckNext=ck?ck.at+step:0;
@@ -5302,6 +5311,44 @@ function gmFfUi(now){
   $('#gmSkip').hidden=!f;$('#gmFast').hidden=!(f&&!f.only||gm.ffOn);
   $('#gmFast').setAttribute('aria-pressed',String(gm.ffOn));
 }
+/* Aller n'importe où dans le chant, en avant ou en arrière : les notes à partir de là redeviennent à jouer. */
+function gmSeekAny(t){
+  const c=gm.chart;t=Math.max(0,Math.min(t,c.dur-0.5));
+  if(t<gmNow()){
+    gm.cli=0;gm.bi=0;gm.clipI=0;
+    for(const n of c.notes)if(n.t>=t-0.001){n.done=false;delete n.res;delete n.at;}
+  }
+  const k=c.notes.findIndex(n=>n.t>=t-0.001);gm.nextMiss=k<0?c.notes.length:k;
+  gm.ended=false;gm.seeks=(gm.seeks||0)+1;
+  gmSeek(t);
+}
+/* Les mesures du chant (instants de début), et celle où l'on est */
+function gmBarsNow(){
+  const c=gm.chart;if(!c||!c.dur||c.dur===Infinity)return null;
+  let b=c.bars&&c.bars.length>1?c.bars:null;
+  if(!b){b=[];for(let t=c.start||0;t<c.dur;t+=c.barDur)b.push(t);b.push(c.dur);}
+  const now=gmNow()+0.1;let i=0;while(i<b.length-2&&b[i+1]<=now)i++;
+  return {b,i,n:b.length-1};
+}
+/* reculer ou avancer de quelques mesures (on repart une mesure avant, pour voir venir les notes) */
+function gmSeekBars(d){
+  const m=gmBarsNow();if(!m)return;
+  const j=Math.max(0,Math.min(m.n-1,m.i+d));
+  gmSeekAny(m.b[j]);
+  if(gm.ab&&(m.b[j]<gm.ab.A-0.01||m.b[j]>=gm.ab.B))gm.ab=null;
+}
+/* boucle sur len mesures à partir de la mesure en cours ; encore une fois : on arrête la boucle */
+function gmLoopHere(len){
+  if(gm.ab){gm.ab=null;return;}
+  const m=gmBarsNow();if(!m)return;
+  const i=m.i,j=Math.min(m.n,i+len),A=m.b[i],B=m.b[j],lead=Math.min(1.5,(B-A)/(j-i));
+  gm.ab={A,B,i,j,lead,laps:0};
+  gmSeekAny(Math.max(0,A-lead));
+}
+function gmLoopCheck(now){
+  if(gm.ab&&now>=gm.ab.B){gm.ab.laps++;gmSeekAny(Math.max(0,gm.ab.A-gm.ab.lead));return true;}
+  return false;
+}
 function gmSkipNow(){const f=gmFf(gmNow());if(f)gmSeek(f.t);}
 $('#gmSkip').addEventListener('click',gmSkipNow);
 $('#gmFast').addEventListener('click',()=>{
@@ -5510,6 +5557,7 @@ function gmVrStep(){
   if(!gm.on||gm.paused)return;
   gmStallCheck();gmTick();
   const now=gmUpdate();
+  if(gmLoopCheck(now))return;
   if(gm.on&&!gm.ended&&now>gm.chart.dur+0.6){gm.ended=true;gmFinish(false);}
 }
 function gmFrame(){
@@ -5899,7 +5947,7 @@ function gmConfetti(n){
 function gmFinish(fell){
   if(!gm.on)return;
   gmHalt(fell?'jauge':'fin');
-  const sc=gm.sc,p=gmPct(sc),n=sc.perfect+sc.good+sc.approx+sc.miss+sc.extra,slowed=gm.minRate<1,key=gmKey()+(slowed?'|lent':''),ckKey=gmCkKey();
+  const sc=gm.sc,p=gmPct(sc),n=sc.perfect+sc.good+sc.approx+sc.miss+sc.extra,slowed=gm.minRate<1,key=gmKey()+(slowed?'|lent':'')+(gm.seeks?'|travail':''),ckKey=gmCkKey();
   if(!fell)gmCkDrop(ckKey);
   const ck=fell?gmCkGet(ckKey):null;
   const before=gmBest(key);
@@ -5941,8 +5989,14 @@ gmRender();gmLoadSongs().then(gmWhySay);
    ?vr=apercu montre la scène sur un écran d'ordinateur, pour essayer sans casque. */
 gm.vr=false;gm.vrPrev='couloirs';gm.paused=false;
 /* La grosse caisse sans batterie : à la gâchette, jouée toute seule, ou d'un coup de tête. */
-const VR_KICK_KEY='poumtchak.vr.grossecaisse';
-let vrKick='gachette';try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','charley','auto','tete'].includes(k))vrKick=k;}catch(e){}
+const VR_KICK_KEY='poumtchak.vr.grossecaisse',VR_ECHO_KEY='poumtchak.vr.ecoute';
+let vrEcho=false;try{vrEcho=localStorage.getItem(VR_ECHO_KEY)==='1';}catch(e){}
+/* la gâchette gauche en charleston au pied se cumule avec n'importe quelle grosse caisse (gâchette, automatique, tête).
+   L'ancien choix « charley » (exclusif) devient : gâchette + charleston au pied. */
+const VR_HHF_KEY='poumtchak.vr.charleypied';
+let vrKick='gachette',vrHHFoot=false;
+try{const k=localStorage.getItem(VR_KICK_KEY);if(['gachette','auto','tete'].includes(k))vrKick=k;else if(k==='charley'){vrHHFoot=true;localStorage.setItem(VR_KICK_KEY,'gachette');localStorage.setItem(VR_HHF_KEY,'1');}
+  if(localStorage.getItem(VR_HHF_KEY)==='1')vrHHFoot=true;}catch(e){}
 function vrAutoKick(c,song){
   const k=c.notes.filter(n=>n.lane===0);if(!k.length)return;
   c.notes=c.notes.filter(n=>n.lane!==0);
@@ -6116,12 +6170,34 @@ const vrApi={
     gmGrvList().forEach(x=>L.push({id:x.id,label:'Mon groove : '+x.label}));
     return L;
   },
+  /* les dernières parties de ce chant (même jeu, même niveau de notes), la plus récente à la fin */
+  history(){
+    return pr.s.filter(x=>x.g==='jeux'&&x.game===gm.game&&x.rh===gm.rh&&x.lvl===gm.lvl).slice(-12)
+      .map(x=>({pct:x.pct,score:x.score,d:x.d,lent:!!x.lent}));
+  },
+  /* y a-t-il, tout près de cet instant, une note attendue (pas encore jouée) sur ce couloir ? sert à départager deux pads voisins */
+  expects(lane,at,win){
+    if(!gm.on||!gm.chart||!gm.chart.notes)return false;
+    const ns=gm.chart.notes,w=win||0.18;
+    for(let i=Math.max(0,gm.nextMiss-2);i<ns.length&&ns[i].t<at+w;i++)if(!ns[i].done&&ns[i].lane===lane&&ns[i].t>at-w)return true;
+    return false;
+  },
+  /* Écoute puis rejoue : où en est-on ? écoute (la batterie joue) ou à toi, manche i sur n */
+  echoNow(){
+    const c=gm.chart;if(!gm.on||!c||c.kind!=='echo')return null;
+    const now=gmNow(),k=c.rounds.findIndex(r=>now>=r.t-0.05&&now<r.end+0.3);
+    if(k<0)return {phase:'pause',i:0,of:c.rounds.length};
+    const r=c.rounds[k];return {phase:now<r.count2?'listen':now<r.play?'count':'play',n:r.n,i:k+1,of:c.rounds.length};
+  },
+  bars(){const m=gm.on&&gmBarsNow();return m?{i:m.i,n:m.n,ab:gm.ab?{i:gm.ab.i,j:gm.ab.j,laps:gm.ab.laps}:null}:null;},
+  seekBars(d){if(gm.on)gmSeekBars(d);},
+  loopHere(len){if(gm.on)gmLoopHere(len);},
   pause(on){
     if(!gm.on)return;
     gm.paused=!!on;
     if(on)ctx.suspend().catch(()=>{});else ctx.resume().catch(()=>{});
   },
-  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
+  opts(){const s=gmCurSong(),c=plsCur();return {sound:state.sound,sounds:SOUNDS,kick:vrKick,hhFoot:vrHHFoot,rh:c?'pl:'+c.pl.id:gm.rh,lvl:gm.lvl,tol:gm.tol,bpm:gm.bpm,slow:gm.slow,echo:vrEcho,songBpm:s?Math.round(s.bpm):0,levels:GM_LEVELS,tols:Object.fromEntries(Object.entries(GM_TOL).map(([k,v])=>[k,v.label]))};},
   set(k,v){
     if(gm.on)return;
     if(k==='rh'&&typeof v==='string'){if(v.startsWith('pl:'))plsStart(v.slice(3));else{gm.rh=v;gm.pl=null;}}
@@ -6129,8 +6205,10 @@ const vrApi={
     else if(k==='tol'&&GM_TOL[v])gm.tol=v;
     else if(k==='bpm')gm.bpm=Math.max(40,Math.min(220,Math.round(+v)||gm.bpm));
     else if(k==='slow')gm.slow=!!v;
+    else if(k==='echo'){vrEcho=!!v;try{localStorage.setItem(VR_ECHO_KEY,vrEcho?'1':'0');}catch(e){}}
     else if(k==='sound'&&SOUNDS[v])setSound(v,true);
-    else if(k==='kick'&&['gachette','charley','auto','tete'].includes(v)){vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);}catch(e){}}
+    else if(k==='kick'&&['gachette','charley','auto','tete'].includes(v)){if(v==='charley'){v='gachette';vrHHFoot=true;}vrKick=v;try{localStorage.setItem(VR_KICK_KEY,v);localStorage.setItem(VR_HHF_KEY,vrHHFoot?'1':'0');}catch(e){}}
+    else if(k==='hhFoot'){vrHHFoot=!!v;try{localStorage.setItem(VR_HHF_KEY,vrHHFoot?'1':'0');}catch(e){}}
     gmSave();
   },
   /* « + Mes chants » dans le casque : on sort de la VR et la page montre où ajouter les chants */
