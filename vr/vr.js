@@ -251,24 +251,75 @@ function buildFist(holder,side,mat){
   new GLTFLoader().load('./vr/hands/'+(side==='left'?'left':'right')+'.glb',gl=>{
     if(!g.parent)return;
     const m=gl.scene,B={};
-    m.traverse(o=>{if(o.isMesh){o.material=mat||handSkin();o.frustumCulled=false;}if(o.name)B[o.name]=o;});
-    for(const k in B)B[k].userData.r0=B[k].rotation.clone();
-    const cur=(names,a)=>{for(const n of names){const b=B[n];if(b)b.rotation.x=b.userData.r0.x+a;}};
-    /* doigts refermés sur la baguette, pouce et index en pince */
-    cur(['middle-finger-phalanx-proximal','ring-finger-phalanx-proximal','pinky-finger-phalanx-proximal'],HAND_POSE.back);
-    cur(['middle-finger-phalanx-intermediate','ring-finger-phalanx-intermediate','pinky-finger-phalanx-intermediate'],HAND_POSE.back);
-    cur(['index-finger-phalanx-proximal','index-finger-phalanx-intermediate'],HAND_POSE.index);
-    /* le modèle repose les doigts vers -y : on le couche pour que les doigts aillent vers l'avant (-z),
-       puis on le fait rouler autour de la baguette (paume vers le bas, pouce vers l'intérieur) */
-    const roll=new THREE.Group();roll.rotation.z=(side==='left'?-1:1)*HAND_POSE.roll;
-    m.rotation.x=Math.PI/2;m.scale.setScalar(HAND_POSE.scale);m.position.set(HAND_POSE.x*(side==='left'?-1:1),HAND_POSE.y,HAND_POSE.z);
-    roll.add(m);fb.visible=false;g.add(roll);
+    /* opaque (ou, pour le fantôme, qui écrit sa profondeur) : sinon les doigts transparents se recouvrent et scintillent */
+    const hm=mat?mat.clone():handSkin();if(mat){hm.depthWrite=true;}
+    m.traverse(o=>{if(o.isMesh){o.material=hm;o.frustumCulled=false;}if(o.name)B[o.name]=o;});
+    const w=new THREE.Group();w.matrixAutoUpdate=false;
+    g.userData.gripErr=gripPose(m,B,side,w.matrix);
+    w.add(m);fb.visible=false;g.add(w);
   },undefined,()=>{});
   return g;
 }
-const HAND_POSE={back:1.25,index:0.7,roll:1.35,scale:1.1,x:0,y:-0.035,z:0.02};
+/* La prise : la baguette traverse la paume en diagonale (de l'index au talon de la main), les doigts se referment
+   autour, le pouce se pose dessus. Les angles ne sont pas devinés : pour chaque doigt on cherche celui qui colle
+   le mieux les phalanges à la baguette. M reçoit la place de la main dans le support de la baguette (-z = vers le bout). */
+const GRIP={r:0.0085,fing:0.0085,off:0.02,scale:1.05,z:0.005};
+function gripPose(m,B,side,M){
+  m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.set(1,1,1);m.updateMatrixWorld(true);
+  for(const k in B){B[k].userData.q0=B[k].quaternion.clone();B[k].userData.p0=B[k].position.clone();}
+  /* le côté paume se vérifie : on essaie les deux et on garde la prise la plus serrée */
+  const tries=[1,-1].map(sg=>{const T=new THREE.Matrix4(),r=gripTry(B,side,T,sg);return {e:r.e,T,set:r.set};});
+  const best=tries[0].e<=tries[1].e?tries[0]:tries[1];
+  for(const [nm,p,q] of best.set){B[nm].position.copy(p);B[nm].quaternion.copy(q);}
+  M.copy(best.T);
+  return best.e;
+}
+/* Les articulations du modèle sont toutes au même niveau (le suivi des mains WebXR place chacune directement) :
+   plier un doigt, c'est donc tourner nous-mêmes les phalanges suivantes autour de l'articulation. */
+function gripTry(B,side,M,sg){
+  const arm=B['wrist'].parent,A=arm.matrixWorld,Ai=A.clone().invert();
+  const V=()=>new THREE.Vector3(),toM=p=>p.clone().applyMatrix4(A),L=nm=>B[nm].userData.p0;
+  const W=toM(L('wrist')),IK=toM(L('index-finger-phalanx-proximal')),PK=toM(L('pinky-finger-phalanx-proximal')),PM=toM(L('pinky-finger-metacarpal'));
+  const n=V().subVectors(IK,W).cross(V().subVectors(PK,W)).normalize().multiplyScalar((side==='left'?-1:1)*sg);
+  const heel=V().lerpVectors(W,PM,0.55),d=V().subVectors(IK,heel).normalize();
+  n.addScaledVector(d,-n.dot(d)).normalize();
+  const P0=V().lerpVectors(heel,IK,0.5).addScaledVector(n,GRIP.off);
+  const dist=pl=>{const q=toM(pl).sub(P0);return q.addScaledVector(d,-q.dot(d)).length();};
+  const want=GRIP.r+GRIP.fing;
+  /* pose d'une chaîne : on plie aux articulations js, d'angles angs, autour de l'axe ax (repère du modèle) */
+  const pose=(ch,js,ax,angs)=>{
+    const p=ch.map(nm=>L(nm).clone()),q=ch.map(nm=>B[nm].userData.q0.clone());
+    const a=ax.clone().transformDirection(Ai);
+    js.forEach((j,i)=>{const R=new THREE.Quaternion().setFromAxisAngle(a,angs[i]);
+      for(let k=j;k<ch.length;k++){q[k].premultiply(R);if(k>j)p[k].sub(p[j]).applyQuaternion(R).add(p[j]);}
+      a.applyQuaternion(R);});
+    return {p,q};
+  };
+  const cost=(p,ks)=>{let c=0;for(const k of ks){const e=dist(p[k])-want;c+=e<0?e*e*9:e*e;}return c/ks.length;};
+  const set=[];let err=0;
+  const solve=(ch,js,ks,axes,lo,hi,k)=>{
+    let best=null;
+    for(const ax of axes)for(let t=lo;t<=hi;t+=0.03){const r=pose(ch,js,ax,k.map(x=>x*t)),c=cost(r.p,ks);if(!best||c<best.c)best={c,r};}
+    ch.forEach((nm,i)=>set.push([nm,best.r.p[i],best.r.q[i]]));err=Math.max(err,Math.sqrt(best.c));
+  };
+  for(const f of ['index','middle','ring','pinky']){
+    const ch=['metacarpal','phalanx-proximal','phalanx-intermediate','phalanx-distal','tip'].map(x=>f+'-finger-'+x);
+    const dir=toM(L(ch[4])).sub(toM(L(ch[1]))).normalize(),ax=V().crossVectors(dir,n).normalize();
+    solve(ch,[1,2,3],[2,3,4],[ax,ax.clone().negate()],0,2.4,[1,1.1,0.8]);
+  }
+  {const ch=['thumb-metacarpal','thumb-phalanx-proximal','thumb-phalanx-distal','thumb-tip'];
+   const dir=toM(L(ch[3])).sub(toM(L(ch[1]))).normalize(),c1=V().crossVectors(dir,n).normalize(),c2=V().crossVectors(dir,c1);
+   const axes=[];for(const w of [c1,n.clone(),c2])axes.push(w,w.clone().negate());
+   solve(ch,[0,1,2],[2,3],axes,0,1.2,[0.5,1,0.8]);}
+  /* la main va sur la baguette : d vers le bout (-z), le côté paume vers le bas, un peu vers l'intérieur */
+  const e3=V().crossVectors(d,n);
+  const f1=new THREE.Vector3(0,0,-1),f2=new THREE.Vector3(side==='left'?0.35:-0.35,-1,0).normalize(),f3=V().crossVectors(f1,f2);
+  const E=new THREE.Matrix4().makeBasis(d,n,e3),F=new THREE.Matrix4().makeBasis(f1,f2,f3);
+  M.makeTranslation(0,0,GRIP.z).multiply(F).multiply(E.transpose()).multiply(new THREE.Matrix4().makeScale(GRIP.scale,GRIP.scale,GRIP.scale)).multiply(new THREE.Matrix4().makeTranslation(-P0.x,-P0.y,-P0.z));
+  return {e:+(err*1000).toFixed(1),set}; /* écart du pire doigt à la baguette, en mm */
+}
 let skinMat=null;
-const handSkin=()=>skinMat||(skinMat=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65,transparent:true,opacity:0.92}));
+const handSkin=()=>skinMat||(skinMat=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65}));
 /* Les mains du batteur fantôme : pendant l'écoute de « Écoute puis rejoue », deux mains tiennent des baguettes
    et jouent chaque coup de la batterie, une main par côté (la caisse claire en alternance). */
 const GHOST_KEY='poumtchak.vr.fantome';
@@ -282,12 +333,12 @@ function buildGhost(){
     const g=new THREE.Group(),holder=new THREE.Group();holder.rotation.x=-0.5;g.add(holder);
     const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.009,STICK,10),mat);
     stick.rotation.x=-Math.PI/2;stick.position.z=-STICK/2+0.05;holder.add(stick);
-    buildFist(holder,side,mat);
+    const fist=buildFist(holder,side,mat);
     const tip=new THREE.Mesh(new THREE.SphereGeometry(0.016,12,10),glow);tip.position.z=-STICK+0.05;holder.add(tip);
     g.visible=false;g.traverse(o=>{o.renderOrder=4;});S.kit.add(g);
     /* l'onde bleue sur le pad à chaque coup du fantôme */
     const ring=new THREE.Mesh(new THREE.TorusGeometry(1,0.05,8,40),ringMat.clone());ring.rotation.x=Math.PI/2;ring.visible=false;S.kit.add(ring);
-    return {g,i:0,side,ring};
+    return {g,i:0,side,ring,fist};
   });
   /* le pied : une pédale au sol devant soi, et une chaussure qui appuie à chaque coup de grosse caisse */
   const pedal=new THREE.Group(),plate=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.015,0.27),mat);plate.position.set(0,0.008,0);pedal.add(plate);
@@ -1644,7 +1695,7 @@ export function debug(){
   return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
-    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
+    checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),rejected:S.rejected||0,swapped:S.swapped||0,handVis:S.handVis,fists:S.sticks.filter(st=>st.fist&&st.fist.visible).length,banners:S.banners.slice(),hudText:S.hudText||'',echoFlashes:S.echoFlashes||0,ghostOn:S.ghostOn,ghostMode:S.ghostMode,ghostKick:S.ghostKick,pedal:S.ghost?{v:S.ghost.pedal.visible,press:S.ghost.press,presses:S.ghost.presses||0}:null,ghost:S.ghost?S.ghost.hands.map(h=>({grip:h.fist&&h.fist.userData.gripErr,v:h.g.visible,lift:+(h.lift||0).toFixed(3),ring:h.ring.visible})):[],echoPhase:S.echoPhase||'',histText:S.histText||'',histShown:!!(S.histP&&S.histP.mesh.visible),hist:S.hist?S.hist.length:0,shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
 }
 /* Tests : le nombre d'images dessinées depuis l'entrée en VR. */
 export function frames(){return S?S.frames||0:0;}
