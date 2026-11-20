@@ -287,6 +287,37 @@ test('casque Quest 2 simulé : le stick enfoncé cale la batterie sous les bague
   await expect.poll(async () => (await vr(page)).fit, { timeout: 6000 }).toBe(true);
 });
 
+test('casque Quest 2 simulé : charleston au pied ET grosse caisse à la tête, en même temps', async ({ page }) => {
+  test.setTimeout(60_000);
+  await rubrique(page, 'Jeux');
+  await page.locator('#gmVR').click();
+  await expect.poll(async () => (await vr(page))?.placed).toBe(true);
+  await page.evaluate(() => { const v = window.__gm.vr(); v.menuPress('kick:tete'); v.menuPress('hhfoot'); });
+  expect(await page.evaluate(() => { const o = window.__gm.vrApi.opts(); return [o.kick, o.hhFoot]; })).toEqual(['tete', true]);
+  expect(await page.evaluate(() => [localStorage.getItem('poumtchak.vr.grossecaisse'), localStorage.getItem('poumtchak.vr.charleypied')])).toEqual(['tete', '1']);
+  await page.evaluate(() => window.__gm.vr().menuPress('mini'));
+  // gâchette gauche : le charleston (couloir 2), pas la grosse caisse
+  await bouton(page, 'left', 'trigger');
+  await expect.poll(async () => (await vr(page)).checked).toEqual([2]);
+  // un coup de tête : la grosse caisse
+  await page.evaluate(async () => {
+    for (const d of [0, -0.04, -0.08, -0.05, 0]) {
+      const p = window.__dev.position; p.set(p.x, 1.6 + d, p.z);
+      const f0 = window.__gm.vr().frames();
+      while (window.__gm.vr().frames() < f0 + 1) await new Promise((f) => setTimeout(f, 2));
+    }
+  });
+  await expect.poll(async () => (await vr(page)).headKicks).toBe(1);
+  expect((await vr(page)).checked.sort()).toEqual([0, 2]);
+});
+
+test('l\'ancien réglage « + Charley pied » devient gâchette + charleston au pied', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('poumtchak.vr.grossecaisse', 'charley'));
+  await page.reload();
+  await page.locator('#grid .cell').first().waitFor();
+  expect(await page.evaluate(() => { const o = window.__gm.vrApi.opts(); return [o.kick, o.hhFoot]; })).toEqual(['gachette', true]);
+});
+
 test('casque Quest 2 simulé : voir mes mains autour des baguettes (Ma batterie)', async ({ page }) => {
   await rubrique(page, 'Jeux');
   await page.locator('#gmVR').click();

@@ -846,7 +846,7 @@ function buttons(t){
        d'affichage prévu de l'image (qui peut être un peu dans le futur) */
     if(down(0)&&mode&&S.hover.get(st)){pulse(st,0.3,15);menuDo(S.hover.get(st));if(!S)return;}
     if(down(3))recenter();
-    else if(down(0)){const p=S.api.opts().kick==='charley'&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
+    else if(down(0)){const p=S.api.opts().hhFoot&&st.hand==='left'?S.pads.find(x=>x.P.id==='tss'):S.pads[0];p.hitT=performance.now();strike(p,S.api.atPerf(Math.min(t,performance.now())),1);pulse(st,0.8,35);}
     if(down(3))placeFromHead();
     if(st.hand==='right')menuGrab(st);
     if(down(4)){if(mode){menuDo(S.focus);if(!S)return;}}
@@ -1075,8 +1075,8 @@ function draw(t){
    On vise avec la manette et on appuie sur la gâchette, ou on se déplace au stick et on valide avec A/X ;
    en aperçu, souris ou clavier. Tout est dessiné sur un canvas : chaque bouton garde son rectangle (en cm). */
 const MW=124,MH=108;
-const KICKS={gachette:'Gâchette',charley:'+ Charley pied',auto:'Automatique',tete:'Hoche la tête'};
-const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',charley:'Gâchette droite : grosse caisse · gâchette gauche : charleston au pied',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
+const KICKS={gachette:'Gâchette',auto:'Automatique',tete:'Hoche la tête'};
+const KICK_HINT={gachette:'Gâchette d\'une main (ou la pédale MIDI)',auto:'La grosse caisse joue toute seule : tu fais les mains',tete:'Un petit coup de tête vers le bas = grosse caisse'};
 function menuMode(){const gm=S.api.gm;return gm.on?(S.paused?'pause':null):S.mini?'mini':S.sub||'main';}
 function subBack(){S.focus=S.sub==='mains'?'mainsmenu':S.sub==='exo'?'exomenu':S.sub==='spin'?'spinmenu':'kitmenu';S.sub=false;}
 function menuItems(mode){
@@ -1157,7 +1157,9 @@ function menuItems(mode){
   row(43,'Tempo');
   if(o.songBpm)it.push({t:'val',x:30,y:43,w:MW-35,h:H,txt:'Tempo du chant : '+o.songBpm+' BPM'});
   else pm(43,30,MW-35,'bpm',o.bpm+' BPM');
-  row(51,'Grosse caisse');seg(51,'kick',KICKS,o.kick);
+  row(51,'Grosse caisse');
+  {const ks=Object.keys(KICKS),w=(MW-35-24)/ks.length;ks.forEach((k,j)=>it.push({id:'kick:'+k,x:30+j*w,y:51,w:w-1.5,h:H,txt:KICKS[k],on:k===o.kick}));
+   it.push({id:'hhfoot',x:MW-29,y:51,w:24,h:H,txt:(o.hhFoot?'✓ ':'+ ')+'Charley pied',on:!!o.hhFoot});}
   row(59,'Ralentir');
   it.push({id:'slow',x:30,y:59,w:MW-35,h:H,txt:o.slow?'Oui : ralentit quand ça coince':'Non',on:o.slow});
   row(67,'Aller à');
@@ -1199,7 +1201,7 @@ function drawMenu(mode){
     else if(R&&!R.quit){const pn=api.plNow&&api.plNow();status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best+H2+(pn?pn.next?'  ·  Suivant › '+pn.next:'  ·  fin de la playlist':''),c:'#F2BB4A'};}
     else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
     else if(mode==='main'&&api.plNow&&api.plNow()){const pn=api.plNow();status={t:'Playlist '+pn.name+' · chant '+(pn.i+1)+'/'+pn.n+' : '+pn.title+(pn.next?'  ·  ensuite : '+pn.next:''),c:'#7BE3A6'};}
-    else status={t:KICK_HINT[api.opts().kick],c:'#97A1B2'};
+    else status={t:KICK_HINT[api.opts().kick]+(api.opts().hhFoot?' · gâchette gauche : charleston au pied':''),c:'#97A1B2'};
     foot=[
       nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
       S.preview?{t:'Souris, ou flèches + Entrée · Échap : quitter · P : pause · B F D J K L : frapper',c:'#C9D1DC'}:
@@ -1303,6 +1305,7 @@ function menuDo(id){
   else if(id==='dist-'||id==='dist+'){setDist(S.dOff+(id==='dist+'?0.1:-0.1));S.msg='';}
   else if(id==='haut-'||id==='haut+'){setHeight(S.hOff+(id==='haut+'?0.02:-0.02));S.msg='';}
   else if(id==='slow')api.set('slow',!o.slow);
+  else if(id==='hhfoot')api.set('hhFoot',!o.hhFoot);
   else{
     const [k,v]=id.split(':');
     if(k==='style')setStyle(v);
