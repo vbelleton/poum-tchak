@@ -22,7 +22,7 @@ test.describe('Appli installable', () => {
   });
 
   test('Android : le bouton Installer ouvre la fenêtre du navigateur', async ({ page }) => {
-    await rubrique(page, 'Parcours');
+    await rubrique(page, 'Accueil');
     await expect(page.locator('#inst')).toBeHidden();
     await page.evaluate(() => {
       const e = new Event('beforeinstallprompt');
@@ -38,11 +38,11 @@ test.describe('Appli installable', () => {
 
   test('« plus tard » ne la remontre pas', async ({ page }) => {
     await page.evaluate(() => window.dispatchEvent(Object.assign(new Event('beforeinstallprompt'), { prompt() {} })));
-    await rubrique(page, 'Parcours');
+    await rubrique(page, 'Accueil');
     await page.locator('#instX').click();
     await page.reload();
     await page.evaluate(() => window.dispatchEvent(Object.assign(new Event('beforeinstallprompt'), { prompt() {} })));
-    await rubrique(page, 'Parcours');
+    await rubrique(page, 'Accueil');
     await expect(page.locator('#inst')).toBeHidden();
   });
 });
@@ -50,7 +50,7 @@ test.describe('Appli installable', () => {
 test.describe('Appli installable sur iPhone', () => {
   test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
   test('on explique comment l\'ajouter à l\'écran d\'accueil', async ({ page }) => {
-    await rubrique(page, 'Parcours');
+    await rubrique(page, 'Accueil');
     await expect(page.locator('#inst')).toBeVisible();
     await page.locator('#instBtn').click();
     await expect(page.locator('#instTxt')).toContainText("Sur l'écran d'accueil");

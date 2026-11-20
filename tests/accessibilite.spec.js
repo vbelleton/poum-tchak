@@ -92,6 +92,7 @@ test.describe('Mise en page', () => {
   });
 
   test('le lien d\'évitement mène au contenu', async ({ page }) => {
+    await page.reload();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
     await page.keyboard.press('Enter');

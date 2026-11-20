@@ -462,7 +462,7 @@ test.describe('Mains : vue Orbites et bilan', () => {
     await choix(page, 'g', 3).click();
     await choix(page, 'd', 2).click().catch(() => {});
     await regler(page, 60);
-    await page.getByRole('button', { name: 'Jouer', exact: true }).first().click();
+    await page.locator('#play').click();
     await expect(page.locator('#mnOrbit')).toBeVisible();
     await page.waitForFunction(() => window.__mnExp('l') != null, null, { timeout: 8000 });
     const peint = await page.evaluate(() => {

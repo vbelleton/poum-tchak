@@ -8,9 +8,12 @@ const test = base.test.extend({
     page.on('pageerror', (e) => erreurs.push(e.message));
     await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
     await page.goto('index.html');
-    await page.evaluate(() => localStorage.clear());
+    // Mémoire vide, sauf « Plus d'options » des Jeux ouvert : les tests règlent vitesse, tolérance, MIDI…
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('poumtchak.jeux.plus', '1'); });
     await page.reload();
-    await page.locator('#grid .cell').first().waitFor();
+    await page.locator('#grid .cell').first().waitFor({ state: 'attached' });
+    // L'appli s'ouvre sur l'accueil ; la plupart des tests partent de la grille, comme avant.
+    await rubrique(page, 'Rythme');
     await use(page);
     base.expect(erreurs, 'erreurs JavaScript dans la page').toEqual([]);
   },
@@ -18,10 +21,18 @@ const test = base.test.extend({
 
 const expect = base.expect;
 
-/** Ouvre une rubrique par son onglet. */
+/** Grande partie du menu (Jouer, Apprendre, Créer, Réglages) qui contient chaque page. */
+const PARTIE = {
+  Accueil: 'Jouer', Jeux: 'Jouer',
+  Parcours: 'Apprendre', Mains: 'Apprendre', Pratique: 'Apprendre', Mots: 'Apprendre',
+  Rythme: 'Créer', 'Écoute': 'Créer', 'Réglages': 'Réglages',
+};
+
+/** Ouvre une rubrique : sa grande partie dans le menu, puis son onglet. */
 async function rubrique(page, nom) {
-  await page.getByRole('tab', { name: nom }).click();
-  await expect(page.getByRole('tab', { name: nom })).toHaveAttribute('aria-selected', 'true');
+  if (PARTIE[nom]) await page.locator('.grp', { hasText: PARTIE[nom] }).click();
+  await page.getByRole('tab', { name: nom, exact: true }).click();
+  await expect(page.getByRole('tab', { name: nom, exact: true })).toHaveAttribute('aria-selected', 'true');
 }
 
 /** Cellule de la grille : fût et numéro de pas (0 = premier pas). */
@@ -37,4 +48,4 @@ async function frapperPad(page, id, doigt = 1) {
 /** Ce que la mémoire locale contient. */
 const memoire = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('poumtchak.v2') || '{}'));
 
-module.exports = { test, expect, rubrique, cellule, frapperPad, memoire };
+module.exports = { test, expect, PARTIE, rubrique, cellule, frapperPad, memoire };
