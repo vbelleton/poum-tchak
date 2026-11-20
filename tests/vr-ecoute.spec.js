@@ -95,4 +95,7 @@ test('aperçu VR : « Fantôme : avec moi » joue les notes du chant avec moi, e
   expect(vues).toBeGreaterThan(3);
   expect(minLift).toBeLessThan(0.05);
   expect(anneaux).toBeGreaterThan(0);
+  // les doigts du fantôme sont refermés sur la baguette (écart du pire doigt, en mm)
+  const grips = (await vr()).ghost.map((h) => h.grip);
+  for (const g of grips) { expect(g).toBeGreaterThan(0); expect(g).toBeLessThan(25); }
 });
