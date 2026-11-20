@@ -515,12 +515,17 @@ function place(head,yaw,fixedFloor){
 /* Le menu est accroché au monde, pas à la batterie : incliner ou tourner la scène ne le déplace pas.
    Par défaut il se pose devant la tête ; on peut aussi le saisir (poignée droite) et le placer où l'on veut. */
 /* le menu se place face au joueur, là où il regarde maintenant, à hauteur des yeux et devant la batterie */
-const _mh=new THREE.Vector3(),_mq=new THREE.Quaternion(),_mf=new THREE.Vector3();
+const _mk=new THREE.Vector3(),_mY=new THREE.Vector3(0,1,0),_mh=new THREE.Vector3(),_mq=new THREE.Quaternion(),_mf=new THREE.Vector3();
 function headPose(){
   const cam=S.renderer.xr.getCamera();cam.getWorldPosition(_mh);cam.getWorldQuaternion(_mq);
   _mf.set(0,0,-1).applyQuaternion(_mq);_mf.y=0;
   if(_mh.lengthSq()<1e-4&&S.head){_mh.copy(S.head);_mf.set(-Math.sin(S.base?S.base.yaw:0),0,-Math.cos(S.base?S.base.yaw:0));}
   if(_mf.lengthSq()<1e-4)_mf.set(0,0,-1);_mf.normalize();
+}
+/* le haut de la grosse caisse, batterie droite (sans inclinaison), pour vérifier que le menu passe au-dessus */
+function kickTop(kp){
+  _mk.copy(kp.g.position);_mk.y+=kp.P.r*kp.g.scale.y+0.14;
+  _mk.applyAxisAngle(_mY,S.base.yaw);_mk.x+=S.base.x;_mk.y+=S.base.y;_mk.z+=S.base.z;
 }
 function menuDefault(){
   if(!S.base||!S.head)return;
@@ -904,6 +909,7 @@ function finished(){
   const gm=S.api.gm,sc=gm.sc;
   if(!sc)return;
   const p=S.api.pct(),fell=gm.gauge<=0;
+  const pn=S.api.plNow&&S.api.plNow();if(pn&&pn.next)S.focus='plnext';
   S.result={hands:S.api.hands?S.api.hands():null,p,stars:fell?0:S.api.stars(p),pts:sc.pts,fell,best:sc.best,n:sc.perfect+sc.good+sc.approx,miss:sc.miss,extra:sc.extra,quit:!fell&&!gm.ended};
   for(const n of S.notes.values()){n.visible=false;S.pool.push(n);}S.notes.clear();
 }
@@ -1092,7 +1098,9 @@ function menuItems(mode){
   it.push({id:'spinmenu',x:83.5,y:67,w:16,h:H,txt:'Spin ›'});
   it.push({id:'import',x:101,y:67,w:MW-106,h:H,txt:'+ Chants'});
   it.push({id:'play',x:30,y:76,w:22,h:10,txt:S.busy?'Chargement…':'Jouer',big:true});
-  it.push({id:'rec',x:54,y:76,w:20,h:10,txt:api.rec()?'■ Garder':'● Écrire',on:api.rec()});
+  const pn=api.plNow&&api.plNow();
+  if(pn&&pn.next)it.push({id:'plnext',x:54,y:76,w:20,h:10,txt:'Suivant ›',big:pn.done});
+  else it.push({id:'rec',x:54,y:76,w:20,h:10,txt:api.rec()?'■ Garder':'● Écrire',on:api.rec()});
   it.push({id:'mini',x:MW-49,y:76,w:21,h:10,txt:'Masquer'});
   it.push({id:'quit',x:MW-27,y:76,w:21,h:10,txt:'Quitter'});
   return it;
@@ -1119,8 +1127,9 @@ function drawMenu(mode){
     if(mode==='mains')status=R&&!R.quit?{t:(R.fell?'Boum ! ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' %'+H2,c:'#F2BB4A'}:{t:'Pad de gauche : main gauche · pad de droite : main droite',c:'#97A1B2'};
     else if(mode==='exo')status=R&&!R.quit?{t:(R.fell?'Boum ! ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points',c:'#F2BB4A'}:S.msg?{t:S.msg,c:'#F2BB4A'}:{t:'Un mot par coup, « . » = silence · tes exercices : rubrique Mots, sur la page',c:'#97A1B2'};
     else if(mode==='kit')status=S.msg?{t:S.msg,c:'#F2BB4A'}:{t:S.cal==='mains'?'Stick enfoncé : la batterie se cale sous tes baguettes':'Frappe un pad pour entendre le son choisi',c:'#97A1B2'};
-    else if(R&&!R.quit)status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best+H2,c:'#F2BB4A'};
+    else if(R&&!R.quit){const pn=api.plNow&&api.plNow();status={t:(R.fell?'Boum ! La jauge est vide · ':'★'.repeat(R.stars)+'☆'.repeat(3-R.stars)+'  ')+R.p+' % · '+R.pts+' points · série '+R.best+H2+(pn?pn.next?'  ·  Suivant › '+pn.next:'  ·  fin de la playlist':''),c:'#F2BB4A'};}
     else if(S.msg)status={t:S.msg,c:'#F2BB4A'};
+    else if(mode==='main'&&api.plNow&&api.plNow()){const pn=api.plNow();status={t:'Playlist '+pn.name+' · chant '+(pn.i+1)+'/'+pn.n+' : '+pn.title+(pn.next?'  ·  ensuite : '+pn.next:''),c:'#7BE3A6'};}
     else status={t:KICK_HINT[api.opts().kick],c:'#97A1B2'};
     foot=[
       nc>=S.pads.length?{t:'Tous les pads répondent ✓',c:'#7BE3A6'}:{t:'Vérifie tes pads : frappe chacun une fois ('+nc+'/'+S.pads.length+')',c:'#E8ECF2'},
@@ -1191,6 +1200,7 @@ function menuDo(id){
   if(id==='open'){S.mini=false;return;}
   S.result=null;S.msg='';S.recalAt=0;
   if(id==='play'){start();return;}
+  if(id==='plnext'){if(api.plGo())start();return;}
   if(id==='recal'){S.recalAt=performance.now()+3000;return;}
   S.result=null;S.msg='';
   if(id==='rec'){const was=api.rec(),r=api.recToggle();S.msg=was?(r?'Gardé dans Mes grooves : « '+r+' ». Choisis-le dans Chant pour le rejouer.':'Rien d\'enregistré.'):'Un clic par temps : compte 4, puis joue. « ■ Garder » pour finir.';return;}
@@ -1306,10 +1316,18 @@ export function simStrike(lane){
   S.simQueue.push([c.x,top+0.03,c.z,t-10],[c.x,top-0.03,c.z,t+10],[c.x,top+0.2,c.z,t+60]);
   return true;
 }
+/* écart entre le bas du menu et le haut de la grosse caisse, vus depuis les yeux (positif : rien n'est caché) */
+function menuKickGap(){
+  const kp=S.pads.find(p=>p.P.kick),m=S.menu.mesh;if(!kp||!S.base)return null;
+  headPose();kickTop(kp);
+  const dk=(_mk.x-_mh.x)*_mf.x+(_mk.z-_mh.z)*_mf.z,d=(m.position.x-_mh.x)*_mf.x+(m.position.z-_mh.z)*_mf.z;
+  if(dk<=0.2||dk>=d)return 1;
+  return +(m.position.y-MH/200*m.scale.y*Math.cos(0.12)-(_mh.y+(_mk.y-_mh.y)*d/dk)).toFixed(3);
+}
 export function debug(){
   if(!S)return null;
   const w=v=>[+v.x.toFixed(3),+v.y.toFixed(3),+v.z.toFixed(3)];
-  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
+  return {headKicks:S.headKicks||0,frames:S.frames||0,frameMs:+(S.dt||0).toFixed(1),calls:S.renderer.info.render.calls,tris:S.renderer.info.render.triangles,tilt:S.tilt,xr:!!S.session,spin:!!S.spin,spinInfo:S.spin?S.spin.debug():null,yaw:+(S.base?S.base.yaw:0).toFixed(3),pitch:+(S.pitch||0).toFixed(3),menuPos:w(S.menu.mesh.position),menuKickGap:menuKickGap(),menuMoved:!!S.menuMoved,roll:+(S.roll||0).toFixed(3),kitPos:w(S.kit.position),
     padsWorld:S.pads.map(p=>w(p.g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,p.P.kick?0:0.02,0)))),
     tips:S.sticks.filter(s=>!s.sim).map(s=>s.src?{hand:s.hand,pos:w(s.tip.getWorldPosition(new THREE.Vector3()))}:null),
     checked:[...S.checked],placed:S.placed,cal:S.cal,fit:!!S.fit,recenters:S.recenters||0,padH:S.padH,notes:S.notes.size,active:[...S.active],menu:S.menu.mesh.visible,hud:S.hud.mesh.visible,result:S.result,msg:S.msg,pads:S.pads.map(p=>p.P.id),layout:S.layout,style:S.style,decor:S.decor,bg:S.scene.background.getHexString(),flames:S.decors.chapelle.flames.filter(f=>f.visible).length,moved:+(S.moved||0).toFixed(3),turns:S.turns||0,padR:S.pads.map(p=>+p.P.r.toFixed(3)),shells:S.pads.filter(p=>p.shell&&p.shell.visible).length};
