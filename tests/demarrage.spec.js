@@ -1,7 +1,45 @@
 const { test, expect, rubrique, memoire } = require('./outils/base');
 
 test.describe('Démarrage et rubriques', () => {
-  test("la page s'ouvre sur le rythme rock, sans erreur", async ({ page }) => {
+  test("la page s'ouvre sur l'accueil : une leçon à reprendre et quatre portes", async ({ page }) => {
+    await page.goto('index.html');
+    await expect(page.getByRole('tab', { name: 'Accueil', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#g-jouer')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.grp')).toHaveText(['Jouer', 'Apprendre', 'Créer', 'Réglages']);
+    await expect(page.locator('.stage')).toBeHidden();
+    await expect(page.locator('.dock')).toBeHidden();
+    await expect(page.locator('#acContT')).toHaveText('Main droite seule : 1 coup par temps');
+    await expect(page.locator('.ac-tile')).toHaveCount(4);
+    // seules les pages de la partie ouverte sont proposées
+    await expect(page.locator('.tabs [role=tab]:visible')).toHaveText(['Accueil', 'Jeux']);
+    await page.locator('.ac-tile', { hasText: 'Jouer un chant' }).click();
+    await expect(page.locator('#p-jeux')).toBeVisible();
+    await page.locator('#g-jouer').click();
+    await page.getByRole('tab', { name: 'Accueil', exact: true }).click();
+    // « Continuer » lance directement la leçon du parcours
+    await page.locator('#acCont').click();
+    await expect(page.locator('#p-mains')).toBeVisible();
+    await expect(page.locator('#g-apprendre')).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('chaque grande partie rouvre sa dernière page', async ({ page }) => {
+    await rubrique(page, 'Mots');
+    await page.locator('#g-creer').click();
+    await expect(page.locator('.tabs [role=tab]:visible')).toHaveText(['Rythme', 'Écoute']);
+    await page.locator('#g-apprendre').click();
+    await expect(page.locator('#p-mots')).toBeVisible();
+  });
+
+  test('Réglages : le son de la batterie suit celui de la grille', async ({ page }) => {
+    await rubrique(page, 'Réglages');
+    await expect(page.locator('.foot')).toBeVisible();
+    await page.locator('#rgSound [data-v="synth"]').click();
+    await rubrique(page, 'Rythme');
+    await expect(page.locator('#soundSeg [data-v="synth"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.foot')).toBeHidden();
+  });
+
+  test("la grille garde le rythme rock par défaut, sans erreur", async ({ page }) => {
     await expect(page).toHaveTitle(/Poum Tchak/);
     await expect(page.locator('#kit .ic')).toHaveCount(8);
     await expect(page.getByRole('tab', { name: 'Rythme' })).toHaveAttribute('aria-selected', 'true');
@@ -13,24 +51,25 @@ test.describe('Démarrage et rubriques', () => {
   });
 
   test('une seule rubrique est visible à la fois', async ({ page }) => {
-    for (const [onglet, panneau] of [['Pratique', '#p-pratique'], ['Écoute', '#p-ecoute'], ['Mots', '#p-mots'], ['Parcours', '#p-parcours'], ['Mains', '#p-mains'], ['Rythme', '#p-rythme']]) {
+    for (const [onglet, panneau] of [['Pratique', '#p-pratique'], ['Écoute', '#p-ecoute'], ['Mots', '#p-mots'], ['Parcours', '#p-parcours'], ['Mains', '#p-mains'], ['Accueil', '#p-accueil'], ['Réglages', '#p-reglages'], ['Rythme', '#p-rythme']]) {
       await rubrique(page, onglet);
       await expect(page.locator(panneau)).toBeVisible();
       await expect(page.locator('.panel:visible')).toHaveCount(1);
     }
   });
 
-  test('les flèches du clavier passent d\'un onglet à l\'autre', async ({ page }) => {
-    await page.getByRole('tab', { name: 'Rythme' }).focus();
+  test('les flèches du clavier passent d\'un onglet à l\'autre dans la partie ouverte', async ({ page }) => {
+    await rubrique(page, 'Parcours');
+    await page.getByRole('tab', { name: 'Parcours' }).focus();
     await page.keyboard.press('ArrowRight');
-    await expect(page.getByRole('tab', { name: 'Pratique' })).toBeFocused();
-    await expect(page.locator('#p-pratique')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Mains' })).toBeFocused();
+    await expect(page.locator('#p-mains')).toBeVisible();
     await page.keyboard.press('End');
     await expect(page.getByRole('tab', { name: 'Mots' })).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Parcours' })).toHaveAttribute('aria-selected', 'true');
-    await page.keyboard.press('ArrowRight');
-    await expect(page.getByRole('tab', { name: 'Rythme' })).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.getByRole('tab', { name: 'Mots' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('[role=tab][tabindex="0"]')).toHaveCount(1);
   });
 
@@ -65,7 +104,7 @@ test.describe('Démarrage et rubriques', () => {
   test('la barre du tempo dit son unité, et se cache là où elle ne sert pas', async ({ page }) => {
     await expect(page.locator('.bpm-u')).toHaveText('BPM');
     await expect(page.locator('#bpmIn')).toHaveAttribute('aria-label', /battements par minute/);
-    for (const [t, vu] of [['Parcours', false], ['Mots', false], ['Rythme', true], ['Pratique', true], ['Mains', true], ['Écoute', true]]) {
+    for (const [t, vu] of [['Parcours', false], ['Mots', false], ['Accueil', false], ['Réglages', false], ['Rythme', true], ['Pratique', true], ['Mains', true], ['Écoute', true]]) {
       await rubrique(page, t);
       if (vu) await expect(page.locator('.dock'), t).toBeVisible();
       else await expect(page.locator('.dock'), t).toBeHidden();
@@ -76,16 +115,16 @@ test.describe('Démarrage et rubriques', () => {
 test.describe('Menu et batterie du haut', () => {
   const places = (page) => page.evaluate(() => {
     const r = (q) => document.querySelector(q).getBoundingClientRect();
-    return { menu: r('.tabs').top, batterie: r('.stage').top, hauteur: r('.stage').height, contenu: r('.stage').bottom };
+    return { menu: r('.navbar').top, batterie: r('.stage').top, hauteur: r('.stage').height, contenu: r('.stage').bottom };
   });
 
   test('rien ne bouge d\'une rubrique à l\'autre, et chacune s\'ouvre par son début', async ({ page }) => {
     const depart = await places(page);
     for (const nom of ['Parcours', 'Pratique', 'Jeux', 'Mains', 'Écoute', 'Mots', 'Rythme']) {
-      await page.getByRole('tab', { name: nom, exact: true }).click();
+      await rubrique(page, nom);
       expect(await places(page)).toEqual(depart);
     }
-    await page.getByRole('tab', { name: 'Mots', exact: true }).click();
+    await rubrique(page, 'Mots');
     await page.evaluate(() => window.scrollTo(0, 800));
     await page.getByRole('tab', { name: 'Pratique', exact: true }).click();
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -96,7 +135,7 @@ test.describe('Menu et batterie du haut', () => {
     await page.locator('#word').evaluate((e) => { e.textContent = 'un mot vraiment beaucoup trop long pour tenir sur une seule ligne du téléphone'; });
     await page.locator('#wsub').evaluate((e) => { e.textContent = 'poum + tchak + tss + doum + toum + tchaa + psch'; });
     expect(await places(page)).toEqual(depart);
-    await page.getByRole('tab', { name: 'Mots', exact: true }).click();
+    await rubrique(page, 'Mots');
     await page.evaluate(() => window.scrollTo(0, 800));
     expect((await places(page)).menu).toBe(0);
     await expect(page.locator('.tabs')).toBeInViewport();
@@ -106,7 +145,7 @@ test.describe('Menu et batterie du haut', () => {
 test.describe('Accueil, référencement et liens', () => {
   test('le tempo du haut ne s\'affiche que sur Rythme et Pratique', async ({ page }) => {
     for (const [nom, vu] of [['Rythme', true], ['Pratique', true], ['Parcours', false], ['Jeux', false], ['Mains', false], ['Écoute', false], ['Mots', false]]) {
-      await page.getByRole('tab', { name: nom, exact: true }).click();
+      await rubrique(page, nom);
       if (vu) await expect(page.locator('#tempoRead')).toBeVisible();
       else await expect(page.locator('#tempoRead')).toBeHidden();
     }
@@ -123,16 +162,17 @@ test.describe('Accueil, référencement et liens', () => {
   });
 
   test('première visite : l\'accueil mène au parcours et ne revient pas', async ({ page }) => {
+    await rubrique(page, 'Accueil');
     await expect(page.locator('#welcome')).toBeVisible();
     await page.locator('#welcomeGo').click();
     await expect(page.getByRole('tab', { name: 'Parcours', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await page.reload();
-    await page.getByRole('tab', { name: 'Rythme', exact: true }).click();
+    await page.goto('index.html');
+    await expect(page.locator('#p-accueil')).toBeVisible();
     await expect(page.locator('#welcome')).toBeHidden();
   });
 
   test('chaque rubrique a son titre et son adresse, et une adresse ouvre sa rubrique', async ({ page }) => {
-    await page.getByRole('tab', { name: 'Jeux', exact: true }).click();
+    await rubrique(page, 'Jeux');
     await expect(page).toHaveTitle(/^Jeux · Poum Tchak/);
     expect(new URL(page.url()).hash).toBe('#jeux');
     await page.goto('index.html#mains');
@@ -153,7 +193,7 @@ test.describe('Accueil, référencement et liens', () => {
   });
 
   test('Jeux : le bouton Jouer et le résumé du choix restent visibles', async ({ page }) => {
-    await page.getByRole('tab', { name: 'Jeux', exact: true }).click();
+    await rubrique(page, 'Jeux');
     await expect(page.locator('#gmGo')).toBeInViewport();
     await expect(page.locator('#gmSum')).toContainText('Couloirs');
     await page.locator('#gmGames [data-v="orbite"]').click();

@@ -116,7 +116,7 @@ test('Drumstick Spin : entrer depuis le menu VR, puis revenir à la batterie ave
 
 test('Drumstick Spin : en aperçu (sans casque), un message dit qu\'il faut un casque', async ({ page }) => {
   await page.goto('index.html?vr=apercu');
-  await page.locator('#grid .cell').first().waitFor();
+  await page.locator('#grid .cell').first().waitFor({ state: 'attached' });
   await rubrique(page, 'Jeux');
   await page.locator('#gmVR').click();
   await expect.poll(() => page.evaluate(() => !!window.__gm.vr()?.debug())).toBe(true);
