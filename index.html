@@ -4763,6 +4763,7 @@ function plsStart(id){const L=plsItems(plsGet(id));if(!L.length)return false;gm.
 /* la playlist en cours ; choisir un autre chant à la main la quitte */
 function plsCur(){if(!gm.pl)return null;const pl=plsGet(gm.pl.id),L=plsItems(pl);if(!pl||L[gm.pl.i]!==gm.rh){gm.pl=null;return null;}return {pl,L,i:gm.pl.i};}
 function plsNext(){const c=plsCur();return c&&c.i+1<c.L.length?c.L[c.i+1]:null;}
+function plsBack(){const c=plsCur();if(!c||c.i<=0)return false;gm.pl.i--;gm.pl.done=false;gm.rh=c.L[gm.pl.i];gmSave();gmRender();return true;}
 function plsAdvance(){const c=plsCur();if(!c||c.i+1>=c.L.length)return false;gm.pl.i++;gm.pl.done=false;gm.rh=c.L[gm.pl.i];gmSave();gmRender();return true;}
 const plsEsc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function plsEdit(id,focus){
@@ -6239,7 +6240,8 @@ const vrApi={
   },
   /* le menu du casque : tout ce qu'on peut choisir dans Jeux, sans retirer le casque */
   /* playlists : choisies dans la liste des chants ; à la fin d'un chant, « Suivant › » lance le prochain */
-  plNow(){const c=plsCur(),n=plsNext();return c?{name:c.pl.name,i:c.i,n:c.L.length,title:plsTitle(gm.rh),next:n?plsTitle(n):'',done:!!gm.pl.done}:null;},
+  plNow(){const c=plsCur(),n=plsNext();return c?{name:c.pl.name,i:c.i,n:c.L.length,title:plsTitle(gm.rh),next:n?plsTitle(n):'',prev:c.i>0?plsTitle(c.L[c.i-1]):'',done:!!gm.pl.done}:null;},
+  plBack:()=>!gm.on&&plsBack(),
   plGo:()=>!gm.on&&plsAdvance(),
   sources(){
     const L=gmPls.filter(p=>plsItems(p).length).map(p=>({id:'pl:'+p.id,label:'Playlist : '+p.name+' · '+plsItems(p).length+' chants'}));
