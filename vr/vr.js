@@ -8,6 +8,7 @@
    y vers le haut. Tout ce qui bouge (pads, notes, panneaux) est dans ce repère. */
 import * as THREE from './three.module.min.js';
 import * as SPIN from './spin.js';
+import { GLTFLoader } from './addons/loaders/GLTFLoader.js';
 
 const COL={poum:'#8D9CFF',tchak:'#FF8A70',tim:'#5CC8F2',doum:'#46D2AB',toum:'#CA9CF5',tss:'#F2BB4A',tchaa:'#BCD64A',psch:'#FF84B8'};
 const POP={ok:'#7BE3A6',warn:'#F2BB4A',bad:'#FF8A70'};
@@ -220,9 +221,9 @@ const HV_KEY='poumtchak.vr.mainsvisibles',HANDVIS={non:'Non',oui:'Oui'};
 let fistMat=null;
 /* Un poing qui tient la baguette : paume arrondie, quatre doigts enroulés avec leurs jointures, pouce posé
    sur la baguette, poignet et avant-bras. mat : la matière (peau, ou celle du fantôme). */
-function buildFist(holder,side,mat){
+function buildFistShape(side,mat){
   fistMat=fistMat||new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65});
-  const m=mat||fistMat,g=new THREE.Group();g.name='poing';
+  const m=mat||fistMat,g=new THREE.Group();g.name='poing-dessine';
   /* la baguette suit -z dans le support ; le dos de la main est vers l'extérieur (x), en miroir pour la gauche */
   if(side==='left')g.scale.x=-1;
   const cap=(r,l,x,y,z,rx,ry,rz,sx,sy,sz)=>{const c=new THREE.Mesh(new THREE.CapsuleGeometry(r,l,6,12),m);c.position.set(x,y,z);c.rotation.set(rx||0,ry||0,rz||0);if(sx)c.scale.set(sx,sy,sz);g.add(c);return c;};
@@ -240,8 +241,34 @@ function buildFist(holder,side,mat){
   /* poignet et avant-bras, vers l'arrière et un peu vers le bas */
   cap(0.024,0.03,0.03,-0.012,0.07,Math.PI/2+0.25,0,0);
   cap(0.028,0.17,0.034,-0.05,0.19,Math.PI/2+0.35,0,0,1,1,0.85);
-  g.visible=!!mat||S.handVis==='oui';holder.add(g);return g;
+  return g;
 }
+function buildFist(holder,side,mat){
+  const g=new THREE.Group();g.name='poing';
+  const fb=buildFistShape(side,mat);g.add(fb);
+  g.visible=!!mat||S.handVis==='oui';holder.add(g);
+  /* la vraie main de Spin (doigts articulés), dès qu'elle est chargée ; le poing dessiné reste en repli */
+  new GLTFLoader().load('./vr/hands/'+(side==='left'?'left':'right')+'.glb',gl=>{
+    if(!g.parent)return;
+    const m=gl.scene,B={};
+    m.traverse(o=>{if(o.isMesh){o.material=mat||handSkin();o.frustumCulled=false;}if(o.name)B[o.name]=o;});
+    for(const k in B)B[k].userData.r0=B[k].rotation.clone();
+    const cur=(names,a)=>{for(const n of names){const b=B[n];if(b)b.rotation.x=b.userData.r0.x+a;}};
+    /* doigts refermés sur la baguette, pouce et index en pince */
+    cur(['middle-finger-phalanx-proximal','ring-finger-phalanx-proximal','pinky-finger-phalanx-proximal'],HAND_POSE.back);
+    cur(['middle-finger-phalanx-intermediate','ring-finger-phalanx-intermediate','pinky-finger-phalanx-intermediate'],HAND_POSE.back);
+    cur(['index-finger-phalanx-proximal','index-finger-phalanx-intermediate'],HAND_POSE.index);
+    /* le modèle repose les doigts vers -y : on le couche pour que les doigts aillent vers l'avant (-z),
+       puis on le fait rouler autour de la baguette (paume vers le bas, pouce vers l'intérieur) */
+    const roll=new THREE.Group();roll.rotation.z=(side==='left'?-1:1)*HAND_POSE.roll;
+    m.rotation.x=Math.PI/2;m.scale.setScalar(HAND_POSE.scale);m.position.set(HAND_POSE.x*(side==='left'?-1:1),HAND_POSE.y,HAND_POSE.z);
+    roll.add(m);fb.visible=false;g.add(roll);
+  },undefined,()=>{});
+  return g;
+}
+const HAND_POSE={back:1.25,index:0.7,roll:1.35,scale:1.1,x:0,y:-0.035,z:0.02};
+let skinMat=null;
+const handSkin=()=>skinMat||(skinMat=new THREE.MeshStandardMaterial({color:0xE2B99C,roughness:0.65,transparent:true,opacity:0.92}));
 /* Les mains du batteur fantôme : pendant l'écoute de « Écoute puis rejoue », deux mains tiennent des baguettes
    et jouent chaque coup de la batterie, une main par côté (la caisse claire en alternance). */
 const GHOST_KEY='poumtchak.vr.fantome';
@@ -249,7 +276,6 @@ const GH_REST=0.13,GH_UP=0.12,GH_DOWN=0.14;
 function buildGhost(){
   const mat=new THREE.MeshStandardMaterial({color:0xBDEBFF,emissive:0x2C8FD6,emissiveIntensity:0.55,transparent:true,opacity:0.55,roughness:0.35,metalness:0.1,depthWrite:false});
   /* un halo : la même forme, un peu plus grande, vue de l'intérieur, en lumière additive */
-  const aura=new THREE.MeshBasicMaterial({color:0x6FD3FF,transparent:true,opacity:0.16,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false});
   const glow=new THREE.MeshBasicMaterial({color:0xE8FBFF,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false});
   const ringMat=new THREE.MeshBasicMaterial({color:0x8FDDFF,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
   const hands=['left','right'].map(side=>{
@@ -257,7 +283,6 @@ function buildGhost(){
     const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.009,STICK,10),mat);
     stick.rotation.x=-Math.PI/2;stick.position.z=-STICK/2+0.05;holder.add(stick);
     buildFist(holder,side,mat);
-    const halo=buildFist(holder,side,aura);halo.scale.multiplyScalar(1.18);
     const tip=new THREE.Mesh(new THREE.SphereGeometry(0.016,12,10),glow);tip.position.z=-STICK+0.05;holder.add(tip);
     g.visible=false;g.traverse(o=>{o.renderOrder=4;});S.kit.add(g);
     /* l'onde bleue sur le pad à chaque coup du fantôme */
@@ -269,7 +294,7 @@ function buildGhost(){
   const shoe=new THREE.Group();
   const sole=new THREE.Mesh(new THREE.CapsuleGeometry(0.045,0.17,6,12),mat);sole.rotation.x=Math.PI/2;sole.scale.set(1,1,0.6);sole.position.set(0,0.035,0);shoe.add(sole);
   const ankle=new THREE.Mesh(new THREE.CapsuleGeometry(0.04,0.14,6,12),mat);ankle.position.set(0,0.13,0.1);ankle.rotation.x=-0.25;shoe.add(ankle);
-  shoe.position.set(0,0.015,0.13);pedal.add(shoe);pedal.position.set(0.18,0,-0.2);pedal.visible=false;S.kit.add(pedal);
+  shoe.position.set(0,0.015,0.13);pedal.add(shoe);pedal.position.set(0.1,0,-0.42);pedal.visible=false;S.kit.add(pedal);
   S.ghost={hands,pedal,shoe,chart:null,hits:[],kicks:[],ki:0,press:0};
 }
 /* les coups à jouer pour chaque main : [{t, pad}], dans l'ordre */
@@ -1628,3 +1653,9 @@ export function spinDebug(){return S&&S.spin?S.spin.debug():null;}
 /* La page : P ou Échap pendant une partie en VR met en pause (ou reprend). */
 export function togglePause(){if(S&&S.api.gm.on)pause(!S.paused);}
 export function state(){return S?{mode:menuMode(),focus:S.focus,paused:S.paused,mini:S.mini}:null;}
+/* aide des tests et des captures : en aperçu, rapproche la caméra d'une main fantôme (0 gauche, 1 droite) */
+export function simLook(i,dx,dy,dz){
+  const G=S&&S.ghost;if(!G||!S.camera)return false;
+  const p=new THREE.Vector3();G.hands[i].g.getWorldPosition(p);
+  S.camera.position.set(p.x+(dx||0.2),p.y+(dy||0.15),p.z+(dz||0.35));S.camera.lookAt(p);return true;
+}
