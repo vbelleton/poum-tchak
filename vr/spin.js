@@ -35,6 +35,36 @@ const COACH={
 const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_m=new THREE.Matrix4(),_p=new THREE.Vector3();
 const _u=new THREE.Vector3(),_v=new THREE.Vector3(),_vp=new THREE.Vector3(),_e1=new THREE.Vector3(),_e2=new THREE.Vector3();
 
+/* Ma prise : on enregistre la vraie main du joueur (suivi des mains) qui tient une baguette, pour que les mains
+   dessinées pendant le jeu reprennent exactement cette prise. Les articulations sont rangées dans le repère
+   du support de la baguette de vr.js : la baguette part vers -z, le pouce vers +y, l'origine au milieu des doigts.
+   get(nom) rend {p,q} (position et rotation de l'articulation) ou null. */
+export const PRISE_KEY='poumtchak.vr.prise';
+export const JOINTS=['wrist','thumb-metacarpal','thumb-phalanx-proximal','thumb-phalanx-distal','thumb-tip',
+  ...['index-finger','middle-finger','ring-finger','pinky-finger'].flatMap(f=>['metacarpal','phalanx-proximal','phalanx-intermediate','phalanx-distal','tip'].map(j=>f+'-'+j))];
+export function gripFromJoints(get){
+  const P=n=>{const j=get(n);return j?j.p:null;};
+  for(const n of JOINTS)if(!get(n))return null;
+  /* la baguette : du talon de la main (entre le poignet et la base de l'auriculaire) jusqu'au point d'appui
+     (entre le bout du pouce et le milieu de l'index) */
+  const F=P('thumb-tip').clone().add(P('index-finger-phalanx-intermediate')).multiplyScalar(0.5);
+  const H=P('wrist').clone().add(P('pinky-finger-phalanx-proximal')).multiplyScalar(0.5);
+  const D=F.clone().sub(H);if(D.lengthSq()<1e-6)return null;D.normalize();
+  const Z=D.clone().negate();
+  const Y=P('index-finger-metacarpal').clone().sub(P('pinky-finger-metacarpal'));Y.addScaledVector(D,-Y.dot(D));
+  if(Y.lengthSq()<1e-8)return null;Y.normalize();
+  const X=new THREE.Vector3().crossVectors(Y,Z);
+  const C=new THREE.Vector3();for(const f of ['index','middle','ring','pinky'])C.add(P(f+'-finger-phalanx-proximal'));C.multiplyScalar(0.25);
+  const O=F.clone().addScaledVector(D,C.clone().sub(F).dot(D));
+  const M=new THREE.Matrix4().makeBasis(X,Y,Z).setPosition(O),inv=M.clone().invert();
+  const mq=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(X,Y,Z)).invert();
+  const out={};
+  for(const n of JOINTS){const j=get(n),p=j.p.clone().applyMatrix4(inv),q=mq.clone().multiply(j.q);
+    out[n]=[p.x,p.y,p.z,q.x,q.y,q.z,q.w].map(v=>+v.toFixed(5));}
+  return out;
+}
+export function loadPrise(){try{const v=JSON.parse(localStorage.getItem(PRISE_KEY)||'null');return v&&v.left&&v.right?v:null;}catch(e){return null;}}
+
 /* Détecteur de Thumb Around, pur (pas de rendu) : on lui donne, à chaque image, la pince, le pouce,
    l'index et le majeur. Il répond par null, ou par un résultat : { ok, msg }.
    Déroulé : la pince tient la baguette, la rotation autour du pouce démarre ; la pince s'ouvre
@@ -111,6 +141,7 @@ const PALM=['wrist','thumb-phalanx-proximal','index-finger-phalanx-proximal','mi
 export function create({renderer,scene,session,panel,drawPanel,play,trick=null,store=null,srcs=[]}){
   const hands=[0,1].map(i=>{
     const g=renderer.xr.getHand(i);scene.add(g);
+    if(!g.userData.sideH){g.userData.sideH=true;g.addEventListener('connected',e=>{g.userData.side=e.data&&e.data.handedness;});if(srcs[i]&&srcs[i].hand)g.userData.side=srcs[i].handedness;}
     return {g,held:false,mid:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),seen:false,det:new ThumbAroundDetector(trick==='reverse'?-1:1),pp:false,
       ph:{mode:'none',pos:new THREE.Vector3(),dir:new THREE.Vector3(0,1,0),v:new THREE.Vector3(),w:new THREE.Vector3(),a:0,t0:0,p0:new THREE.Vector3(),lt:0,lm:new THREE.Vector3(),ld:new THREE.Vector3(0,1,0)}};
   });
@@ -174,7 +205,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
      Rebond : la main frappe, une fois main ouverte, une fois doigts fermés. */
   const ghost={root:null,bones:{},baseY:0,stick:null,mat:null,smat:null};
   let disposed=false;
-  if(trick){
+  if(trick&&trick!=='prise'){
     ghost.mat=new THREE.MeshStandardMaterial({color:0x9BD8FF,emissive:0x1E4B66,transparent:true,opacity:0.5,depthWrite:false});
     ghost.smat=new THREE.MeshStandardMaterial({color:0x9BD8FF,emissive:0x1E4B66,transparent:true,opacity:0.7});
     ghost.stick=new THREE.Mesh(stickGeo,ghost.smat);ghost.stick.visible=false;scene.add(ghost.stick);
@@ -272,6 +303,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
     (h.tipPrev||(h.tipPrev=new THREE.Vector3())).copy(tip);
   }
 
+  const pr={t0:0,ref:null,done:false,msg:''};
   const prevBtn=new Map();   /* bouton B/Y de chaque manette, pour ne lire qu'un appui */
   let bothSince=0,lastT=0;
   const stats=(store&&store.get&&store.get())||{tries:0,ok:0};
@@ -457,6 +489,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
   /* recommencer depuis le début (A/X, ou deux pinces 2,5 s quand le tuto est fini) */
   let restartSince=0;
   function restart(t){
+    pr.done=false;pr.ref=null;pr.t0=0;
     tuto.step=0;tuto.t0=t;tuto.prev=false;tuto.lastT=0;reb.expect='open';
     Object.assign(tw,{gap:0,dirn:1,anim:false,arm:true});
     for(const h of hands){h.ph.mode='none';h.pp=false;h.stick.material=wood;h.stick.visible=false;h.det.reset();}
@@ -473,7 +506,12 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   function draw(t){
     const lines=[{t:trick==='reverse'?'Reverse Thumb Around':trick==='moulinet'?'Moulinet':trick==='twirl'?'Entre les doigts':trick?'Thumb Around':'Drumstick Spin · prototype',size:5,weight:800}];
-    if(trick==='rebond'){
+    if(trick==='prise'){
+      lines[0].t='Ma prise';
+      const left=pr.t0&&!pr.done?Math.max(1,Math.ceil((2000-(t-pr.t0))/1000)):0;
+      lines.push({t:pr.done?'Prise enregistrée ! Les mains du jeu la reprennent.':'Tiens tes baguettes (ou deux crayons) comme pour jouer, mains nues',size:3.8,color:pr.done?'#7BE3A6':'#E8ECF2',weight:800});
+      lines.push({t:pr.done?'A/X : refaire la prise':left?'Ne bouge plus… '+left:'Montre tes deux mains, puis ne bouge plus 2 secondes',size:3.4,color:'#97A1B2',weight:700});
+    }else if(trick==='rebond'){
       lines[0].t='Rebond';
       lines.push({t:reb.expect==='open'?'Frappe le pad main OUVERTE':'Frappe le pad doigts FERMÉS',size:4.2,color:reb.expect==='open'?'#7BE3A6':'#8D9CFF',weight:800});
       lines.push({t:coach&&t-coachT<1500?coach:'Rebonds : '+stats.ok+' réussis sur '+stats.tries,size:3.4,color:'#97A1B2',weight:700});
@@ -536,6 +574,26 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   /* À chaque image : lire les mains, tenir les baguettes, dessiner la main.
      Retourne true quand il faut revenir à la batterie. */
+  /* Ma prise : les deux mains suivies et immobiles 2 s = la prise est enregistrée */
+  const _jp=new THREE.Vector3(),_jq=new THREE.Quaternion();
+  function prise(t){
+    if(pr.done)return;
+    const pts=[];
+    for(const h of hands){const hj=h.g.joints||{};for(const n of ['wrist','thumb-tip','index-finger-tip','pinky-finger-tip']){const j=hj[n];if(!j||!j.visible){pr.ref=null;pr.t0=0;return;}pts.push(j.getWorldPosition(new THREE.Vector3()));}}
+    if(!pr.ref||pts.some((p,i)=>p.distanceTo(pr.ref[i])>0.015)){pr.ref=pts;pr.t0=t;return;}
+    if(t-pr.t0<2000)return;
+    const res={};
+    for(const h of hands){
+      const side=h.g.userData.side||'';const hj=h.g.joints||{};
+      const g=gripFromJoints(n=>{const j=hj[n];if(!j)return null;j.updateMatrixWorld(true);j.matrixWorld.decompose(_jp,_jq,_v);return {p:_jp.clone(),q:_jq.clone()};});
+      if(!g||!side){pr.t0=t;return;}
+      res[side]=g;
+    }
+    if(!res.left||!res.right){pr.t0=t;return;}
+    res.t=Date.now();
+    try{localStorage.setItem(PRISE_KEY,JSON.stringify(res));}catch(e){}
+    pr.done=true;play('tchak',0.9);say('Prise enregistrée !',t);
+  }
   function update(t){
     let exit=false;
 
@@ -559,7 +617,8 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       if(h.seen){
         th.getWorldPosition(_a);ix.getWorldPosition(_b);md.getWorldPosition(_c);
         const pinch=!!(h.g.inputState&&h.g.inputState.pinching);
-        if(trick==='rebond')rebond(h,hj,t,pinch);
+        if(trick==='prise'){h.stick.visible=false;}
+        else if(trick==='rebond')rebond(h,hj,t,pinch);
         else if(spinT&&tuto.step<5){
           /* tuto guidé : une seule main (la première suivie), l'autre attend */
           if(!tutoHand){tutoHand=h;tutoStep(h,t,pinch);}else h.stick.visible=false;
@@ -608,6 +667,7 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
       else restartSince=0;
     }
     if(pad&&padT&&t-padT>300){padMat.color.set(0x39414F);padT=0;}
+    if(trick==='prise')prise(t);
     ghostUpdate(t);
     draw(t);
     return exit;
@@ -629,5 +689,5 @@ export function create({renderer,scene,session,panel,drawPanel,play,trick=null,s
 
   return {update,dispose,stats:()=>({...stats}),
     /* pour les tests : les mains suivies et celles qui tiennent une baguette */
-    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,ghost:!!ghost.root,ghostStick:!!(ghost.stick&&ghost.stick.visible),mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),phys:hands.map(h=>h.ph.mode),twirl:tw.gap,coach,stats:{...stats}})};
+    debug:()=>({seen:hands.map(h=>h.seen),held:hands.map(h=>h.held),bones:bones.count,tips:tips.count,trick,ghost:!!ghost.root,ghostStick:!!(ghost.stick&&ghost.stick.visible),mesh:hands.map(meshOn),tuto:tuto.step,rebond:reb.expect,phase:hands.map(h=>h.det.phase),phys:hands.map(h=>h.ph.mode),twirl:tw.gap,prise:pr.done,coach,stats:{...stats}})};
 }
