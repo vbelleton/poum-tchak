@@ -909,6 +909,44 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
 .gm-ambi.oh{animation:gm-yay 1.2s ease-out;background:radial-gradient(140% 90% at 50% 50%,transparent 55%,rgba(255,90,70,.35))}
 @keyframes gm-yay{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.gm-ambi.yay,.gm-ambi.oh{animation-duration:.01s}}
+/* ---------- Parcours façon Duolingo : un chemin de ronds, des chapitres en couleur ---------- */
+.ser-bar{display:flex;gap:8px;margin:0 0 14px}
+.ser-bar>div{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 10px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:1px}
+.ser-bar b{font:800 18px/1.15 var(--f-display);white-space:nowrap}
+.ser-bar span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ser-bar i{display:block;height:6px;border-radius:9px;background:var(--cell-a);margin-top:4px;overflow:hidden}
+.ser-bar i::after{content:"";display:block;height:100%;width:var(--p,0%);background:var(--ok);border-radius:9px}
+.ser-bar .on b{color:#E8590C}
+.ac-lvl{width:100%;margin:-4px 0 16px}
+.pc-chb{position:relative;margin:22px 0 10px;padding:14px 16px;border-radius:20px;background:color-mix(in srgb,var(--chc) 78%,#000);color:#fff;box-shadow:0 6px 0 color-mix(in srgb,var(--chc) 65%,#000)}
+.pc-chb .pc-ch{margin:0;font:800 19px/1.2 var(--f-display);color:#fff}
+.pc-chb p{margin:3px 0 0;font-size:14px}
+.pc-chb .btn{margin-top:10px;background:rgba(0,0,0,.22);border-color:rgba(255,255,255,.5);color:#fff;min-height:38px;font-size:13.5px}
+.pc-chb .pc-chok{display:inline-block;margin-top:8px;font-weight:800;font-size:13px;background:rgba(255,255,255,.2);border-radius:999px;padding:4px 10px}
+.pc-steps{display:flex!important;flex-direction:column;align-items:center;gap:16px;padding:6px 0 8px}
+.pc-steps li{transform:translateX(var(--dx,0px))}
+.pc-st{width:auto!important;display:flex!important;flex-direction:column;align-items:center;gap:7px;border:0!important;background:none!important;box-shadow:none!important;padding:0!important;position:relative}
+.pc-st .n{width:64px!important;height:64px!important;font:800 21px var(--f-display)!important;background:var(--chc)!important;color:#fff!important;box-shadow:0 6px 0 color-mix(in srgb,var(--chc) 60%,#000);transition:transform .1s}
+.pc-st:active .n{transform:translateY(4px);box-shadow:0 2px 0 color-mix(in srgb,var(--chc) 60%,#000)}
+.pc-st.done .n{background:#F5B82E!important;color:#5B3A00!important;box-shadow:0 6px 0 #C48A0E}
+.pc-st.lock .n{background:var(--cell-b)!important;color:var(--muted)!important;box-shadow:0 6px 0 var(--line)}
+.pc-st .t{font-size:12.5px;line-height:1.25;max-width:180px;text-align:center;color:var(--muted);font-weight:600}
+.pc-st .b{display:none}
+.pc-st[aria-current="step"] .n{width:76px!important;height:76px!important;outline:6px solid color-mix(in srgb,var(--chc) 28%,transparent);outline-offset:3px;animation:pc-bob 1.8s ease-in-out infinite}
+.pc-st[aria-current="step"] .t{color:var(--ink);font-weight:800}
+.pc-st[aria-current="step"]::before{content:"ICI";position:absolute;top:-30px;background:var(--surface);color:var(--chc);border:2px solid var(--line);border-radius:10px;padding:2px 10px;font:800 12px var(--f-display);letter-spacing:.06em;box-shadow:var(--sh)}
+@keyframes pc-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){.pc-st[aria-current="step"] .n{animation:none}}
+.pc-steps li:first-child .pc-st[aria-current="step"]{margin-top:24px}
+.pc-next .lockmsg{font-size:13px;color:var(--warn);font-weight:600}
+.pc-win{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;gap:6px}
+.pc-win span{background:var(--acc-soft);color:var(--ink);border-radius:999px;padding:5px 12px}
+.lv-list{display:grid;gap:8px;margin-top:8px}
+.pc-more{margin:28px 0 8px;font:800 19px var(--f-display)}
+:root[data-theme="dark"] .pc-chb{background:var(--chc)}:root[data-theme="dark"] .pc-chb .btn{background:rgba(255,255,255,.35)}:root[data-theme="dark"] .pc-chb,:root[data-theme="dark"] .pc-chb .pc-ch,:root[data-theme="dark"] .pc-chb .btn{color:#140F2A}
+:root[data-theme="dark"] .pc-st:not(.done):not(.lock) .n{color:#140F2A!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pc-chb{background:var(--chc)}:root:not([data-theme="light"]) .pc-chb .btn{background:rgba(255,255,255,.35)}:root:not([data-theme="light"]) .pc-chb,:root:not([data-theme="light"]) .pc-chb .pc-ch,:root:not([data-theme="light"]) .pc-chb .btn{color:#140F2A}:root:not([data-theme="light"]) .pc-st:not(.done):not(.lock) .n{color:#140F2A!important}}
+.lv-list .btn{justify-content:flex-start;text-align:left;min-height:48px}
 </style>
 </head>
 <body>
@@ -973,7 +1011,9 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
       <div><b>Salut, bienvenue sur Poum Tchak !</b><span>Ici, on apprend la batterie en s'amusant : tu dis « poum tchak », tu tapes, et ça groove. Pas besoin de batterie, ton téléphone suffit.</span></div>
       <div class="row"><button type="button" class="btn" id="welcomeGo">C'est parti !</button><button type="button" class="btn ghost" id="welcomeNo">Je préfère explorer</button></div>
     </div>
+    <div class="ser-bar" data-ser></div>
     <button type="button" class="ac-cont" id="acCont"><span class="ac-k">Continuer ma leçon</span><b id="acContT"></b><span class="ac-s" id="acContS"></span></button>
+    <button type="button" class="btn ghost ac-lvl" id="acLevel">Tu sais déjà jouer un peu ? Passe le test de niveau</button>
     <div class="ac-tiles">
       <button type="button" class="ac-tile" data-go="jeux"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 10.5v4M6 12.5h4"/><circle cx="15.5" cy="11.5" r=".6"/><circle cx="17.5" cy="14" r=".6"/></svg><b>Jouer un chant</b><span>Des notes descendent : tape au bon moment.</span></button>
       <button type="button" class="ac-tile" data-go="parcours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2.5 4 2.5 4H6"/></svg><b>Apprendre pas à pas</b><span>Une petite leçon à la fois, du plus facile au plus dur.</span></button>
@@ -993,10 +1033,12 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
     <h2 class="sr">Parcours</h2>
     <p class="hint first">Une étape à la fois, du plus facile au plus dur. Réussis à 85 % et tu passes à la suite. Si ça coince, le tempo ralentit tout seul : pas de stress. Le tempo se compte en BPM : 60 BPM, c'est un clic par seconde.</p>
     <div class="pl-ban card" hidden><div><b>Test du jour</b><span>Moins d'une minute pour mesurer ta forme : la séance partira au bon tempo.</span></div><div class="row"><button type="button" class="btn pl-go">Faire le test</button><button type="button" class="btn ghost pl-no">Pas aujourd'hui</button></div></div>
+    <div class="ser-bar" data-ser></div>
     <div class="pc-prog"><div class="pc-meter" aria-hidden="true"><i id="pcMeter"></i></div><span id="pcProgTxt"></span></div>
     <div class="card pc-next" id="pcNext"></div>
-    <div class="pr-box" id="prBox"></div>
     <div id="pcList"></div>
+    <h3 class="pc-more">Tes progrès</h3>
+    <div class="pr-box" id="prBox"></div>
   </section>
 
   <!-- Jeux : les rythmes en jeux d'arcade -->
@@ -6165,6 +6207,7 @@ function gmFinish(fell){
   sheetOpen(h);
   if(!fell)gmConfetti(before&&sc.pts>before?Math.max(stars,2):stars);
   if(!fell&&stars>=2)gmCheer(stars>=3?2:1);
+  if(!fell&&n)serAdd(5+5*stars);
   if(ck)$('#gmResCk').addEventListener('click',()=>{sheetClose();gmLaunch(ck);});
   $('#gmResGo').addEventListener('click',()=>{sheetClose();gmSetBpm(next);$('#gmGo').click();});
   $('#gmResBack').addEventListener('click',sheetClose);
@@ -7221,7 +7264,53 @@ function pcGoal(st){
       ?'Comme sur le papier : une main seule d\'abord. Quand elle tient 2 mesures à '+PC_OK+' %, l\'autre entre. Quand les deux tiennent, 2 mesures sans clic. Si ça coince, le tempo ralentit tout seul. Départ à '+st.bpm+' BPM.'
       :'Objectif : 4 mesures de suite à '+PC_OK+' % de coups justes. Si ça coince, le tempo ralentit tout seul. Départ à '+st.bpm+' BPM.';
 }
+/* ---------- Série, points et objectif du jour ---------- */
+const SER_KEY='poumtchak.serie';
+const ser={streak:0,last:'',xp:0,day:'',n:0,goal:2};
+try{Object.assign(ser,JSON.parse(localStorage.getItem(SER_KEY)||'{}'));}catch(e){}
+const serDay=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function serStreak(){const t=serDay(),y=serDay(new Date(Date.now()-864e5));return ser.last===t||ser.last===y?ser.streak:0;}
+function serToday(){return ser.day===serDay()?ser.n:0;}
+/* une activité réussie (leçon, partie) : des points, la série du jour, l'objectif */
+function serAdd(xp){
+  const t=serDay();
+  if(ser.last!==t){ser.streak=ser.last===serDay(new Date(Date.now()-864e5))?ser.streak+1:1;ser.last=t;}
+  if(ser.day!==t){ser.day=t;ser.n=0;}
+  ser.n++;ser.xp+=xp;
+  try{localStorage.setItem(SER_KEY,JSON.stringify(ser));}catch(e){}
+  serRender();
+  return {xp,streak:ser.streak,n:ser.n,goal:ser.goal,goalNow:ser.n===ser.goal};
+}
+function serRender(){
+  const st=serStreak(),n=serToday(),g=ser.goal;
+  document.querySelectorAll('[data-ser]').forEach(b=>{
+    b.innerHTML='<div class="'+(st?'on':'')+'"><b>🔥 '+st+'</b><span>'+(st>1?'jours de suite':'jour de suite')+'</span></div>'
+      +'<div><b>⭐ '+ser.xp+'</b><span>points</span></div>'
+      +'<div><b>🎯 '+Math.min(n,g)+'/'+g+'</b><span>'+(n>=g?'objectif atteint !':'objectif du jour')+'</span><i style="--p:'+Math.min(100,Math.round(100*n/g))+'%"></i></div>';
+    b.setAttribute('aria-label','Série : '+st+' jour'+(st>1?'s':'')+'. '+ser.xp+' points. Objectif du jour : '+Math.min(n,g)+' sur '+g+'.');
+    b.setAttribute('role','group');
+  });
+}
+const PC_COL=['--c-poum','--c-doum','--c-toum','--c-tchak','--c-psch'];
+const PC_DX=[0,46,70,46,0,-46,-70,-46];
+/* première leçon pas encore réussie : tout ce qui est avant est ouvert */
+function pcFirstTodo(){const i=PC_STEPS.findIndex(x=>!pc.done[x.id]);return i<0?PC_STEPS.length:i;}
+const pcLocked=x=>!pc.done[x.id]&&pcIdx(x.id)>pcFirstTodo();
+/* Raccourci : réussir la dernière leçon d'un chapitre, un peu plus vite, valide tout jusque-là. */
+function pcSkipTo(ci){
+  const last=PC_STEPS.filter(x=>x.ch===ci&&x.type==='mains').pop();if(!last)return;
+  pcStart(last.id,last.bpm+5);pc.skip=ci;
+}
+function pcLevelOpen(){
+  let h='<button type="button" class="ib pr-x" id="lvX" aria-label="Fermer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
+  h+='<div class="pr-sec"><h3>Test de niveau</h3><p class="pr-txt">Choisis jusqu\'où tu penses savoir jouer. Une épreuve courte reprend la leçon la plus dure du chapitre, un peu plus vite : réussie, tout ce qui est avant est validé.</p><div class="lv-list">'
+    +PC_CH.map((c,i)=>'<button type="button" class="btn ghost" data-ch="'+i+'">Jusqu\'à : '+(i+1)+'. '+c.t+'</button>').join('')+'</div></div>';
+  sheetOpen(h);
+  $('#lvX').addEventListener('click',sheetClose);
+  document.querySelectorAll('.lv-list [data-ch]').forEach(b=>b.addEventListener('click',()=>{sheetClose();pcSkipTo(+b.dataset.ch);}));
+}
 function pcRender(){
+  serRender();
   const n=Object.keys(pc.done).length;
   $('#pcMeter').style.width=Math.round(100*n/PC_STEPS.length)+'%';
   $('#pcProgTxt').textContent=n+' sur '+PC_STEPS.length+' étapes';
@@ -7232,20 +7321,27 @@ function pcRender(){
   box.querySelector('h3').textContent=pcTitle(st);
   box.querySelector('.tip').textContent=st.tip;
   box.querySelector('.goal').textContent=pcGoal(st);
+  if(pcLocked(st))box.querySelector('.goal').insertAdjacentHTML('afterend','<p class="lockmsg">🔒 Pas encore débloquée : tu peux l\'essayer quand même.</p>');
   $('#pcGo').addEventListener('click',()=>pcStart(st.id));
   const list=$('#pcList');list.innerHTML='';
   PC_CH.forEach((c,ci)=>{
-    const h=document.createElement('h3');h.className='pc-ch';h.textContent=(ci+1)+'. '+c.t;list.appendChild(h);
-    const ol=document.createElement('ol');ol.className='pc-steps';
+    const ban=document.createElement('div');ban.className='pc-chb';ban.style.setProperty('--chc','var('+PC_COL[ci%PC_COL.length]+')');
+    const h=document.createElement('h3');h.className='pc-ch';h.textContent='Chapitre '+(ci+1)+' · '+c.t;ban.appendChild(h);
+    const dp=document.createElement('p');dp.textContent=c.d;ban.appendChild(dp);
+    const all=PC_STEPS.filter(x=>x.ch===ci).every(x=>pc.done[x.id]);
+    if(all)ban.insertAdjacentHTML('beforeend','<span class="pc-chok">✓ Chapitre réussi</span>');
+    else{const sk=document.createElement('button');sk.type='button';sk.className='btn';sk.textContent='Sauter ce chapitre ⏩';sk.setAttribute('aria-label','Sauter le chapitre '+(ci+1)+' avec une épreuve');sk.addEventListener('click',()=>pcSkipTo(ci));ban.appendChild(sk);}
+    list.appendChild(ban);
+    const ol=document.createElement('ol');ol.className='pc-steps';ol.style.setProperty('--chc','var('+PC_COL[ci%PC_COL.length]+')');let k=0;
     PC_STEPS.forEach((x,xi)=>{
       if(x.ch!==ci)return;
       const li=document.createElement('li'),b=document.createElement('button');
-      b.type='button';b.className='pc-st'+(pc.done[x.id]?' done':'');
+      b.type='button';b.className='pc-st'+(pc.done[x.id]?' done':pcLocked(x)?' lock':'');li.style.setProperty('--dx',PC_DX[k++%PC_DX.length]+'px');
       if(x.id===pc.cur)b.setAttribute('aria-current','step');
-      b.innerHTML='<span class="n">'+(pc.done[x.id]?'✓':xi+1)+'</span><span class="t"></span><span class="b"></span>';
+      b.innerHTML='<span class="n">'+(pc.done[x.id]?'★':pcLocked(x)?'🔒':x.type==='trad'?'Aa':xi+1)+'</span><span class="t"></span><span class="b"></span>';
       b.querySelector('.t').textContent=pcTitle(x);
       b.querySelector('.b').textContent=pc.done[x.id]?pc.done[x.id]+' BPM':x.type==='trad'?'':x.bpm+' BPM';
-      b.setAttribute('aria-label','Étape '+(xi+1)+' : '+pcTitle(x)+(pc.done[x.id]?', réussie à '+pc.done[x.id]+' BPM':''));
+      b.setAttribute('aria-label','Étape '+(xi+1)+' : '+pcTitle(x)+(pc.done[x.id]?', réussie à '+pc.done[x.id]+' BPM':pcLocked(x)?', pas encore débloquée':''));
       b.addEventListener('click',()=>{pc.cur=x.id;pcSave();pcRender();$('#pcNext').scrollIntoView({block:'nearest'});$('#pcGo').focus();});
       li.appendChild(b);ol.appendChild(li);
     });
@@ -7259,8 +7355,11 @@ function pcBar(txt,kind,btns){
   const host=$('#pcBarBtns');host.innerHTML='';
   btns.forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.addEventListener('click',fn);host.appendChild(b);});
   if(kind==='ok'||kind==='ko'){
+    const w=kind==='ok'&&pc.win;
     sheetOpen('<div class="pr-sec pr-top"><div class="pr-hex'+(kind==='ko'?' ko':'')+'" aria-hidden="true">'+(kind==='ok'?'✓':'…')+'</div><div><h3>'+(kind==='ok'?'Étape réussie':'Pas encore')+'</h3></div></div>'+
+      (w?'<div class="pr-sec"><p class="pc-win"><span>⭐ +'+w.xp+' points</span><span>🔥 '+w.streak+' jour'+(w.streak>1?'s':'')+' de suite</span><span>🎯 '+Math.min(w.n,w.goal)+'/'+w.goal+(w.goalNow?' : objectif du jour atteint !':' aujourd\'hui')+'</span></p>'+(pc.skipped!=null?'<p class="pr-txt">Raccourci réussi : tout jusqu\'au chapitre « '+PC_CH[pc.skipped].t+' » est validé.</p>':'')+'</div>':'')+
       '<div class="pr-sec"><p class="pr-txt">'+txt+'</p></div><div class="row pr-btns" id="pcSheetBtns"></div>');
+    if(w){gmConfetti(w.goalNow?3:2);if(gm.ambi!=='rien')gmCheer(w.goalNow?2:1);}
     const sh=$('#pcSheetBtns');
     btns.forEach(([lab,fn,ghost])=>{const b=document.createElement('button');b.type='button';b.className='btn'+(ghost?' ghost':'');b.textContent=lab;b.addEventListener('click',()=>{sheetClose();fn();});sh.appendChild(b);});
   }
@@ -7274,6 +7373,7 @@ function pcQuit(){
 }
 const pcQuitBtn=['Quitter l\'étape',()=>{pcQuit();showTab('parcours');},true];
 function pcStart(id,bpm){
+  pc.skip=null;pc.win=null;
   const st=pcStep(id),i=pcIdx(id);
   pc.cur=id;pc.active=id;pcSave();
   const head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · '+pcTitle(st)+'. ';
@@ -7304,7 +7404,15 @@ function pcStart(id,bpm){
 function pcNextId(id){const i=pcIdx(id);return PC_STEPS[Math.min(i+1,PC_STEPS.length-1)].id;}
 function pcSucceed(st,bpm){
   pc.done[st.id]=Math.max(pc.done[st.id]||0,bpm||1);
-  pc.cur=pcNextId(st.id);pcSave();pcRender();
+  let gain=10;
+  if(pc.skip!=null&&st.ch===pc.skip){
+    /* épreuve du raccourci réussie : tout jusqu'à ce chapitre est validé */
+    PC_STEPS.forEach(x=>{if(x.ch<=pc.skip&&!pc.done[x.id])pc.done[x.id]=x.type==='trad'?1:x.bpm;});
+    const nx=PC_STEPS.find(x=>!pc.done[x.id]);pc.cur=nx?nx.id:st.id;gain=30;pc.skipped=pc.skip;
+  }else{pc.cur=pcNextId(st.id);pc.skipped=null;}
+  pc.skip=null;
+  pc.win=serAdd(gain);
+  pcSave();pcRender();
 }
 function pcShowBar(){requestAnimationFrame(()=>$('#pcBar').scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));}
 function pcMainsDone(st,r,x){
@@ -7341,6 +7449,7 @@ function pcTradDone(st){
     ...(last?[]:[['Étape suivante : '+pcTitle(nx),()=>pcStart(nx.id)]]),pcQuitBtn]);
 }
 pcRender();prRender();
+if(navigator.webdriver)window.__pc={ok:(id,bpm)=>pcSucceed(pcStep(id||pc.active),bpm),skip:()=>pc.skip,active:()=>pc.active,xp:()=>ser.xp};
 
 /* ---------- Dictionnaire éditable ---------- */
 let lastD=null,refocus=null;
@@ -7946,8 +8055,11 @@ function acRender(){
   $('#acCont').querySelector('.ac-k').textContent=n?'Continuer ma leçon':'Ma première leçon';
   $('#acContT').textContent=pcTitle(st);
   $('#acContS').textContent='Leçon '+(i+1)+' sur '+PC_STEPS.length+(n?' · '+n+' réussie'+(n>1?'s':''):'');
+  serRender();
+  $('#acLevel').hidden=n>=PC_STEPS.length;
 }
 $('#acCont').addEventListener('click',()=>pcStart(pc.cur));
+$('#acLevel').addEventListener('click',pcLevelOpen);
 document.querySelectorAll('.ac-tile').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.go;
   if(v==='kit'){showTab('pratique');$('#kitBtn').click();}else showTab(v);
