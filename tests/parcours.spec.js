@@ -4,12 +4,14 @@ const { test, expect, rubrique } = require('./outils/base');
 const SENS = { poum: ['poum'], tchak: ['tchak'], pak: ['poum', 'tchak'], '.': [] };
 
 test.describe('Parcours', () => {
-  test('la première étape et les 25 étapes en 5 chapitres', async ({ page }) => {
+  test('la première étape et les 46 étapes en 10 chapitres, avec un coffre par chapitre', async ({ page }) => {
     await rubrique(page, 'Parcours');
     await expect(page.locator('#pcNext h3')).toHaveText('Main droite seule : 1 coup par temps');
-    await expect(page.locator('#pcProgTxt')).toHaveText('0 sur 25 étapes');
-    await expect(page.locator('.pc-st')).toHaveCount(25);
-    await expect(page.locator('.pc-ch')).toHaveCount(5);
+    await expect(page.locator('#pcProgTxt')).toHaveText('0 sur 46 étapes');
+    await expect(page.locator('.pc-st')).toHaveCount(56);
+    await expect(page.locator('.pc-chest')).toHaveCount(10);
+    await expect(page.locator('.pc-st.boss')).toHaveCount(10);
+    await expect(page.locator('.pc-ch')).toHaveCount(10);
     await expect(page.locator('.pc-st').first()).toHaveAttribute('aria-current', 'step');
   });
 
@@ -22,7 +24,7 @@ test.describe('Parcours', () => {
     await expect(page.locator('#mnL .mn-dot')).toHaveCount(0); // main gauche au repos
     await expect(page.locator('#mnR .mn-dot')).toHaveCount(4);
     await expect(page.locator('#bpmIn')).toHaveValue('50');
-    await expect(page.locator('#pcBar')).toContainText('Étape 1/25');
+    await expect(page.locator('#pcBar')).toContainText('Étape 1/46');
     // la main droite joue en rythme jusqu'à la fin
     await page.evaluate(async () => {
       const pad = document.querySelector('#mnPadR');
@@ -43,7 +45,7 @@ test.describe('Parcours', () => {
     await expect(page.locator('#pcBarBtns')).toContainText('Étape suivante : Main gauche seule');
     await page.reload();
     await rubrique(page, 'Parcours');
-    await expect(page.locator('#pcProgTxt')).toHaveText('1 sur 25 étapes');
+    await expect(page.locator('#pcProgTxt')).toHaveText('1 sur 46 étapes');
     await expect(page.locator('#pcNext h3')).toHaveText('Main gauche seule : 1 coup par temps');
     await expect(page.locator('.pc-st.done')).toHaveCount(1);
   });
@@ -82,7 +84,7 @@ test.describe('Parcours', () => {
       }
     }
     await expect(page.locator('#pcBar')).toHaveClass(/ok/);
-    await expect(page.locator('#pcBarBtns')).toContainText('Étape suivante : Main droite seule : 3 coups');
+    await expect(page.locator('#pcBarBtns')).toContainText('Étape suivante : Boss · Jeu : le rock');
   });
 
   test('voir la réponse ne compte pas', async ({ page }) => {
@@ -144,7 +146,7 @@ test.describe('Parcours : jamais d\'échec', () => {
   test('une étape qu\'on ne réussit pas ralentit, sans message d\'échec', async ({ page }) => {
     test.setTimeout(60_000);
     await rubrique(page, 'Parcours');
-    await page.locator('.pc-st').nth(7).click(); // 2 contre 2 à 60
+    await page.locator('.pc-st').nth(15).click(); // 2 contre 2 à 60
     await page.locator('#pcGo').click();
     await expect(page.locator('#bpmIn')).toHaveValue('60');
     await expect.poll(async () => +(await page.locator('#bpmIn').inputValue()), { timeout: 30000 }).toBeLessThan(60);

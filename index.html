@@ -939,6 +939,20 @@ body:has(#kitView:not([hidden])) .dock,body.mn-live .dock{bottom:0;padding-botto
 @media (prefers-reduced-motion:reduce){.pc-st[aria-current="step"] .n{animation:none}}
 .pc-steps li:first-child .pc-st[aria-current="step"]{margin-top:24px}
 .pc-next .lockmsg{font-size:13px;color:var(--warn);font-weight:600}
+.pc-st.done .b{display:block;font:700 12px var(--f-body);letter-spacing:1px;color:var(--muted)}
+.pc-st.boss .n{width:78px!important;height:78px!important;font-size:30px!important;border-radius:22px}
+.pc-st.pc-chest .n{font-size:28px!important;border-radius:16px}
+.pc-st.pc-chest.ready .n{background:#F5B82E!important;box-shadow:0 6px 0 #C48A0E;animation:pc-bob 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.pc-st.pc-chest.ready .n{animation:none}}
+.pc-masc{display:flex;gap:10px;align-items:flex-start}
+.pc-masc .pc-tchaki{flex:none;line-height:0}
+.pc-masc .tip{position:relative;flex:1;background:var(--acc-soft);color:var(--ink);border-radius:14px;padding:9px 12px;margin:0 0 10px;font-size:14.5px;line-height:1.45}
+.pc-masc .tip::before{content:"";position:absolute;left:-7px;top:14px;border:7px solid transparent;border-left:0;border-right-color:var(--acc-soft)}
+.pc-sk{list-style:none;margin:4px 0 12px;padding:0;display:grid;gap:4px;font-size:14px}
+.pc-sk li::before{content:"○ ";color:var(--muted)}
+.pc-sk li.mid::before{content:"◐ ";color:var(--warn)}
+.pc-sk li.ok::before{content:"✓ ";color:var(--ok);font-weight:800}
+.pc-next .row{flex-wrap:wrap;gap:8px}
 .pc-win{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;gap:6px}
 .pc-win span{background:var(--acc-soft);color:var(--ink);border-radius:999px;padding:5px 12px}
 .lv-list{display:grid;gap:8px;margin-top:8px}
@@ -6183,6 +6197,7 @@ function gmFinish(fell){
   const before=gmBest(key);
   const rec=prAdd({g:'jeux',d:Date.now(),game:gm.game,k:key,rh:gm.rh,lvl:gm.lvl,pct:p,n,score:sc.pts,bpm:Math.round(gm.curBpm),lent:slowed||undefined});
   prToast(rec.up);
+  {const ps=pc.active&&pcStep(pc.active);if(ps&&ps.type==='jeu'&&!gm.vr){pcGameDone(ps,fell?0:gmStars(p),p,fell);return;}}
   gmRender();
   const stars=fell?0:gmStars(p),offs=sc.offs.slice().sort((a,b)=>a-b),med=offs.length?offs[offs.length>>1]:0;
   const next=gm.song?gm.bpm:fell||p<60?Math.max(40,gm.bpm-5):p>=90?Math.min(220,gm.bpm+5):gm.bpm;
@@ -7207,59 +7222,95 @@ trNew();
 /* ---------- Parcours : une étape à la fois ---------- */
 const PC_KEY='poumtchak.parcours',PC_OK=85;
 const PC_CH=[
-  {t:'Le temps',d:'Une frappe par clic.'},
-  {t:'Les croches',d:'Deux coups par temps : « ti-ti », « 1 et ».'},
-  {t:'Les triolets',d:'Trois coups égaux par temps : « tri-o-let ».'},
-  {t:'Les doubles croches',d:'Quatre coups par temps : « ti-ri-ti-ri », « 1 é et a ».'},
-  {t:'Les mélanges',d:'Chaque main garde sa vitesse.'}
+  {t:'Le temps',d:'Une frappe par clic, bien en place.',sk:['Jouer sur le clic','Compter 1, 2, 3, 4','Les deux mains ensemble']},
+  {t:'Poum-tchak',d:'Grosse caisse et caisse claire : le cœur de tous les rythmes.',sk:['Poum sur 1 et 3, tchak sur 2 et 4','Rejouer un motif entendu','Lire une consigne simple']},
+  {t:'Les croches',d:'Deux coups par temps : « ti-ti », « 1 et ».',sk:['Deux coups par temps','Une main garde le temps, l\'autre double','Le charley en croches']},
+  {t:'Premier vrai rythme',d:'Charley, grosse caisse et caisse claire ensemble.',sk:['Le rythme rock complet','Le garder longtemps','Le rejouer d\'oreille']},
+  {t:'Lire',d:'Comprendre la consigne du prof et la jouer.',sk:['Les mots du charley','Les mots fondus : « pouts », « tchats »']},
+  {t:'Triolets et shuffle',d:'Trois coups égaux par temps : « tri-o-let ».',sk:['Trois coups par temps','Le shuffle qui balance']},
+  {t:'Doubles croches',d:'Quatre coups par temps : « ti-ri-ti-ri ».',sk:['Quatre coups par temps','Croches contre doubles','Funk et disco']},
+  {t:'Toms et roulements',d:'Faire le tour de la batterie.',sk:['Lire les toms et le crash','Les petits roulements']},
+  {t:'Les styles',d:'Valse, 6/8, bossa : d\'autres façons de compter.',sk:['La valse à 3 temps','Le 6/8','La bossa']},
+  {t:'Indépendance',d:'Chaque main garde sa vitesse.',sk:['Deux contre trois','Une main qui change de vitesse','Trois contre quatre']}
 ];
 const PM=(id,ch,l,r,bpm,tip)=>({id,ch,type:'mains',l,r,bpm,tip});
-const PT=(id,ch,lvl,tip)=>({id,ch,type:'trad',lvl,need:3,tip});
+const PT=(id,ch,lvl,tip,need,boss)=>({id,ch,type:'trad',lvl,need:need||3,tip,boss:!!boss});
+/* une partie de jeu : Couloirs (les notes descendent) ou Écoute puis rejoue, réussie à 2 étoiles */
+const PJ=(id,ch,game,rh,lvl,bpm,tip,boss)=>({id,ch,type:'jeu',game,rh,lvl,bpm,tip,boss:!!boss});
 const PC_STEPS=[
   PM('d1',0,-1,1,50,'Main droite seule, une frappe sur chaque clic. Compte « 1, 2, 3, 4 » à voix haute.'),
   PM('g1',0,1,-1,50,'Même chose avec la main gauche. Elle est souvent en retard : écoute bien le clic.'),
   PM('gd1',0,1,1,50,'Les deux mains ensemble, comme si elles n\'en faisaient qu\'une.'),
-  PM('d2',1,-1,2,50,'Main droite, deux coups par temps. Dis « ti-ti » en jouant.'),
-  PM('g2',1,2,-1,50,'Main gauche, deux coups par temps.'),
-  PM('g1d2',1,1,2,50,'La gauche garde le temps, la droite fait le double. Le premier coup tombe ensemble.'),
-  PM('g2d1',1,2,1,50,'On inverse : la droite garde le temps, la gauche double.'),
-  PM('g2d2',1,2,2,60,'Les deux mains en croches, ensemble, un peu plus vite.'),
+  PJ('c0j',0,'couloirs','rock','facile',60,'Ton premier jeu : tape chaque note quand elle touche la ligne. Prends ton temps.'),
+  PJ('c0b',0,'couloirs','disco','facile',70,'Le boss du chapitre : un coup à chaque temps, sans lâcher. Réussi, le chapitre suivant s\'ouvre.',1),
+  PJ('c1j',1,'couloirs','rock','facile',70,'Poum sur 1 et 3, tchak sur 2 et 4. Dis-le en jouant : « poum, tchak, poum, tchak ».'),
+  PJ('c1e',1,'ecoute','rock','facile',70,'Écoute le motif deux fois, puis rejoue-le de mémoire.'),
   PT('t1',1,1,'Lis la consigne comme ton prof la dirait : grosse caisse et caisse claire.'),
-  PM('d3',2,-1,3,45,'Trois coups bien égaux par temps : « tri-o-let ». Ne te presse pas sur le dernier.'),
-  PM('g3',2,3,-1,45,'Les triolets à la main gauche.'),
-  PM('g1d3',2,1,3,45,'La gauche garde le temps, la droite fait les triolets.'),
-  PM('g3d1',2,3,1,45,'On inverse : triolets à gauche.'),
-  PT('t2',2,2,'Le charley arrive, et avec lui les mots fondus : « pouts », « tchats ».'),
-  PM('d4',3,-1,4,45,'Quatre coups par temps : « ti-ri-ti-ri ». Garde les baguettes basses.'),
-  PM('g4',3,4,-1,45,'Les doubles croches à gauche.'),
-  PM('g1d4',3,1,4,45,'La gauche garde le temps, la droite en doubles.'),
-  PM('g2d4',3,2,4,45,'Croches à gauche, doubles à droite : la gauche tombe sur 1 coup sur 2 de la droite.'),
-  PM('g4d2',3,4,2,45,'On inverse.'),
-  PM('g2d3',4,2,3,40,'Deux contre trois : seul le premier coup de chaque temps tombe ensemble. Écoute d\'abord, puis joue.'),
-  PM('g3d2',4,3,2,40,'Trois contre deux.'),
-  PM('g1dv',4,1,0,40,'La droite change à chaque temps : 1, 2, 3 puis 4 coups. La gauche reste sur le temps.'),
-  PM('gvd1',4,0,1,40,'On inverse : c\'est la gauche qui change.'),
-  PM('g3d4',4,3,4,40,'Le plus dur : trois contre quatre. Très lentement, en mode Modèle + clic d\'abord.'),
-  PT('t3',4,3,'Consignes avec toms, crash et petit roulement.')
+  PJ('c1b',1,'couloirs','rock','facile',85,'Le boss : poum-tchak un peu plus vite.',1),
+  PM('d2',2,-1,2,50,'Main droite, deux coups par temps. Dis « ti-ti » en jouant.'),
+  PM('g2',2,2,-1,50,'Main gauche, deux coups par temps.'),
+  PM('g1d2',2,1,2,50,'La gauche garde le temps, la droite fait le double. Le premier coup tombe ensemble.'),
+  PM('g2d1',2,2,1,50,'On inverse : la droite garde le temps, la gauche double.'),
+  PM('g2d2',2,2,2,60,'Les deux mains en croches, ensemble, un peu plus vite.'),
+  PJ('c2b',2,'couloirs','rock','moyen',70,'Le boss : le charley entre, en croches.',1),
+  PJ('c3j',3,'couloirs','rock','moyen',85,'Le rythme rock, un peu plus vite. Garde le charley régulier.'),
+  PJ('c3e',3,'ecoute','rock','moyen',75,'Écoute et rejoue le rythme rock.'),
+  PJ('c3b',3,'couloirs','rock','difficile',75,'Le boss : le rythme rock complet, toutes les notes.',1),
+  PT('t2',4,2,'Le charley arrive, et avec lui les mots fondus : « pouts », « tchats ».'),
+  PT('c4b',4,2,'Le boss : 5 consignes justes du premier coup.',5,1),
+  PM('d3',5,-1,3,45,'Trois coups bien égaux par temps : « tri-o-let ». Ne te presse pas sur le dernier.'),
+  PM('g3',5,3,-1,45,'Les triolets à la main gauche.'),
+  PM('g1d3',5,1,3,45,'La gauche garde le temps, la droite fait les triolets.'),
+  PM('g3d1',5,3,1,45,'On inverse : triolets à gauche.'),
+  PJ('c5j',5,'couloirs','shuffle','moyen',70,'Le shuffle : ça balance, « pa-dam, pa-dam ».'),
+  PJ('c5b',5,'couloirs','shuffle','difficile',70,'Le boss : le shuffle complet.',1),
+  PM('d4',6,-1,4,45,'Quatre coups par temps : « ti-ri-ti-ri ». Garde les baguettes basses.'),
+  PM('g4',6,4,-1,45,'Les doubles croches à gauche.'),
+  PM('g1d4',6,1,4,45,'La gauche garde le temps, la droite en doubles.'),
+  PM('g2d4',6,2,4,45,'Croches à gauche, doubles à droite : la gauche tombe sur 1 coup sur 2 de la droite.'),
+  PM('g4d2',6,4,2,45,'On inverse.'),
+  PJ('c6j',6,'couloirs','disco','moyen',90,'Le disco : la grosse caisse sur chaque temps.'),
+  PJ('c6e',6,'ecoute','funk','moyen',70,'Écoute et rejoue un bout de funk.'),
+  PJ('c6b',6,'couloirs','funk','difficile',70,'Le boss : le funk complet.',1),
+  PT('t3',7,3,'Consignes avec toms, crash et petit roulement.'),
+  PT('c7b',7,3,'Le boss : 5 consignes difficiles justes du premier coup.',5,1),
+  PJ('c8v',8,'couloirs','valse','moyen',90,'La valse : « poum, tchak, tchak », trois temps.'),
+  PJ('c8s',8,'couloirs','68','moyen',70,'Le 6/8 : six petits coups, deux grands temps.'),
+  PJ('c8e',8,'ecoute','bossa','moyen',70,'Écoute et rejoue la bossa.'),
+  PJ('c8b',8,'couloirs','bossa','difficile',70,'Le boss : la bossa complète.',1),
+  PM('g2d3',9,2,3,40,'Deux contre trois : seul le premier coup de chaque temps tombe ensemble. Écoute d\'abord, puis joue.'),
+  PM('g3d2',9,3,2,40,'Trois contre deux.'),
+  PM('g1dv',9,1,0,40,'La droite change à chaque temps : 1, 2, 3 puis 4 coups. La gauche reste sur le temps.'),
+  PM('gvd1',9,0,1,40,'On inverse : c\'est la gauche qui change.'),
+  PM('g3d4',9,3,4,40,'Le plus dur : trois contre quatre. Très lentement, en mode Modèle + clic d\'abord.'),
+  PJ('c9b',9,'couloirs','funk','difficile',85,'Le grand boss final : le funk complet, plus vite. Bravo d\'être arrivé là !',1)
 ];
-const pc={done:{},cur:PC_STEPS[0].id,active:null,bpm:0};
+const pc={done:{},cr:{},chest:{},cur:PC_STEPS[0].id,active:null,bpm:0};
 try{
   const o=JSON.parse(localStorage.getItem(PC_KEY)||'null');
   if(o&&o.done&&typeof o.done==='object')Object.keys(o.done).forEach(k=>{if(PC_STEPS.some(x=>x.id===k))pc.done[k]=+o.done[k]||1;});
   if(o&&PC_STEPS.some(x=>x.id===o.cur))pc.cur=o.cur;
+  if(o&&o.cr&&typeof o.cr==='object')Object.keys(o.cr).forEach(k=>{if(pc.done[k])pc.cr[k]=Math.max(1,Math.min(3,+o.cr[k]||1));});
+  Object.keys(pc.done).forEach(k=>{if(!pc.cr[k])pc.cr[k]=1;});
+  if(o&&o.chest&&typeof o.chest==='object')Object.assign(pc.chest,o.chest);
+  /* ancien parcours : la leçon en cours n'est plus forcément la première à faire */
+  if(o&&!o.cr){const f=PC_STEPS.find(x=>!pc.done[x.id]);if(f)pc.cur=f.id;}
 }catch(e){}
-const pcSave=()=>{try{localStorage.setItem(PC_KEY,JSON.stringify({done:pc.done,cur:pc.cur}));}catch(e){}};
+const pcSave=()=>{try{localStorage.setItem(PC_KEY,JSON.stringify({done:pc.done,cr:pc.cr,chest:pc.chest,cur:pc.cur}));}catch(e){}};
 const pcStep=id=>PC_STEPS.find(x=>x.id===id);
 const pcIdx=id=>PC_STEPS.findIndex(x=>x.id===id);
 function pcHand(v){return v===-1?'au repos':v===0?'1 → 4 coups':v+(v>1?' coups':' coup');}
+const PC_RH={rock:'le rock',disco:'le disco',funk:'le funk',shuffle:'le shuffle',valse:'la valse','68':'le 6/8',bossa:'la bossa'};
 function pcTitle(st){
-  if(st.type==='trad')return 'Traduire 3 consignes ('+['','facile','moyen','difficile'][st.lvl]+')';
+  if(st.type==='jeu')return (st.boss?'Boss · ':'')+(st.game==='ecoute'?'Écoute puis rejoue : ':'Jeu : ')+PC_RH[st.rh]+(st.game==='ecoute'?'':' ('+GM_LV_TXT[st.lvl]+')');
+  if(st.type==='trad')return (st.boss?'Boss · ':'')+'Traduire '+st.need+' consignes ('+['','facile','moyen','difficile'][st.lvl]+')';
   if(st.l===-1)return 'Main droite seule : '+pcHand(st.r)+' par temps';
   if(st.r===-1)return 'Main gauche seule : '+pcHand(st.l)+' par temps';
   return 'Gauche '+pcHand(st.l)+', droite '+pcHand(st.r);
 }
 function pcGoal(st){
-  return st.type==='trad'?'Objectif : 3 consignes justes du premier coup, sur la grille ou la batterie.'
+  if(st.type==='jeu')return 'Objectif : 2 étoiles ou plus (80 % de coups justes). 3 étoiles = 3 couronnes. Départ à '+st.bpm+' BPM.';
+  return st.type==='trad'?'Objectif : '+st.need+' consignes justes du premier coup, sur la grille ou la batterie.'
     :st.l!==-1&&st.r!==-1
       ?'Comme sur le papier : une main seule d\'abord. Quand elle tient 2 mesures à '+PC_OK+' %, l\'autre entre. Quand les deux tiennent, 2 mesures sans clic. Si ça coince, le tempo ralentit tout seul. Départ à '+st.bpm+' BPM.'
       :'Objectif : 4 mesures de suite à '+PC_OK+' % de coups justes. Si ça coince, le tempo ralentit tout seul. Départ à '+st.bpm+' BPM.';
@@ -7298,16 +7349,43 @@ function pcFirstTodo(){const i=PC_STEPS.findIndex(x=>!pc.done[x.id]);return i<0?
 const pcLocked=x=>!pc.done[x.id]&&pcIdx(x.id)>pcFirstTodo();
 /* Raccourci : réussir la dernière leçon d'un chapitre, un peu plus vite, valide tout jusque-là. */
 function pcSkipTo(ci){
-  const last=PC_STEPS.filter(x=>x.ch===ci&&x.type==='mains').pop();if(!last)return;
-  pcStart(last.id,last.bpm+5);pc.skip=ci;
+  const b=PC_STEPS.find(x=>x.ch===ci&&x.boss);if(!b)return;
+  pcStart(b.id,b.type==='trad'?0:b.bpm+5);pc.skip=ci;
 }
 function pcLevelOpen(){
   let h='<button type="button" class="ib pr-x" id="lvX" aria-label="Fermer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>';
-  h+='<div class="pr-sec"><h3>Test de niveau</h3><p class="pr-txt">Choisis jusqu\'où tu penses savoir jouer. Une épreuve courte reprend la leçon la plus dure du chapitre, un peu plus vite : réussie, tout ce qui est avant est validé.</p><div class="lv-list">'
+  h+='<div class="pr-sec"><h3>Test de niveau</h3><p class="pr-txt">Choisis jusqu\'où tu penses savoir jouer. Tu affrontes le boss du chapitre, un peu plus vite : réussie, tout ce qui est avant est validé.</p><div class="lv-list">'
     +PC_CH.map((c,i)=>'<button type="button" class="btn ghost" data-ch="'+i+'">Jusqu\'à : '+(i+1)+'. '+c.t+'</button>').join('')+'</div></div>';
   sheetOpen(h);
   $('#lvX').addEventListener('click',sheetClose);
   document.querySelectorAll('.lv-list [data-ch]').forEach(b=>b.addEventListener('click',()=>{sheetClose();pcSkipTo(+b.dataset.ch);}));
+}
+/* Tchaki, la petite caisse claire qui donne les conseils */
+const PC_TCHAKI='<svg viewBox="0 0 48 48" width="44" height="44"><ellipse cx="24" cy="16" rx="17" ry="6" fill="#fff" stroke="#140F2A" stroke-width="2"/><path d="M7 16v16c0 3.3 7.6 6 17 6s17-2.7 17-6V16" fill="#E8453C" stroke="#140F2A" stroke-width="2"/><circle cx="18" cy="25" r="2.4" fill="#140F2A"/><circle cx="30" cy="25" r="2.4" fill="#140F2A"/><path d="M19 30q5 4 10 0" fill="none" stroke="#140F2A" stroke-width="2" stroke-linecap="round"/><path d="M38 4l-8 9M44 8l-10 7" stroke="#8A5A2B" stroke-width="2.6" stroke-linecap="round"/></svg>';
+const PC_CHEERS=['Tu assures !','Ça groove !','Super, on continue ?','Je le savais !','Quel batteur !'];
+function pcIcon(x){return x.boss?'🏆':x.type==='trad'?'Aa':x.type==='jeu'?(x.game==='ecoute'?'👂':'🎮'):'🖐';}
+function pcChest(ci){
+  const all=PC_STEPS.filter(x=>x.ch===ci).every(x=>pc.done[x.id]);
+  if(!all){sheetOpen('<div class="pr-sec pc-masc"><span class="pc-tchaki" aria-hidden="true">'+PC_TCHAKI+'</span><p class="tip">Ce coffre s\'ouvre quand tu as battu le boss du chapitre « '+PC_CH[ci].t+' ».</p></div><div class="row pr-btns"><button type="button" class="btn" id="pcChX">D\'accord</button></div>');$('#pcChX').addEventListener('click',sheetClose);return;}
+  let w=null;
+  if(!pc.chest[ci]){pc.chest[ci]=1;pcSave();w=serAdd(25);}
+  sheetOpen('<div class="pr-sec pr-top"><div class="pr-hex" aria-hidden="true">🎁</div><div><h3>Coffre du chapitre '+(ci+1)+'</h3><p class="pr-txt">'+(w?'⭐ +25 points bonus !':'Déjà ouvert : tu as eu tes 25 points.')+'</p></div></div>'
+    +'<div class="pr-sec"><p class="pr-k">Ce que tu sais faire maintenant</p><ul class="pc-sk">'+PC_CH[ci].sk.map(k=>'<li class="ok">'+k+'</li>').join('')+'</ul></div><div class="row pr-btns"><button type="button" class="btn" id="pcChX">Continuer</button></div>');
+  $('#pcChX').addEventListener('click',sheetClose);
+  if(w){gmConfetti(2);if(gm.ambi!=='rien')gmCheer(1);}
+  pcRender();
+}
+/* Mes compétences : tout ce qu'on apprend, chapitre par chapitre */
+function pcSkillsOpen(){
+  let h='<button type="button" class="ib pr-x" id="skX" aria-label="Fermer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button><div class="pr-sec"><h3>Mes compétences</h3>';
+  let got=0,tot=0;
+  PC_CH.forEach((c,ci)=>{
+    const L=PC_STEPS.filter(x=>x.ch===ci),d=L.filter(x=>pc.done[x.id]).length,ok=d===L.length,cr=L.reduce((a,x)=>a+(pc.cr[x.id]||0),0);
+    tot+=c.sk.length;if(ok)got+=c.sk.length;
+    h+='<p class="pr-k">'+(ci+1)+'. '+c.t+' · '+(ok?'✓ acquis':d?d+'/'+L.length+' leçons':'à venir')+' · 👑 '+cr+'/'+3*L.length+'</p><ul class="pc-sk">'+c.sk.map(k=>'<li class="'+(ok?'ok':d?'mid':'')+'">'+k+'</li>').join('')+'</ul>';
+  });
+  sheetOpen(h.replace('<h3>Mes compétences</h3>','<h3>Mes compétences</h3><p class="pr-txt">'+got+' sur '+tot+' acquises. Rejoue une leçon plus vite pour gagner des couronnes 👑.</p>')+'</div>');
+  $('#skX').addEventListener('click',sheetClose);
 }
 function pcRender(){
   serRender();
@@ -7317,12 +7395,13 @@ function pcRender(){
   const st=pcStep(pc.cur),i=pcIdx(pc.cur);
   const box=$('#pcNext');
   box.innerHTML='<div class="ch">Étape '+(i+1)+' · '+PC_CH[st.ch].t+(pc.done[st.id]?' · réussie à '+pc.done[st.id]+' BPM':'')+'</div>'
-    +'<h3></h3><p class="tip"></p><p class="goal"></p><div class="row"><button type="button" class="btn" id="pcGo">Commencer</button></div>';
+    +'<h3></h3><div class="pc-masc"><span class="pc-tchaki" aria-hidden="true">'+PC_TCHAKI+'</span><p class="tip"></p></div><p class="goal"></p><div class="row"><button type="button" class="btn" id="pcGo">Commencer</button><button type="button" class="btn ghost" id="pcSkills">Mes compétences</button></div>';
   box.querySelector('h3').textContent=pcTitle(st);
   box.querySelector('.tip').textContent=st.tip;
   box.querySelector('.goal').textContent=pcGoal(st);
   if(pcLocked(st))box.querySelector('.goal').insertAdjacentHTML('afterend','<p class="lockmsg">🔒 Pas encore débloquée : tu peux l\'essayer quand même.</p>');
   $('#pcGo').addEventListener('click',()=>pcStart(st.id));
+  $('#pcSkills').addEventListener('click',pcSkillsOpen);
   const list=$('#pcList');list.innerHTML='';
   PC_CH.forEach((c,ci)=>{
     const ban=document.createElement('div');ban.className='pc-chb';ban.style.setProperty('--chc','var('+PC_COL[ci%PC_COL.length]+')');
@@ -7338,13 +7417,21 @@ function pcRender(){
       const li=document.createElement('li'),b=document.createElement('button');
       b.type='button';b.className='pc-st'+(pc.done[x.id]?' done':pcLocked(x)?' lock':'');li.style.setProperty('--dx',PC_DX[k++%PC_DX.length]+'px');
       if(x.id===pc.cur)b.setAttribute('aria-current','step');
-      b.innerHTML='<span class="n">'+(pc.done[x.id]?'★':pcLocked(x)?'🔒':x.type==='trad'?'Aa':xi+1)+'</span><span class="t"></span><span class="b"></span>';
+      if(x.boss)b.classList.add('boss');
+      const cr=pc.cr[x.id]||0,ico=pcIcon(x);
+      b.innerHTML='<span class="n">'+(pcLocked(x)?'🔒':ico)+'</span><span class="t"></span><span class="b"></span>';
       b.querySelector('.t').textContent=pcTitle(x);
-      b.querySelector('.b').textContent=pc.done[x.id]?pc.done[x.id]+' BPM':x.type==='trad'?'':x.bpm+' BPM';
-      b.setAttribute('aria-label','Étape '+(xi+1)+' : '+pcTitle(x)+(pc.done[x.id]?', réussie à '+pc.done[x.id]+' BPM':pcLocked(x)?', pas encore débloquée':''));
+      b.querySelector('.b').textContent=pc.done[x.id]?'👑'.repeat(cr)+'·'.repeat(3-cr)+(x.type==='trad'?'':' '+pc.done[x.id]+' BPM'):x.type==='trad'?'':x.bpm+' BPM';
+      b.setAttribute('aria-label','Étape '+(xi+1)+' : '+pcTitle(x)+(pc.done[x.id]?', réussie'+(x.type==='trad'?'':' à '+pc.done[x.id]+' BPM')+', '+cr+' couronne'+(cr>1?'s':'')+' sur 3':pcLocked(x)?', pas encore débloquée':''));
       b.addEventListener('click',()=>{pc.cur=x.id;pcSave();pcRender();$('#pcNext').scrollIntoView({block:'nearest'});$('#pcGo').focus();});
       li.appendChild(b);ol.appendChild(li);
     });
+    /* le coffre du chapitre : s'ouvre une fois le boss battu */
+    {const li=document.createElement('li'),b=document.createElement('button');li.style.setProperty('--dx',PC_DX[k%PC_DX.length]+'px');
+      b.type='button';b.className='pc-st pc-chest'+(pc.chest[ci]?' done':all?' ready':' lock');
+      b.innerHTML='<span class="n">'+(pc.chest[ci]?'✨':'🎁')+'</span><span class="t">'+(pc.chest[ci]?'Coffre ouvert':all?'Coffre à ouvrir !':'Coffre du chapitre')+'</span><span class="b"></span>';
+      b.setAttribute('aria-label','Coffre du chapitre '+(ci+1)+(pc.chest[ci]?', déjà ouvert':all?', à ouvrir':', s\'ouvre quand le chapitre est réussi'));
+      b.addEventListener('click',()=>pcChest(ci));li.appendChild(b);ol.appendChild(li);}
     list.appendChild(ol);
   });
 }
@@ -7357,6 +7444,7 @@ function pcBar(txt,kind,btns){
   if(kind==='ok'||kind==='ko'){
     const w=kind==='ok'&&pc.win;
     sheetOpen('<div class="pr-sec pr-top"><div class="pr-hex'+(kind==='ko'?' ko':'')+'" aria-hidden="true">'+(kind==='ok'?'✓':'…')+'</div><div><h3>'+(kind==='ok'?'Étape réussie':'Pas encore')+'</h3></div></div>'+
+      '<div class="pr-sec pc-masc"><span class="pc-tchaki" aria-hidden="true">'+PC_TCHAKI+'</span><p class="tip">'+(kind==='ok'?PC_CHEERS[Math.floor(Math.random()*PC_CHEERS.length)]:'On y est presque. Un peu plus lent, et ça passe !')+'</p></div>'+
       (w?'<div class="pr-sec"><p class="pc-win"><span>⭐ +'+w.xp+' points</span><span>🔥 '+w.streak+' jour'+(w.streak>1?'s':'')+' de suite</span><span>🎯 '+Math.min(w.n,w.goal)+'/'+w.goal+(w.goalNow?' : objectif du jour atteint !':' aujourd\'hui')+'</span></p>'+(pc.skipped!=null?'<p class="pr-txt">Raccourci réussi : tout jusqu\'au chapitre « '+PC_CH[pc.skipped].t+' » est validé.</p>':'')+'</div>':'')+
       '<div class="pr-sec"><p class="pr-txt">'+txt+'</p></div><div class="row pr-btns" id="pcSheetBtns"></div>');
     if(w){gmConfetti(w.goalNow?3:2);if(gm.ambi!=='rien')gmCheer(w.goalNow?2:1);}
@@ -7365,8 +7453,10 @@ function pcBar(txt,kind,btns){
   }
 }
 function pcRestoreMode(){if(pc.mode!=null){mn.mode=pc.mode;pc.mode=null;mnRender();}}
+/* un jeu du parcours emprunte les réglages des Jeux : on les rend après */
+function pcRestoreGm(){if(pc.gmPrev){Object.assign(gm,pc.gmPrev);pc.gmPrev=null;gmRender();}}
 function pcQuit(){
-  pcRestoreMode();
+  pcRestoreMode();pcRestoreGm();if(gm.on)gmHalt();
   pc.active=null;$('#pcBar').hidden=true;$('#p-mains').classList.remove('pc-on');
   if(mn.goal){mn.goal=null;mnStop(true);}
   tr.goal=null;clearTimeout(tr.nextT);
@@ -7391,6 +7481,12 @@ function pcStart(id,bpm){
     pcBar(head+(two?'D\'abord la '+mnName(f)+' seule, la '+mnName(mnOther(f))+' entre quand elle tient.':'Écoute le décompte, puis joue : il faut '+MN_CONSEC+' bonnes mesures de suite.')+' Le tempo ralentit tout seul si ça coince.','',[pcQuitBtn]);
     mn.goal={consec:two?0:MN_CONSEC,cb:(r,x)=>pcMainsDone(st,r,x),abort:()=>pcRestoreMode()||pcBar(head+'Pas de souci, on s\'arrête là. Tu peux reprendre quand tu veux'+(state.bpm<pc.bpm?', à '+state.bpm+' BPM, un peu plus lent.':'.'),'',[['Reprendre'+(state.bpm<pc.bpm?' à '+state.bpm+' BPM':''),()=>pcStart(id,state.bpm)],pcQuitBtn])};
     withCalib(mnSrc(),mnPlay);
+  }else if(st.type==='jeu'){
+    if(!pc.gmPrev)pc.gmPrev={game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,pl:gm.pl};
+    showTab('jeux');
+    gm.game=st.game;gm.rh=st.rh;gm.lvl=st.lvl;gm.bpm=bpm||st.bpm;gm.pl=null;gmRender();
+    pcBar(head+'Il faut 2 étoiles ou plus. Bonne partie !','',[['Jouer',()=>gmLaunch(null)],pcQuitBtn]);
+    gmLaunch(null);
   }else{
     showTab('mots');
     tr.lvl=st.lvl;try{localStorage.setItem(TR_KEY,String(tr.lvl));}catch(e){}
@@ -7402,12 +7498,20 @@ function pcStart(id,bpm){
   }
 }
 function pcNextId(id){const i=pcIdx(id);return PC_STEPS[Math.min(i+1,PC_STEPS.length-1)].id;}
-function pcSucceed(st,bpm){
+/* couronnes : 1 à la réussite ; une leçon de mains rejouée +10 puis +20 BPM plus vite en donne 2 puis 3 ;
+   un jeu en donne autant que d'étoiles ; une traduction, une par réussite */
+function pcCrowns(st,bpm,cr){
+  if(cr)return cr;
+  if(st.type==='mains')return 1+(bpm>=st.bpm+10)+(bpm>=st.bpm+20);
+  return Math.min(3,(pc.cr[st.id]||0)+1);
+}
+function pcSucceed(st,bpm,cr){
   pc.done[st.id]=Math.max(pc.done[st.id]||0,bpm||1);
-  let gain=10;
+  pc.cr[st.id]=Math.max(pc.cr[st.id]||0,pcCrowns(st,bpm,cr));
+  let gain=st.boss?20:10;
   if(pc.skip!=null&&st.ch===pc.skip){
     /* épreuve du raccourci réussie : tout jusqu'à ce chapitre est validé */
-    PC_STEPS.forEach(x=>{if(x.ch<=pc.skip&&!pc.done[x.id])pc.done[x.id]=x.type==='trad'?1:x.bpm;});
+    PC_STEPS.forEach(x=>{if(x.ch<=pc.skip&&!pc.done[x.id]){pc.done[x.id]=x.type==='trad'?1:x.bpm;pc.cr[x.id]=1;}});
     const nx=PC_STEPS.find(x=>!pc.done[x.id]);pc.cur=nx?nx.id:st.id;gain=30;pc.skipped=pc.skip;
   }else{pc.cur=pcNextId(st.id);pc.skipped=null;}
   pc.skip=null;
@@ -7441,15 +7545,32 @@ function pcMainsDone(st,r,x){
   }
   pcShowBar();
 }
+function pcGameDone(st,stars,p,fell){
+  pcRestoreGm();
+  const i=pcIdx(st.id),head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · ',bpm=Math.round(gm.curBpm)||st.bpm;
+  const sts='★'.repeat(stars)+'☆'.repeat(3-stars);
+  if(!fell&&stars>=2){
+    pcSucceed(st,bpm,stars);
+    const last=i===PC_STEPS.length-1,nx=pcStep(pc.cur);
+    pcBar(head+sts+' Réussi : '+p+' % à '+bpm+' BPM.'+(st.boss?' Boss battu, le chapitre suivant est ouvert !':'')+(last?' Tu as fini le parcours !':''),'ok',[
+      ...(last?[]:[['Étape suivante : '+pcTitle(nx),()=>pcStart(nx.id)]]),
+      ...(stars<3?[['Viser 3 étoiles',()=>pcStart(st.id,bpm),true]]:[['Plus vite (+5)',()=>pcStart(st.id,Math.min(220,bpm+5)),true]]),pcQuitBtn]);
+  }else{
+    const slow=Math.max(40,bpm-5);pc.skip=null;
+    pcBar(head+(fell?'La jauge s\'est vidée. ':sts+' '+p+' %. ')+'Il faut 2 étoiles (80 %). '+(bpm>slow?'Essaie un peu plus lent.':''),'ko',[
+      ['Recommencer',()=>pcStart(st.id,bpm)],...(bpm>slow?[['Plus lent (−5)',()=>pcStart(st.id,slow),true]]:[]),pcQuitBtn]);
+  }
+  pcShowBar();
+}
 function pcTradDone(st){
   const i=pcIdx(st.id),head='<b>Étape '+(i+1)+'/'+PC_STEPS.length+'</b> · ';
   pcSucceed(st,1);
   const last=i===PC_STEPS.length-1,nx=pcStep(pc.cur);
-  pcBar(head+'Réussi : 3 consignes justes du premier coup.'+(last?' Tu as fini le parcours !':''),'ok',[
+  pcBar(head+'Réussi : '+st.need+' consignes justes du premier coup.'+(last?' Tu as fini le parcours !':''),'ok',[
     ...(last?[]:[['Étape suivante : '+pcTitle(nx),()=>pcStart(nx.id)]]),pcQuitBtn]);
 }
 pcRender();prRender();
-if(navigator.webdriver)window.__pc={ok:(id,bpm)=>pcSucceed(pcStep(id||pc.active),bpm),skip:()=>pc.skip,active:()=>pc.active,xp:()=>ser.xp};
+if(navigator.webdriver)window.__pc={ok:(id,bpm,cr)=>{pcRestoreGm();pcSucceed(pcStep(id||pc.active),bpm,cr);},game:(stars,p)=>pcGameDone(pcStep(pc.active),stars,p,false),gm:()=>({game:gm.game,rh:gm.rh,lvl:gm.lvl,bpm:gm.bpm,on:gm.on}),skip:()=>pc.skip,active:()=>pc.active,xp:()=>ser.xp};
 
 /* ---------- Dictionnaire éditable ---------- */
 let lastD=null,refocus=null;
