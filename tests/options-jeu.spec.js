@@ -16,6 +16,21 @@ test.describe('Options de jeu', () => {
     await expect(page.locator('#gmPopAt [data-v="haut"]')).toHaveAttribute('aria-pressed', 'true');
   });
 
+  test('Couloirs à l\'écran : jamais plus de deux notes à la fois (deux pouces)', async ({ page }) => {
+    await rubrique(page, 'Jeux');
+    await page.locator('#gmLv [data-v="difficile"]').click();
+    await page.locator('#gmGo').click();
+    await page.waitForFunction(() => window.__gm.on());
+    const notes = await page.evaluate(() => window.__gm.notes());
+    const par = {};
+    notes.forEach((n) => { const k = Math.round(n.t * 20); par[k] = (par[k] || 0) + 1; });
+    expect(Math.max(...Object.values(par))).toBeLessThanOrEqual(2);
+    // la caisse claire et la grosse caisse restent à jouer, le charley en trop passe à l'accompagnement
+    expect(notes.some((n) => n.lane === 0)).toBe(true);
+    expect(notes.some((n) => n.lane === 1)).toBe(true);
+    expect(notes.some((n) => n.lane === 2)).toBe(true);
+  });
+
   test('quand ça coince : moins de notes, et le public soupire', async ({ page }) => {
     test.setTimeout(60_000);
     await rubrique(page, 'Jeux');

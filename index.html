@@ -2218,7 +2218,8 @@ function gmEchoChart(src,lvl,total,keepClick,withSong,len,keepLanes){
 /* Un passage qui tourne : les notes d'un tour, recopiées au fil de la partie (voir gmLoopFeed). */
 function gmLoopChart(song,lvl,bar,len){
   const bars=gmSongBars(song),nb=bars.length-1,i=Math.max(0,Math.min(nb-1,bar)),j=Math.min(nb,i+len),A=bars[i],B=bars[j],L=B-A;
-  const src=gmSongChart(song,'couloirs',lvl).notes.filter(n=>n.t>=A-0.03&&n.t<B-0.03);
+  let src=gmSongChart(song,'couloirs',lvl).notes.filter(n=>n.t>=A-0.03&&n.t<B-0.03);
+  if(!gm.midi)src=gmTwoThumbs(src,null,song);
   const beatSrc=[];for(let b=i;b<j;b++)for(let k=0;k<4;k++)beatSrc.push({t:bars[b]+(bars[b+1]-bars[b])*k/4,accent:k===0});
   return {kind:'loop',notes:[],backing:[],beats:[],src,beatSrc,A,B,L,barDur:L/(j-i),dur:Infinity,nLanes:4,start:A,bars:[],barFrom:i,barTo:j};
 }
@@ -5208,6 +5209,24 @@ function gmDrawHH(cx,now){
   cx.fillText(singleWord(dict,'tss'),P.x,P.y+1);
   gmDrawPops(cx,now,k=>k==='hh'?P.x:-999,P.y-P.r-26,P.r*2.4);
 }
+/* Couloirs sur l'écran : on joue avec les deux pouces, donc jamais plus de deux notes à la fois.
+   Les notes en trop (au même instant, à 30 ms près) sont jouées par l'accompagnement. On garde
+   d'abord la caisse claire et la grosse caisse, puis les toms, puis le charley. Pas avec la batterie MIDI. */
+const GM_THUMB_PRIO=[1,0,3,2];
+function gmTwoThumbs(notes,backing,song){
+  const keep=[],gone=[];
+  for(let i=0;i<notes.length;){
+    let j=i;while(j<notes.length&&notes[j].t-notes[i].t<0.03)j++;
+    const grp=notes.slice(i,j);
+    if(grp.length>2){grp.sort((a,b)=>GM_THUMB_PRIO.indexOf(a.lane)-GM_THUMB_PRIO.indexOf(b.lane));grp.slice(2).forEach(n=>gone.push(n));grp.slice(0,2).forEach(n=>keep.push(n));}
+    else grp.forEach(n=>keep.push(n));
+    i=j;
+  }
+  keep.sort((a,b)=>a.t-b.t||a.lane-b.lane);
+  if(gone.length&&backing&&!song){gone.forEach(n=>backing.push({t:n.t,id:n.id,vel:n.vel}));backing.sort((a,b)=>a.t-b.t);}
+  return keep;
+}
+const gmThumbs=()=>gm.game==='couloirs'&&!gm.midi;
 function gmStart(song,buffer,opt={}){
   stop();stopSong();mnStop();
   const say=t=>{$(opt.loop?'#lpMsg':'#gmMsg').textContent=t;};
@@ -5223,6 +5242,7 @@ function gmStart(song,buffer,opt={}){
     gm.loop=null;
     gm.chart=gmBuild(song);
     if(gm.game==='vr'&&vrKick==='auto')vrAutoKick(gm.chart,song);
+    if(gmThumbs())gm.chart.notes=gmTwoThumbs(gm.chart.notes,gm.chart.backing,song);
     if(!gm.chart.notes.length){say(gm.game==='ecoute'?'Pas de motif à rejouer à ce niveau : essaie un niveau plus haut ou un autre rythme.':'Rien à jouer à ce niveau dans ce rythme : essaie un niveau plus haut.');return;}
   }
   const c=gm.chart,ns=c.notes;
